@@ -41,6 +41,7 @@ import com.alee.laf.label.*;
 import com.alee.laf.panel.*;
 import com.alee.laf.text.*;
 import com.alee.laf.toolbar.*;
+import com.alee.managers.style.*;
 import com.alee.managers.tooltip.*;
 import com.alee.utils.*;
 import com.alee.utils.swing.*;
@@ -1160,7 +1161,10 @@ public class TUIUtils {
 	 */
 	public static WebToggleButton getWebToggleButton(Action action) {
 		overRideIcons(16, null, action);
-		WebToggleButton jb = new WebToggleButton(action);
+		WebToggleButton jb = new WebToggleButton(StyleId.togglebutton, action);
+		// test: for toglebuttons, perform action performed over the action
+//		jb.addItemListener(
+//				evt -> ((AbstractButton) evt.getSource()).getAction().actionPerformed(new ActionEvent(jb, -1, "")));
 		jb.setText(null);
 		jb.setPreferredWidth(46);
 		return jb;

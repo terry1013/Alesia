@@ -2,16 +2,14 @@ package plugins.hero;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.*;
 
 import org.apache.commons.math3.stat.descriptive.*;
+import org.jdesktop.application.*;
 
 import com.javaflair.pokerprophesier.api.card.*;
 import com.javaflair.pokerprophesier.api.helper.*;
 
 import core.*;
-import core.tasks.*;
-import gui.prueckl.draw.*;
 
 /**
  * this class represent the core of al hero plugins. As a core class, this class dependes of anothers classes in order
@@ -28,7 +26,7 @@ import gui.prueckl.draw.*;
  * @author terry
  *
  */
-public class Trooper implements Runnable {
+public class Trooper extends Task {
 
 	private PokerSimulator pokerSimulator;
 	private RobotActuator robotActuator;
@@ -39,18 +37,18 @@ public class Trooper implements Runnable {
 
 	private Vector<String> availableActions;
 	private int countdown;
-	private Future myFuture;
 
+	private long time1;
+
+	private DescriptiveStatistics outGameStats;
 	public Trooper() {
+		super(Alesia.getInstance());
 		this.pokerSimulator = new PokerSimulator();
 		this.robotActuator = new RobotActuator();
 		this.sensorsArray = new SensorsArray(pokerSimulator);
 		this.availableActions = new Vector();
 		this.outGameStats = new DescriptiveStatistics(10);
 	}
-
-	private long time1;
-	private DescriptiveStatistics outGameStats;
 
 	public void clearEnviorement() {
 		sensorsArray.init();
@@ -60,7 +58,7 @@ public class Trooper implements Runnable {
 		long tt = time1 == 0 ? 10000 : System.currentTimeMillis() - time1;
 		outGameStats.addValue(tt);
 		time1 = System.currentTimeMillis();
-		Hero.logGame("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
+		Hero.logger.info("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
 	}
 
 	public PokerSimulator getPokerSimulator() {
@@ -102,7 +100,7 @@ public class Trooper implements Runnable {
 		poto = (val == 0) ? 0 : poto;
 		// for val=-1 (posible error) return -1 expectaive
 		poto = (val < 0) ? -1 : poto;
-		Hero.logGame(pnam + " prob=" + totp + " pot=" + pot + " value=" + val + " potodd=" + poto);
+		Hero.logger.info(pnam + " prob=" + totp + " pot=" + pot + " value=" + val + " potodd=" + poto);
 		return poto;
 	}
 
@@ -143,26 +141,39 @@ public class Trooper implements Runnable {
 	}
 
 	/**
-	 * This method is invoked during the idle phase (after {@link #act()} and before {@link #decide()}. use this method
-	 * to perform large computations.
+	 * set the enviorement. this method create a new enviorement discarting all previous created objects
+	 * 
 	 */
-	protected void think() {
-		// read all the table only for warm up the sensors hoping that many of then will not change in the near future
-		// sensorsArray.read();
-		// 191020: ayer ya la implementacion por omision jugo una partida completa y estuvo a punto de vencer a la
-		// chatarra de Texas poker - poker holdem. A punto de vencer porque jugaba tan lento que me aburri del sueno :D
+	public void setEnviorement(Object obj) {
+		File f = (File) obj;
+		SensorDisposition sDisp = new SensorDisposition(f);
+		sDisp.read();
+		sensorsArray.createSensorsArray(sDisp);
+		robotActuator.setEnviorement(sDisp);
+		pokerSimulator.init();
 	}
-	/**
-	 * decide de action(s) to perform. This method is called when the {@link Trooper} detect that is my turn to play. At
-	 * this point, the game enviorement is waiting for an accion. This method must report all posible actions using the
-	 * {@link #addAction(String)} method
-	 */
-	private void decide() {
-		sensorsArray.read("hero.card1", "hero.card2", "flop1", "flop2", "flop3", "turn", "river");
-		if (pokerSimulator.getCurrentRound() > PokerSimulator.NO_CARDS_DEALT) {
-			addAction("fold");
-			addPotOddActions();
-		}
+	public void setTakingSamples(boolean isTakingSamples) {
+		this.isTakingSamples = isTakingSamples;
+	}
+
+	public void setTestMode(boolean isTestMode) {
+		this.isTestMode = isTestMode;
+	}
+
+	public void start() {
+		isRunning = true;
+		this.countdown = 5;
+//		try {
+//			doInBackground();
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+		Alesia.getInstance().getContext().getTaskService().execute(this);
+	}
+
+	public void stop() {
+		isRunning = false;
+		cancel(true);
 	}
 
 	/**
@@ -182,152 +193,6 @@ public class Trooper implements Runnable {
 		availableActions.add(act);
 	}
 
-	private boolean isMyTurnToPlay() {
-		return sensorsArray.getScreenSensor("fold").isEnabled() || sensorsArray.getScreenSensor("call").isEnabled()
-				|| sensorsArray.getScreenSensor("raise").isEnabled();
-	}
-
-	/**
-	 * use de actions stored in {@link #availableActions} list. At this point, the game table is waiting for the herro
-	 * action.
-	 * <p>
-	 * this implenentation randomly select an action from the list and perfom it. if <code>fold</code> action is in the
-	 * list, this bust be the only action.
-	 */
-	protected void act() {
-		if (isMyTurnToPlay() && availableActions.size() > 0) {
-			final StringBuffer actl = new StringBuffer();
-			availableActions.stream().forEach((act) -> actl.append(act + ", "));
-			Hero.logDebug("Available actions to perform: " + actl.substring(0, actl.length() - 2));
-			Hero.logGame("Current hand: " + pokerSimulator.getMyHandHelper().getHand().toString());
-			if (availableActions.size() == 1) {
-				robotActuator.perform(availableActions.elementAt(0));
-			} else {
-				double rnd = Math.random();
-				int r = (int) (rnd * availableActions.size());
-				robotActuator.perform(availableActions.elementAt(r));
-			}
-		}
-	}
-
-	@Override
-	public void run() {
-
-		while (isRunning) {
-			try {
-
-				// countdown before start
-				if (countdown > 0) {
-					countdown--;
-					Hero.logGame("Seconds to start: " + countdown);
-					Thread.sleep(1000);
-					continue;
-				}
-
-				sensorsArray.lookTable();
-
-				// look the continue button and perform the action if available.
-//				sensorsArray.lookTable("continue");
-				ScreenSensor ss = sensorsArray.getScreenSensor("continue");
-				if (ss.isEnabled()) {
-					robotActuator.perform("continue");
-					clearEnviorement();
-					continue;
-				}
-
-				// look the standar actions buttons. this standar button indicate that the game is waiting for my play
-//				sensorsArray.lookTable("fold", "call", "raise");
-				if (isMyTurnToPlay()) {
-					Hero.logDebug("Deciding ...");
-					decide();
-					Hero.logDebug("-------------------");
-					Hero.logDebug("Acting ...");
-					act();
-					Hero.logDebug("-------------------");
-				}
-				Hero.logDebug("Thinkin ...");
-				think();
-				Hero.logDebug("-------------------");
-
-				// check simulator status: in case of any error, try to clean the simulator and wait for the next cycle
-				if (pokerSimulator.getException() != null) {
-					// clearEnviorement();
-					// pokerSimulator.init();
-					// continue;
-				}
-
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
-	/**
-	 * set the enviorement. this method create a new enviorement discarting all previous created objects
-	 * 
-	 */
-	public void setEnviorement(Object obj) {
-		File f = (File) obj;
-		SensorDisposition sDisp = new SensorDisposition(f);
-		sDisp.read();
-		sensorsArray.createSensorsArray(sDisp);
-		robotActuator.setEnviorement(sDisp);
-		pokerSimulator.init();
-	}
-
-	public void setTakingSamples(boolean isTakingSamples) {
-		this.isTakingSamples = isTakingSamples;
-	}
-	public void setTestMode(boolean isTestMode) {
-		this.isTestMode = isTestMode;
-	}
-	public void start() {
-		isRunning = true;
-		this.countdown = 5;
-		myFuture = TTaskManager.executeTask(this);
-	}
-	public void stop() {
-		isRunning = false;
-		if (myFuture != null) {
-			myFuture.cancel(true);
-		}
-	}
-	/**
-	 * return <code>true</code> if the herro cards are inside of the predefinde hand distributions for pre-flop
-	 * 
-	 */
-	private boolean isGoodHand() {
-		boolean ok = false;
-
-		// suited hand
-		if (pokerSimulator.getMyHoleCards().isSuited()) {
-			Hero.logGame("Hero hand: is Suited");
-			ok = true;
-		}
-
-		// 10 or higher
-		Card[] heroc = pokerSimulator.getMyHoleCards().getCards();
-		if (heroc[0].getRank() > Card.TEN && heroc[1].getRank() > Card.TEN) {
-			Hero.logGame("Hero hand: 10 or higher");
-			ok = true;
-		}
-
-		// posible straight: cernters cards separated only by 1 or 2 cards provides de best probabilities (>=6%)
-		if (pokerSimulator.getMyHandStatsHelper().getStraightProb() >= 6) {
-			Hero.logGame("Hero hand: Posible straight");
-			ok = true;
-		}
-		// is already a pair
-		if (pokerSimulator.getMyHandHelper().isPocketPair()) {
-			Hero.logGame("Hero hand: is pocket pair");
-			ok = true;
-		}
-
-		if (ok) {
-			Hero.logGame("the current hand is a bad hand");
-		}
-
-		return ok;
-	}
 	/**
 	 * Compute the actions available according to {@link #getPotOdds(int)} evaluations. The resulting computation will
 	 * be reflected in a single (fold) or multiples (check/call, raise, ...) actions available to be randomy perform.
@@ -346,7 +211,18 @@ public class Trooper implements Runnable {
 		}
 		// TODO: compute more raise actions until potodd < 0
 	}
-
+	/**
+	 * decide de action(s) to perform. This method is called when the {@link Trooper} detect that is my turn to play. At
+	 * this point, the game enviorement is waiting for an accion. This method must report all posible actions using the
+	 * {@link #addAction(String)} method
+	 */
+	private void decide() {
+		sensorsArray.read("hero.card1", "hero.card2", "flop1", "flop2", "flop3", "turn", "river");
+		if (pokerSimulator.getCurrentRound() > PokerSimulator.NO_CARDS_DEALT) {
+			addAction("fold");
+			addPotOddActions();
+		}
+	}
 	/**
 	 * Temporal: return the sum of all villans call. used to retrive the exact amount of pot
 	 * 
@@ -370,5 +246,128 @@ public class Trooper implements Runnable {
 		}
 
 		return villanscall;
+	}
+	/**
+	 * return <code>true</code> if the herro cards are inside of the predefinde hand distributions for pre-flop
+	 * 
+	 */
+	private boolean isGoodHand() {
+		boolean ok = false;
+
+		// suited hand
+		if (pokerSimulator.getMyHoleCards().isSuited()) {
+			Hero.logger.info("Hero hand: is Suited");
+			ok = true;
+		}
+
+		// 10 or higher
+		Card[] heroc = pokerSimulator.getMyHoleCards().getCards();
+		if (heroc[0].getRank() > Card.TEN && heroc[1].getRank() > Card.TEN) {
+			Hero.logger.info("Hero hand: 10 or higher");
+			ok = true;
+		}
+
+		// posible straight: cernters cards separated only by 1 or 2 cards provides de best probabilities (>=6%)
+		if (pokerSimulator.getMyHandStatsHelper().getStraightProb() >= 6) {
+			Hero.logger.info("Hero hand: Posible straight");
+			ok = true;
+		}
+		// is already a pair
+		if (pokerSimulator.getMyHandHelper().isPocketPair()) {
+			Hero.logger.info("Hero hand: is pocket pair");
+			ok = true;
+		}
+
+		if (ok) {
+			Hero.logger.info("the current hand is a bad hand");
+		}
+
+		return ok;
+	}
+	private boolean isMyTurnToPlay() {
+		return sensorsArray.getScreenSensor("fold").isEnabled() || sensorsArray.getScreenSensor("call").isEnabled()
+				|| sensorsArray.getScreenSensor("raise").isEnabled();
+	}
+	/**
+	 * use de actions stored in {@link #availableActions} list. At this point, the game table is waiting for the herro
+	 * action.
+	 * <p>
+	 * this implenentation randomly select an action from the list and perfom it. if <code>fold</code> action is in the
+	 * list, this bust be the only action.
+	 */
+	protected void act() {
+		if (isMyTurnToPlay() && availableActions.size() > 0) {
+			final StringBuffer actl = new StringBuffer();
+			availableActions.stream().forEach((act) -> actl.append(act + ", "));
+			Hero.logger.fine("Available actions to perform: " + actl.substring(0, actl.length() - 2));
+			Hero.logger.info("Current hand: " + pokerSimulator.getMyHandHelper().getHand().toString());
+			if (availableActions.size() == 1) {
+				robotActuator.perform(availableActions.elementAt(0));
+			} else {
+				double rnd = Math.random();
+				int r = (int) (rnd * availableActions.size());
+				robotActuator.perform(availableActions.elementAt(r));
+			}
+		}
+	}
+
+	@Override
+	protected Object doInBackground() throws Exception {
+
+		while (isRunning) {
+
+			// countdown before start
+			if (countdown > 0) {
+				countdown--;
+				
+				Hero.logger.info("Seconds to start: " + countdown);
+				Thread.sleep(1000);
+				continue;
+			}
+
+			sensorsArray.lookTable();
+
+			// look the continue button and perform the action if available.
+			// sensorsArray.lookTable("continue");
+			ScreenSensor ss = sensorsArray.getScreenSensor("continue");
+			if (ss.isEnabled()) {
+				robotActuator.perform("continue");
+				clearEnviorement();
+				continue;
+			}
+
+			// look the standar actions buttons. this standar button indicate that the game is waiting for my play
+			// sensorsArray.lookTable("fold", "call", "raise");
+			if (isMyTurnToPlay()) {
+				Hero.logger.fine("Deciding ...");
+				decide();
+				Hero.logger.fine("-------------------");
+				Hero.logger.fine("Acting ...");
+				act();
+				Hero.logger.fine("-------------------");
+			}
+			Hero.logger.fine("Thinkin ...");
+			think();
+			Hero.logger.fine("-------------------");
+
+			// check simulator status: in case of any error, try to clean the simulator and wait for the next cycle
+			if (pokerSimulator.getException() != null) {
+				// clearEnviorement();
+				// pokerSimulator.init();
+				// continue;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * This method is invoked during the idle phase (after {@link #act()} and before {@link #decide()}. use this method
+	 * to perform large computations.
+	 */
+	protected void think() {
+		// read all the table only for warm up the sensors hoping that many of then will not change in the near future
+		// sensorsArray.read();
+		// 191020: ayer ya la implementacion por omision jugo una partida completa y estuvo a punto de vencer a la
+		// chatarra de Texas poker - poker holdem. A punto de vencer porque jugaba tan lento que me aburri del sueno :D
 	}
 }

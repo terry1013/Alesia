@@ -11,13 +11,10 @@
 package plugins.hero;
 
 import java.awt.*;
-import java.awt.event.*;
 import java.util.*;
 
 import javax.swing.*;
 import javax.swing.border.*;
-
-import org.jdesktop.application.Action;
 
 import com.alee.extended.layout.*;
 import com.alee.extended.panel.*;
@@ -53,7 +50,7 @@ public class ScreenRegions extends TUIPanel {
 				createPanel();
 			}
 		});
-		setToolBar(load);
+		setToolBar(load, Hero.actionMap.get("takeSample"));
 
 		GroupPanel g = new GroupPanel(run, stop, test);
 		getToolBarPanel().add(g, LineLayout.START);
@@ -66,10 +63,6 @@ public class ScreenRegions extends TUIPanel {
 		setBodyComponent(jp);
 	}
 
-	@Action
-	public void takeSample(ActionEvent event) {
-		Hero.trooper.getSensorsArray().takeSample();
-	}
 	/**
 	 * create the panel whit my cards and comunity cards
 	 * 

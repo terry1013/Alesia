@@ -69,7 +69,7 @@ public class TUIPanel extends JPanel {
 
 //	temporal 
 		this.toolBarPanel = new WebPanel(StyleId.panelTransparent);
-		toolBarPanel.setLayout(new LineLayout(LineLayout.HORIZONTAL));
+		toolBarPanel.setLayout(new LineLayout(LineLayout.HORIZONTAL, 0));
 		
 		// tilte label + 3dot button
 		this.titlePanel = new WebPanel(StyleId.panelTransparent);

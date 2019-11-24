@@ -40,9 +40,9 @@ public class RobotActuator {
 			Point p = fig.getCenterPoint();
 			mouseMove(p.x, p.y);
 			doClick();
-			Hero.logGame("Action " + aName + " performed.");
+			Hero.logger.fine("Action " + aName + " performed.");
 		} else {
-			System.err.println("From RobotActuator.perform: Action " + aName
+			Hero.logger.fine("From RobotActuator.perform: Action " + aName
 					+ " not performed. no button was found with that name");
 		}
 	}

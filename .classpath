@@ -62,5 +62,8 @@
 	<classpathentry kind="lib" path="lib/bsaf-1.9.1.jar" sourcepath="C:/Users/terry/Documents/java/jsr296/bsaf/bsaf-1.9.1-sources.jar"/>
 	<classpathentry kind="lib" path="lib/poi-4.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/poi-scratchpad-4.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/poi-excelant-4.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/poi-ooxml-4.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/poi-ooxml-schemas-4.1.1.jar"/>
 	<classpathentry kind="output" path=""/>
 </classpath>
