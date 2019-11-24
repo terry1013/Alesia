@@ -1,0 +1,48 @@
+body {
+	font-family: Verdana;    
+	font-size: 12;    
+	margin: 2px;
+}
+
+p {
+	margin: 2px;
+	margin-left: 2px;
+}
+
+ol {
+    margin-top: 10;
+    margin-bottom: 10;
+    margin-left: 30;
+    list-style-type: decimal;
+	list-style: bold;
+}
+ul {margin-top: 10;
+    margin-bottom: 10;
+    margin-left:30;
+}
+a {
+	color: #004080;
+}
+h1 {
+	font-family: 'Arial';    
+	font-size: 26;    
+	color: #646464
+	margin-top: 15px;
+	margin-bottom: 5px;
+}
+
+h2 {
+	font-family: 'Arial';    
+	font-size: 20;
+	color: #646464
+	margin-top: 15px;
+	margin-bottom: 5px;
+}
+
+h3 {
+	font-family: 'Arial';    
+	font-size: 16;    
+	color: #646464
+	margin-top: 10px;
+	margin-bottom: 5px;
+}

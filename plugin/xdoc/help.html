@@ -1,0 +1,177 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!-- Created on: 30/08/2013 -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252" />
+<title></title>
+</head>
+<body>
+<h2>Ayuda SleDoc</h2>
+<p>SleDoc le da la capacidad de crear reportes sencillos usando las aplicaciones MS Word o  OppeOffice Writer.</p>
+<p>Con las aplicaciones mencionadas, Ud. Podrá crear reportes bases o plantillas con su imagen corporativa que luego serán combinadas con los datos actuales de la nomina para generar documentos de forma sencilla, sin necesidad de adiestramiento extenso o personal especializado en estas operaciones.</p>
+<p>Esta pagina, le dara un recorrido por las operaciones básicas para que pueda crear reportes usando SlDoc usando como herramienta MS Word.</p>
+<p></p>
+<p>Topicos a tratar</p>
+<ul>
+  <li><a href="#Creando plantilla">Creando plantilla para combinar documento usando MS Word</a></li>
+  <li><a href="#Sello digital">Sello digital</a></li>
+  <li><a href="#Adicionar documentos">Adicionar documentos a SleDoc</a></li>
+  <li><a href="#Combinar documentos">Combinar documentos</a></li>
+  <li><a href="#Variables">Variables</a></li>
+</ul>
+
+<a name="Creando plantilla"></a>
+<h3>Creando plantilla para combinar documento usando MS Word</h3>
+<p>Esta sección explica como añadir la variable Primer nombre ($people.name1 )  después del texto Nombre:. Para hacer esto:</p>
+<p>Coloque el cursor donde desea añadir la variable y presione Ctrl+F9</p>
+<img src="images/img1.gif" border="0" width="500" height="300" alt="" />
+<p></p>
+<p>Ms Word generara un {}. Selecciónelo y presione clic derecho para abrir menú emergente. Seleccione editar campo.</p>
+<img src="images/img2.gif" border="0" width="500" height="300" alt="" />
+<p></p>
+<p>Esta acción abrirá el dialogo Campos. Seleccione MergeField en la lista Nombre de campos. Luego coloque en nombre de la variable $people.name1 en el campo de entrada Nombre de campo. Presione Aceptar.</p>
+<img src="images/img3.gif" border="0" width="500" height="300" alt="" />
+<p></p>
+<p>La variable ha sido creada.</p>
+<img src="images/img4.gif" border="0" width="500" height="300" alt="" />
+<p></p>
+<p>Esta puede ser formateada en el estilo que desee. Para ello, selecciónela y formatee al gusto.</p>
+<img src="images/img5.gif" border="0" width="500" height="300" alt="" />
+<p></p>
+<a name="Sello digital"></a>
+<h3>Sello digital</h3>
+<p>Esta sección explica como adicionar el sello digital dentro de su plantilla MS Word. Estos son los pasos:</p>
+<p>Valla al menú Insertar/imagen</p>
+<img src="images/img6.gif" border="0" width="500" height="300" alt="" />
+<p></p>
+<p>Esta acción abre el dialogo para seleccionar una imagen. Puede seleccionar cualquier imagen. En este caso, una imagen de muestra.</p>
+<img src="images/img7.gif" border="0" width="500" height="300" alt="" />
+<p></p>
+<p>Después de insertar la imagen, debe darle un nombre. Para hacer esto seleccione la imagen y seleccione insertar/marcador.</p>
+<img src="images/img8.gif" border="0" width="500" height="300" alt="" />
+<p></p>
+<p>Esta acción abrirá el dialogo marcador. Coloque digitalSign en el campo nombre del marcador. Presione Agregar.</p>
+<p></p>
+<img src="images/img9.gif" border="0" width="500" height="300" alt="" />
+<p>Puede adicionar bordes u otros detalles, excepto efectos que distorsionen la imagen ya que es posible que no pueda ser reconocida por los dispositivos ópticos.</p>
+<p></p>
+<img src="images/img10.gif" border="0" width="500" height="300" alt="" /> 
+<a name="Adicionar documentos"></a>
+<h3>Adicionar documentos a SleDoc</h3>
+<p>Esta sección le explicara como configurar una plantilla en SleDoc. El objetivo de estos pasos es dar a conocer a la aplicación cuales son los documentos  disponibles para ser combinados con los datos de la base de datos y así, generar un documento válido.  Para hacer eso, iniciamos la aplicación. Luego de ingresar el usuario y la contraseña, seleccione el menú SleDoc/Documentos.</p>
+<img src="images/img11.gif" border="0" width="500" height="300" alt="" />
+<p></p>
+<p>Esta acción abrirá el dialogo de documentos. Presione Nuevo para adicionar una plantilla. Presione el botón que aparece luego del texto Documento *. Esta acción abrirá una ventana que le permitirá seleccionar el documento a ingresar. Luego coloque una descripción de la función del documento. Presione Aceptar.</p>
+<img src="images/img12.gif" border="0" width="500" height="300" alt="" />
+<p></p>
+<p>Una vez adicionado el documento, puede asociarle firmas (Personas que deben firmar el documento) y los acumuladores que serán tomados en cuenta al momento de la generación del reporte.</p>
+<img src="images/img13.gif" border="0" width="500" height="300" alt="" />
+<p></p>
+<p>Con estos pasos ya esta incorporada la plantilla Test Document.docx dentro de la aplicación y esta lista para ser usada. El documento original puede ser modificado o suprimido. Para la aplicación, la versión valida es la cargada dentro de la base de datos.</p>
+<a name="Combinar documentos"></a>
+<h3>Combinar documentos</h3>
+<p>La acción de combinar documentos es la que realmente la sustitución de las variables configuradas dentro de la plantilla con los datos de la nomina. Para hacer esto:</p>
+<p>Seleccione el trabajador al que se desea generar un documento y luego presione Combinar.</p>
+<img src="images/img14.gif" border="0" width="500" height="300" alt="" />
+<p></p>
+<p>Esto abrirá el dialogo Combinar. Seleccione los parámetros adicionales para la generación y presione Aceptar.</p>
+<img src="images/img15.gif" border="0" width="500" height="300" alt="" />
+<p></p>
+<p>Esta acción iniciara la generación del documento que sustituirá las variables dentro de la plantilla por los valores actuales. Una vez terminado este proceso, se guardara una copia dentro de la base de datos para futuras referencias. Según el parámetro seleccionado, el documento puede ser enviado a la impresora por omisión, exportado a un archivo o se puede ver por pantalla. Las siguientes imágenes muestran un fragmento de la plantilla creada en MS Word y el documento generado en PDF.</p>
+<p>Plantilla MS Word.</p>
+<img src="images/img16.gif" border="0" width="500" height="300" alt="" />
+<p></p>
+<p>Documento Generado.</p>
+<img src="images/img17.gif" border="0" width="500" height="300" alt="" /> 
+
+<a name="Variables"></a>
+<h3>Variables</h3>
+<p>A continuación se presentan las variables disponibles dentro de la aplicación y que pueden ser usadas dentro de la plantilla. Estas serán reemplazadas por el valor actual durante la combinación del documento. </p>
+<h4>Variables generales</h4>
+<p>Variables que representan parámetros generales. Generadas al momento de imprimir el documento</p>
+<ul>
+  <li>$document.date		=  Fecha</li>
+  <li>$document.time		=  Hora</li>
+  <li>$document.user_id 		= Usuario que genera el documento</li>
+  <li>$document.user_name		= Nombre de usuario que genera el documento</li>
+  <li>$document.yyyy 		= Año de generación</li>
+  <li>$document.MM 		= Mes de generación</li>
+  <li>$document.dd 			= Día de generación</li>
+  <li>$document.month 		= nombre del mes</li>
+  <li>$document.day 		= Nombre del dia</li>
+  <li>$document.hh  			= hora</li>
+  <li>$document.mm 		= Minuto</li>
+  <li>$document.ss			= Segundo</li>
+  <li>$document.startYear		= Fecha inicial</li>
+  <li>$document.endYear		= Fecha final</li>
+  <li>$document.endYearMMyyyy	= Fecha final en formato mes/año</li>
+  <li>$document.certificate 		= Certificado</li>
+  <li>digitalSign			=Firma digital (imagen)</li>
+</ul>
+
+<h4>Firmas asociadas a documento</h4>
+<p>Firmantes configurados dentro del documento. El primero en ser creado será identificado como “a”, el segundo como “b” y así sucesivamente. Debe existir una correspondencia entre el número de firmantes dentro del documento y los firmantes configurados dentro de la aplicación.</p>
+<ul>
+  <li>$signature.a.signer_name	= Nombre del firmante</li>
+  <li>$signature.a.signer_job		= Cargo del firmante</li>
+  <li>$signature.b.signer_name	= Nombre de firmante</li>
+  <li>$signature.b.signer_job		= Cargo del firmante</li>
+</ul>
+<h4>Compañía</h4>
+<p>Variables que describen los datos de la compañía con la cual, se combina el documento.</p>
+<ul>
+  <li>$company.partner_id 		=  id compañía</li>
+  <li>$company.name		= Nombre compañía</li>
+  <li>$company.short_name		= Nombre corto compañía</li>
+  <li>$company.tax_idn		= Impuesto</li>
+</ul>
+<h4>Colaboradores</h4>
+<p>Variables que describen los datos básicos del colaborador al cual se le esta emitiendo este documento.</p>
+<ul>
+  <li>$people.company_id 		= ID Compañía</li>
+  <li>$people.workforce_id 		= ID Colaborador</li>
+  <li>$people.payroll_id		= ID Nomina</li>
+  <li>$people.frequency  		= Frecuencia</li>
+  <li>$people.name1 		= 1er nombre</li>
+  <li>$people.name2 		= 2do nombre</li>
+  <li>$people.last_name1 		= 1er apellido</li>
+  <li>$people.last_name2 		= 2do apellido</li>
+  <li>$people.document_type 	= Tipo documento</li>
+  <li>$people.nationality 		= Nacionalidad</li>
+  <li>$people.document_id 		= nro. documento</li>
+  <li>$people.passport 		= pasaporte</li>
+  <li>$people.birth_date 		= Fecha nacimiento</li>
+  <li>$people.tax_idn 		= id impuesto</li>
+  <li>$people.hire 			= Fecha contrato</li>
+  <li>$people.termination 		= fecha terminación</li>
+  <li>$people.depart_name 		= departamento</li>
+  <li>$people.job_name 		= Cargo</li>
+  <li>$people.address 		= Dirección</li>
+  <li>$people.city_name 		= Ciudad</li>
+  <li>$people.state_name 		= Estado</li>
+  <li>$people.country_name 	= país</li>
+  <li>$people.phone 			= Telf.</li>
+  <li>$people.cellphone 		= Telf. celular</li>
+  <li>$people.e_mail1 		= e-mail 1</li>
+  <li>$people.e_mail2 		= e-mail 2</li>
+</ul>
+<h4>Acumuladores</h4>
+<p>Acumuladores asociados a la fecha de impresión de documento.  El nombre de la variable es construido según el identificador de acumulador. Ej. Si se encuentra el acumulador 0001 el nombre de la variable será cumMonth00001.amount. Siguiendo el mismo ejemplo. Los acumuladores mensuales y anuales serán:</p>
+<ul>
+  <li>cumMonth00001.amount 		= Monto del acumulador mensual</li>
+  <li>cumMonth00001.name			= Nombre del acumulador mensual</li>
+  <li>cumMonth00001.amountWord		= Monto del acumulador anual en letras</li>
+  <li>cumYear00001.amount 		= Monto del acumulador anual</li>
+  <li>cumYear00001.name			= Nombre del acumulador anual</li>
+  <li>cumYear00001.amountWord		= Monto del acumulador anual en letras</li>
+</ul>
+<h4>Salarios</h4>
+<p>Al igual que los acumuladores.  El nombre de la variable es construido según el tipo de salario. Ej. Si se encuentra el tipo de salario 6 el nombre de la variables será salary_6_amount_daily. Siguiendo el mismo ejemplo, los nombres de variables serán:</p>
+<ul>
+  <li>$salary_6_amount_daily		=Salario diario</li>
+  <li>$salary_6_amount_monthly	=Salario mensual</li>
+  <li>$salary_6_amountWord_daily	=monto de salario diario en letras</li>
+  <li>$salary_6_amountWord_monthly	=monto de salario mensual en letras</li>
+</ul>
+
+</body>
+</html>

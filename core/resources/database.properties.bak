@@ -1,0 +1,178 @@
+#-------------------------------------------------------------------------------
+# Copyright (C) 2017 terry.
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Eclipse Public License v1.0
+# which accompanies this distribution, and is available at
+# http://www.eclipse.org/legal/epl-v10.html
+# 
+# Contributors:
+#     terry - initial API and implementation
+#-------------------------------------------------------------------------------
+# system database property files 
+# -------------------------------------------------------------------------------------  
+
+# Address
+# ---------------------
+state = Estado 
+ttstate = Estado
+city = Ciudad
+ttcity = Ciudad
+district Municipio
+ttdistrict Municipio
+parish = Parroquia
+ttparish = Parroquia
+urbanitation = Urbanización
+tturbanitation = Urbanización
+street = Calle
+ttstreet = Calle
+building = Edificio
+ttbuilding = Edificio
+establishment = Local
+ttestablishment = Local
+geographic_code = Código geográfico
+ttgeographic_code = Código geográfico
+postal_zone = Zona postal
+ttpostal_zone = Zona postal
+telephone_1 = Teléfono
+tttelephone_1 = Teléfono
+telephone_2 = Teléfono
+tttelephone_2 = Teléfono
+fax = Fax
+ttfax = Fax
+
+t_audit_log = Archivo de auditorias  
+# -------------------------------------------------------------------------------------  
+t_altable_name = Tabla
+ttt_altable_name = Tabla;Nombre de la tabla de base de datos desde donde se origino el cambio
+t_alaudit_track = ID de auditoria
+ttt_alaudit_track = ID de auditoria;indentificador de auditoria desde donde se origino esta entrada. 
+t_aldate_time = Fecha/hora
+ttt_aldate_time = Fecha/hora;Fecha y hora de cambio 
+t_alaction = Accion
+ttt_alaction = Accion;Accion efectuada sobre este registro en tabla original
+t_alrecord = Datos
+ttt_alrecord = Datos;Lista de valores 
+t_alkeyfields = Campos claves 
+ttt_alkeyfields = Campos claves;lista de campos claves que identifican de manera unica al registro 
+
+t_system_var = Variables de sistema  
+# -------------------------------------------------------------------------------------  
+t_svgroup = Grupo  
+ttt_svgroup = Grupo;Identifica el grupo a la cual pertenece esta variable o constante de sistema
+t_sv_id = Identificador  
+ttt_sv_id = Identificador;Identificador de la constante o variable
+t_svvalue = Valor
+ttt_svvalue = Valor;Valor de la Constante o variable de sistema
+t_svvalue_class = Tipo
+ttt_svvalue_class = Tipo;tipo de variable o constante
+t_svdescription = Descripcion  
+ttt_svdescription = Descripcion;Descripcion  
+
+#valore para t_svvalue_class
+val_cls1 = String;Caracteres
+val_cls2 = Integer;Entero
+val_cls3 = Date;Fecha
+val_cls4 = Long;Decimal
+val_cls5 = Boolean;Logico
+
+t_users = Usuarios
+# -------------------------------------------------------------------------------------  
+t_ususer_id = Usuario  
+ttt_ususer_id = Usuario; Código con el cual se inicia sesión dentro del sistema  
+t_usname = Nombre
+ttt_usname = Nombre;nombre o descripcion del usuario o grupo
+t_usdescrip = Descripcion 
+ttt_usdescrip = Descripcion;Breve descripcion de este usuario 
+t_uspassword = Contraseña  
+ttt_uspassword = Contraseña; caracteres que conforman su clave privada.   
+t_usroll = Rol  
+ttt_usroll = Rol; Selecciones dentro de la lista, el tipo de función que desempeñara el usuario dentro de la organización o dentro de la aplicación.  
+t_usrcd_type = Tipo de registro
+ttt_usrcd_type = Tipo de registro;Indica que tipo de registre es este que se esta creando
+t_usstatus = Estado 
+ttt_usstatus = Estado;Estado de este registro de usuario. 
+t_usmc_upper = Debe contener MAYUSCULA
+ttt_usmc_upper = Debe contener MAYUSCULA;La contraseña del usuario debe tener al menos 1 letra MAYUSCULA  
+t_usmc_digit = Debe contener digito  
+ttt_usmc_digit = Debe contener digito;La contraseña del usuario debe tener un digito numerico(0123456789)  
+t_usmc_ssimb = Debe contener @#$%^&+=!¡  
+ttt_usmc_ssimb = Debe contener caracteres especiales;La contraseña del usuario debe contener alguno de estos caracteres: @#$%^&+=!¡  
+t_uspass_mlen = Longitud minima  
+ttt_uspass_mlen = Longitud minima;La contraseña debe tener un minimo de caracteres de longitud.  
+t_usmax_attemps = Num. Max de intentos
+ttt_usmax_attemps = Num. Max de intentos;Numero maximo de intentos fallidos antes que el usuario se inhabilite.
+t_usexpiry_period = Fecha de expiracion
+ttt_usexpiry_period = Fecha de expiracion;Fecha en que este usuario pasara a estado inactivo
+t_uspermission = Autorizaciones 
+ttt_uspermission = Autorizaciones;elemntos al cual el usuario tiene autorizaciones.
+
+
+t_drivers = Origenes de dato  
+# -------------------------------------------------------------------------------------  
+t_drname = Nombre
+ttt_drname = Nombre;Identificador de driver de origen de datos
+t_drcorp = Corporacion
+ttt_drcorp = Corporacion;Fabricante de origen de datos
+t_drclass = Clase
+ttt_drclass = Clase;Nombre calificado de clase de coneccion JDBC
+t_drlibrary = Librería
+ttt_drlibrary = Libraria;Archivo .jar con clases para coneccion JDBC
+t_drsampleurl = Ejemplo
+ttt_drsampleurl = Ejemplo;Formato URL ejemplo para coneccion de base de datos 
+
+t_connections = perfiles conexion
+# -------------------------------------------------------------------------------------  
+t_cnname = Nombre
+ttt_cnname = Nombre;nombre de perfil de conexion
+t_cndrname = Nombre driver
+ttt_cndrname = Nombre driver;nombre del driver obtenido del archivo de drivers
+t_cndriver = Driver
+ttt_cndriver = Driver;driver de origen de datos. previamente configurado en ventana de origenes de datos
+t_cnurl = URL 
+ttt_cnurl = URL;URL de connecion a origen de datos
+t_cnuser = Usuario 
+ttt_cnuser = Usuario;Usuario para conectar a origen de datos
+t_cnpassword = Contraseña
+ttt_cnpassword = Contraseña;Contraseña para usuario de conexion
+t_cnextended_prp = Propiedades adicionales
+ttt_cnextended_prp = Propiedades adicionales;Lista de propiedades adicionales especificas para el driver de coxion
+t_cntable_filter = Filtro de tablas
+ttt_cntable_filter = Filtro de tablas;Coloque los nombres de tablas (una por linea) que <b>NO</b> desea mostrar. Acepta expresiones regulares. Ej: No mostrar tablas que comienten con la palabra BIN: BIN.* 
+
+t_system_log = Anotaciones de sistema  
+# -------------------------------------------------------------------------------------
+t_sluserid = Usuario  
+ttt_sluserid = Usuario;Usuario desde donde se genero la excepcion
+t_slnano = Nanos
+ttt_slnano = Nanos;Nanos
+t_sldatetime = Fecha/Hora  
+ttt_sldatetime = Fecha/Hora;Fecha y hora de la anotacion
+t_slflag = Bandera  
+ttt_slflag = Bandera;marca particular para este mensaje  
+t_sltype = Tipo de mensaje  
+ttt_sltype = Tipo de mensaje;tipo de mensaje: Accion, error, etc.  
+t_slmessage = Mensaje
+ttt_slmessage = Mensaje;Mensaje
+t_sldetail = Detalles
+ttt_sldetail = Detalles;Detalles adicionales del mensaje
+
+t_tasks = Tareas  
+# -------------------------------------------------------------------------------------
+t_taname = Nombre
+ttt_taname = Nombre;Nombre unico para esta tarea
+t_taid = Id
+ttt_taid = Id;Identificador unico de tarea
+t_tadescription = Description
+ttt_tadescription = Description;Breve descripcion para esta tarea
+t_taicon = Icono
+ttt_taicon = Icono
+t_tattask = Tarea
+ttt_tattask = Tarea;Clase encargada de ejecutar esta tarea
+t_tastatus = Estado
+ttt_tastatus = Estado;estado para esta tarea. Tareas solo se ejecutan en estado Habilitado.
+t_tatype = Tipo
+ttt_tatype = Tipo;tipo
+t_tadate_time = Fecha/Hora
+ttt_tadate_time = Fecha/Hora;Fecha y hora de creacion de la tarea
+t_tacode = Codigo
+ttt_tacode = Codigo;Codigo que ejecuta esta tarea

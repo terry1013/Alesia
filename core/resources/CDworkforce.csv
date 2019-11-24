@@ -1,0 +1,18 @@
+field,class,mandatory,valid values,format,target_field
+Ficha,String,true,,,workrelation_id
+Nombre,String,true,,,name
+Ingreso,Date,true,,dd/MM/yyy,start_date
+Retiro,Date,false,,dd/MM/yyy,end_date
+Salario,Double,false,,,salary
+Unida de negocio,String,true,,,bu_id
+Fecha ajustada 1,Date,false,,dd/MM/yyy,hire_date_1
+Fecha ajustada 2,Date,false,,dd/MM/yyy,hire_date_2
+Fecha ajustada 3,Date,false,,dd/MM/yyy,hire_date_3
+Fecha ajustada 4,Date,false,,dd/MM/yyy,hire_date_4
+Genero,String,true,2;1,,sex
+Cedula,String,false,,,document_id
+Fecha de nacimiento,Date,true,,dd/MM/yyy,birthday
+Clasificación puesto,Integer,true,0;1;2,,position_type
+Cargo,String,true,,,job_id
+Tabulador,String,false,,,tab_id
+Paso,Integer,false,,,step

@@ -1,0 +1,9 @@
+2019-10-20 21:07:30 Plugin DateLook not installed because property plugin.active = false
+2019-10-20 21:07:30 Plugin DBTweezer not installed because property plugin.active = false
+2019-10-20 21:07:30 Plugin ETeam not installed because property plugin.active = false
+2019-10-20 21:07:30 Plugin Flicka found
+2019-10-20 21:07:32 Plugin Flicka.startPlugin() sucsefully
+2019-10-20 21:07:32 Plugin Hero found
+2019-10-20 21:07:32 Plugin Hero.startPlugin() sucsefully
+2019-10-20 21:07:32 Plugin MailBomber not installed because property plugin.active = false
+2019-10-20 21:07:32 Plugin XDoc not installed because property plugin.active = false

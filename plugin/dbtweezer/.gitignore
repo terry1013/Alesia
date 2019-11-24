@@ -1,0 +1,17 @@
+/AlterColumn.class
+/DBTConnectionManager.class
+/DBTweezer.class
+/DBTweezerAction.class
+/DBTweezerTask.class
+/DropColumnUI.class
+/GroovyScriptUI.class
+/RunScriptList.class
+/ScriptList.class
+/SleUtilities.class
+/SourceDBTables.class
+/SourceTableColumns.class
+/SourceTableData.class
+/SqlScriptUI.class
+/TestScript.class
+/TestScriptData.class
+/TweezerLog.class

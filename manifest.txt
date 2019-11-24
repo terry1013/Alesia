@@ -1,0 +1,59 @@
+ ___   _               
+|  _ \| | __ _ _ __   ___ 
+| |_) | |/ _` | '_ \ / __|
+|  __/| | (_| | | | | (__ 
+|_|   |_|\__,_|_| |_|\___|
+PLANIFICACIÓN Y PRESUPUESTO AREA LABORAL
+
+VersiónID:	0.3
+UpdateID:	1815
+UpdateSince:	2018-03-01
+
+Instalación:
+========================================
+1.- Extraer el contenido de este archivo en el directorio de instalación
+
+Resumen de cambios
+========================================
+
+1823 - Nuevo funcion: Soporte para configuracion externa de parametros de conexion (solo para SleOracle) usando archivo de texto. (ver documentacion en config.properties y jdbc.properties)
+1822 - Modificacion en codigo para exportar archivos en excel (SLEReport)
+1821 - Lógica de negocios: Explorador de presupuesto solo considera cuentas planificadas (type_id=0)
+1820 - Nueva opcion al exportar reportes a archivos excel: ahora se puede especificar si se desea una pagina por hoja de excel
+1819 - Opcion "Ver en pantalla" desabilitada para parametros de generacion  de reporte
+1818 - nuevo/editar/suprimir para incremento general de salarios
+1817 - Generacion de cuentas pasa de vista en formato arbol a formato lista
+1816 - Nueva opcion para matenimiento de nominas a importar
+1815 - Presunciones ahora tiene acciones nueve, editar suprimir para ingreso de datos
+1814 - Incremento general de cuentas ahora tiene acciones nueve, editar suprimir para ingreso de datos
+1813 - Hechos o movimientos ahora tiene acciones nueve, editar suprimir para ingreso de datos
+1812 - Incremento de cuentas ahora tiene acciones nueve, editar suprimir para ingreso de datos
+1811 - Incremento salarial: ahora tiene acciones nueve, editar suprimir para ingreso de datos
+1810 - Incremento de cuentas: Ahora considera solo cuentas con incremento
+1809 - Seleccion de cuentas: ahora no presenta en la lista las cuentas de tipo presunción. se modifica la clase de arbol a lista. las cuentas con incremento se remarcan con un punto verde para diferenciarlas de las demas.
+
+Revisión 04/03/2018
+----------------------------------------
+1808 - Cuentas de tipo presuncion ahora tienen una marca azul en el arbol de generación de cuentas
+1807 - Nueva opción para autorización de tipos de cálculo (sle_user_calc_types).
+1806 - Campo fecha "Inactivo desde" en UserRecord.class ahora es editable
+
+Revisión 02/03/2018
+----------------------------------------
+1805 - Nuevo incremento: Baremos. Se seleccióna una escala y segun el tipo de escala (tiempo, acumulado, etc) se presenta la lista para nuevo/edición supresión de registros para la escala selecciónada.
+1804 - Cambio de archivo de escalas desde SLE_SCALE a PLANC_SCALE_TYPES
+
+Revisión 01/03/2018
+----------------------------------------
+1803 - Las opciónes que se agrupan en ‘General’, no requieren de la selección de Escenario, el nombre General justamente porque los valores son genéricos y sus valores que se registren son compartidos entre todas las empresas y todos los escenarios.
+1802 - Hay dos opciónes con el nombre de  escenarios, colocar la opción de creación con el nombre de ‘Definición escenario’; Igualmente esta opción colocarla antes de la opción Escenario (docking)
+
+Revisión 01/03/2018
+----------------------------------------
+1801 - Unificación de parametros: Los reportes fueron modificados para que los parametros sean mas o menos los mismos en todos. companyID, scenarioID ... son iguales para todos los reportes. Si planc 18 detecta un parametro desconocido, lo notifica como una execpción y no ejecuta la opción.
+1799 - Planc 18 ahora lee la sección parametros para determinar cuales debe solicitar al usuario.
+1798 - LedgerAccountDistByBU.jrxml fue modificado: campo ORDERVAL no existe en la base de datos.
+1797 - Redenominación de campos min_num y min_char. (cambiar contraceña)
+1796 - Lógica de negocios para unidades de negocios implementada. lista de colaboradores filtrada y componentes dentro la creación/edición de trabajadores modificados
+1795 - Lista de clasificación tiene una nueva opción: Ninguno
+1794 - Lista de nodos tiene nuevo elemento: Ninguno

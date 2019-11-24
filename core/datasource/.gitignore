@@ -1,0 +1,12 @@
+/AbstractTransaction.class
+/ConnectionManager.class
+/DBAccess.class
+/DataBaseUtilities.class
+/Field.class
+/ForeignKeySQLException.class
+/Record.class
+/ServiceRequest.class
+/ServiceResponse.class
+/SystemVariables.class
+/TransactionsUtilities.class
+/TreeViewFromParentChildrenTables.class

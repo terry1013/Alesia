@@ -1,0 +1,70 @@
+<skin xmlns="http://weblookandfeel.com/XmlSkinExtension">
+
+<!-- Extension settings -->
+    <id>core.resources.SkinExtension</id>
+    <class>core.TXmlSkinExtension</class>
+    <extends>weblaf.web.skin</extends>
+    <extends>weblaf.dark.skin</extends>
+	
+
+	<style type="panel" id="RightPanel" padding="0,0,0,0">
+        <component>
+            <opaque>true</opaque>
+            <background>250,250,250</background>
+        </component>
+        <painter />
+    </style>
+	
+	<style type="panel" id="LeftPanel" padding="0,0,0,0">
+        <component>
+            <opaque>true</opaque>
+            <background>30,30,30</background>
+        </component>
+        <painter />
+    </style>
+
+
+    <!-- navigation buttons Left panel -->
+    <style type="button" id="LeftPanelButton" extends="hover" padding="0,0,0,0">
+        <component>
+            <opaque>true</opaque>
+            <focusable>false</focusable>
+            <background>30,30,30</background>
+        </component>
+        <painter>
+            <decorations>
+                <decoration>
+				 <GradientBackground visible ="false"/>
+                    <WebShape round="0" />
+                    <WebShadow type="outer" width="0" />
+                    <LineBorder visible ="false"/>
+                </decoration>
+				<decoration states="enabled,hover" opacity="0.2"  />
+                <decoration states="enabled,pressed" opacity="0.2" />
+
+            </decorations>
+        </painter>
+    </style>
+	
+	    <!-- navigation buttons Right panel -->
+    <style type="button" id="RightPanelButton" extends="hover" padding="0,0,0,0">
+        <component>
+            <opaque>true</opaque>
+            <focusable>false</focusable>
+            <background>240,240,240</background>
+        </component>
+        <painter>
+            <decorations>
+                <decoration>
+                    <WebShape round="0" />
+                    <WebShadow type="outer" width="0" />
+                    <LineBorder visible ="false"/>
+                </decoration>				
+				<decoration states="enabled,hover" opacity="0.8"  />
+                <decoration states="enabled,pressed" opacity="1" />
+
+            </decorations>
+        </painter>
+    </style>
+
+</skin>

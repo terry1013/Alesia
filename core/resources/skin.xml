@@ -1,0 +1,96 @@
+<skin xmlns="http://weblookandfeel.com/XmlSkinExtension">
+
+    <!-- Skin settings -->
+    <id>TSkin</id>
+    <class>core.TSkin</class>
+	<supportedSystems>all</supportedSystems>
+
+	<!-- Skin information -->
+    <title>Alesia Skin</title>
+    <description>Alesia default plain skin</description>
+    <author>Terry</author>
+
+	<!-- Including WebLaF default skin, will use its style as a base -->
+    <include nearClass="com.alee.skin.web.WebSkin">resources/skin.xml</include>
+
+	<style type="panel" id="RightPanel" padding="0,0,0,0">
+        <component>
+            <opaque>true</opaque>
+            <background>250,250,250</background>
+        </component>
+        <painter />
+    </style>
+
+
+    <!-- navigation buttons LRFT panel -->
+    <style type="button" id="navButton" padding="0,0,0,0">
+        <painter>
+            <decorations>
+                <decoration visible="false" />
+
+                <decoration states="focused" visible="false"/>
+
+				<decoration states="enabled,hover">
+                    <ColorBackground>
+                        <color>blue</color>
+                    </ColorBackground>
+                </decoration>
+
+                <decoration states="enabled,pressed">
+                    <ColorBackground>
+                        <color>white</color>
+                    </ColorBackground>
+                </decoration>
+
+                <decoration states="disabled">
+                    <WebShadow type="outer" opacity="0" />
+                    <LineBorder color="lightGray" />
+                    <ButtonLayout>
+                        <ButtonText color="120,120,120" />
+                    </ButtonLayout>
+                </decoration>
+            </decorations>
+        </painter>
+    </style>
+
+    <!-- navigation buttons RIGHT panel -->
+    <style type="button" id="RightPanelNavButtons" padding="0,0,0,0">
+        <painter>
+            <decorations>
+                <decoration>
+					<WebShape visible="false"/>
+					<WebShadow visible="false"/>
+					<LineBorder visible="false"/>
+                    <ColorBackground>
+                        <color>250,250,250</color>
+                    </ColorBackground>
+                </decoration>
+
+                <decoration states="focused" visible="false"/>
+
+				<decoration states="enabled,hover">
+                    <ColorBackground>
+                        <color>230,230,230</color>
+                    </ColorBackground>
+                </decoration>
+
+                <decoration states="enabled,pressed">
+                    <ColorBackground>
+                        <color>150,150,150</color>
+                    </ColorBackground>
+					<ButtonLayout>
+                        <ButtonText constraints="text" color="white" />
+                    </ButtonLayout>
+                </decoration>
+
+                <decoration states="disabled">
+                    <WebShadow type="outer" opacity="0" />
+                    <LineBorder color="lightGray" />
+                    <ButtonLayout>
+                        <ButtonText color="120,120,120" />
+                    </ButtonLayout>
+                </decoration>
+            </decorations>
+        </painter>
+    </style>
+</skin>

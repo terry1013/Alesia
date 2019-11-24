@@ -1,0 +1,23 @@
+2018-03-18 12:51:23 Connecting to database CsvJdbc () with *autoconnection=false
+2018-03-18 12:51:23 Connecting to database Flicka () with *autoconnection=false
+2018-03-18 12:51:23 Connecting to database SleOracle (SLEPLANC) with *autoconnection=true
+2018-03-18 12:51:26 ORA-01017: invalid username/password; logon denied
+
+java.sql.SQLException: ORA-01017: invalid username/password; logon denied
+
+	at oracle.jdbc.driver.DatabaseError.throwSqlException(DatabaseError.java:112)
+	at oracle.jdbc.driver.T4CTTIoer.processError(T4CTTIoer.java:331)
+	at oracle.jdbc.driver.T4CTTIoer.processError(T4CTTIoer.java:283)
+	at oracle.jdbc.driver.T4CTTIoer.processError(T4CTTIoer.java:278)
+	at oracle.jdbc.driver.T4CTTIoauthenticate.receiveOauth(T4CTTIoauthenticate.java:785)
+	at oracle.jdbc.driver.T4CConnection.logon(T4CConnection.java:362)
+	at oracle.jdbc.driver.PhysicalConnection.<init>(PhysicalConnection.java:414)
+	at oracle.jdbc.driver.T4CConnection.<init>(T4CConnection.java:165)
+	at oracle.jdbc.driver.T4CDriverExtension.getConnection(T4CDriverExtension.java:35)
+	at oracle.jdbc.driver.OracleDriver.connect(OracleDriver.java:801)
+	at java.sql.DriverManager.getConnection(Unknown Source)
+	at java.sql.DriverManager.getConnection(Unknown Source)
+	at core.datasource.ConnectionManager.connect(ConnectionManager.java:68)
+	at core.PlanC.initEnviorement(PlanC.java:584)
+	at core.PlanC.main(PlanC.java:166)
+
