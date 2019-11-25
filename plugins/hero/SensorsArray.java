@@ -56,7 +56,7 @@ public class SensorsArray {
 	/**
 	 * Return a list of all actions areas
 	 * 
-	 * @see ScreenRegions
+	 * @see SensorsPanel
 	 * @return list of actions
 	 */
 	public Vector<ScreenSensor> getActionAreas() {
@@ -85,9 +85,6 @@ public class SensorsArray {
 		}
 		return av;
 	}
-	// private ScreenSensor getVillanSensor(String id) {
-	// return screenSensors.stream().filter(ss -> ss.getSensorName().equals(id)).findFirst().get();
-	// }
 
 	public SensorDisposition getSensorDisposition() {
 		return sensorDisposition;
@@ -120,7 +117,7 @@ public class SensorsArray {
 	/**
 	 * Return the number of villans configurated in this table.
 	 * 
-	 * @see ScreenRegions
+	 * @see SensorsPanel
 	 * 
 	 * @return total villans
 	 */

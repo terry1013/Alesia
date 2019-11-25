@@ -71,7 +71,7 @@ public class PokerSimulator {
 		init();
 	}
 	/**
-	 * this mathod act like a buffer betwen {@link ScreenRegions} and this class to set the cards based on the
+	 * this mathod act like a buffer betwen {@link SensorsPanel} and this class to set the cards based on the
 	 * name/value of the {@link ScreenSensor} component while the cards arrive at the game table. For example. at
 	 * starting a game, the firt hole card may arrive while the second one no. Calling this method set the first card
 	 * and wait for the second in order to efectively create the hole card and set the correct game status.

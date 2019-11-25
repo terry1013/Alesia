@@ -1,5 +1,6 @@
 package plugins.hero;
 
+import java.awt.*;
 import java.awt.geom.*;
 import java.io.*;
 import java.util.*;
@@ -29,16 +30,16 @@ public class SensorDisposition {
 	public ImageIcon getBackgroundImage() {
 		return backgroundImage;
 	}
-	
+
 	private boolean isCardArea(String name) {
 		return name.startsWith("hero.card") || name.startsWith("flop") || name.equals("turn") || name.equals("river")
 				|| (name.startsWith("villan") && name.contains("card"));
 	}
 
-
 	private boolean isOCRArea(String name) {
 		return name.equals("pot") || name.equals("call") || name.equals("raise")
-				|| (name.startsWith("villan") && name.contains("name")) || (name.startsWith("villan") && name.contains("call"));
+				|| (name.startsWith("villan") && name.contains("name"))
+				|| (name.startsWith("villan") && name.contains("call"));
 	}
 
 	public void read() {
@@ -75,13 +76,13 @@ public class SensorDisposition {
 					if (sh instanceof HSLFAutoShape) {
 						HSLFAutoShape pptshape = (HSLFAutoShape) sh;
 						Rectangle2D anchor = pptshape.getAnchor();
-						// TODO: temporal: from 72dpi to 96
-						anchor.setRect(anchor.getX() * 1.33, anchor.getY() * 1.33, anchor.getWidth() * 1.33,
-								anchor.getHeight() * 1.33);;
-						Shape sha = new Shape(anchor.getBounds());
 						String name = pptshape.getShapeName();
-						Hero.logger.config("shape found " + name + " Bounds" + "[x=" + sha.bounds.x + ",y="
-								+ sha.bounds.y + ",width=" + sha.bounds.width + ",height=" + sha.bounds.height + "]");
+						// TODO: temporal: from 72dpi to 96
+						anchor.setRect(anchor.getX() * 1.3333, anchor.getY() * 1.3333, anchor.getWidth() * 1.3333,
+								anchor.getHeight() * 1.3333);
+						Shape sha = new Shape(anchor.getBounds());
+//						Hero.logger.config("shape found " + name + " Bounds" + "[x=" + sha.bounds.x + ",y="
+//								+ sha.bounds.y + ",width=" + sha.bounds.width + ",height=" + sha.bounds.height + "]");
 						// marck action areas
 						if (name.startsWith("action.")) {
 							sha.isActionArea = true;
@@ -90,7 +91,7 @@ public class SensorDisposition {
 						sha.name = name;
 						sha.isCardArea = isCardArea(name);
 						sha.isOCRArea = isOCRArea(name);
-						sha.isButtonArea = 		name.contains("button");
+						sha.isButtonArea = name.contains(".button");
 
 						shapes.put(name, sha);
 					}
@@ -102,12 +103,21 @@ public class SensorDisposition {
 			e.printStackTrace();
 		}
 	}
-	
+
 	private void checkCardsDimensions() {
 		DescriptiveStatistics stat = new DescriptiveStatistics();
-		shapes.values().stream().filter(sh -> sh.isCardArea).forEach(sh -> stat.addValue(sh.bounds.getWidth()*sh.bounds.getHeight()));
-		if(stat.getMax() != stat.getMin()) {
-			Hero.logger.severe("Card areas are of the same dimensions.");
+		Dimension base = shapes.get("hero.card1").bounds.getSize();
+		shapes.values().stream().filter(sh -> sh.isCardArea)
+				.forEach(sh -> stat.addValue(sh.bounds.getWidth() * sh.bounds.getHeight()));
+		if (stat.getMax() != stat.getMin()) {
+			Hero.logger.severe("Card areas HAS NOT the same dimensions.");
+			Hero.logger.severe("Base card: " + base.width + " height=" + base.height);
+			shapes.values().stream().filter(sh -> sh.isCardArea && !base.equals(sh.bounds.getSize()))
+					.forEach(losh -> Hero.logger
+							.severe(losh.name + " with=" + losh.bounds.width + " height=" + losh.bounds.height));
+
+		} else {
+			Hero.logger.info("Card areas checked. all card have width=" + base.width + " height=" + base.height);
 		}
 	}
 

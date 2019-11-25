@@ -59,7 +59,7 @@ public class Hero extends TPlugin {
 
 	@org.jdesktop.application.Action
 	public void screenRegions(ActionEvent event) {
-		Alesia.getMainPanel().setContentPanel(new ScreenRegions());
+		Alesia.getMainPanel().setContentPanel(new SensorsPanel());
 	}
 
 	@org.jdesktop.application.Action

@@ -4,8 +4,10 @@ import java.awt.*;
 import java.awt.datatransfer.*;
 import java.awt.event.*;
 import java.awt.image.*;
+import java.beans.*;
 import java.io.*;
 import java.util.*;
+import java.util.List;
 
 import javax.swing.*;
 
@@ -89,6 +91,12 @@ public class TActionsFactory {
 		String sd = dialog.getDirectory();
 		if (sf != null || sf != null) {
 			File nf = new File(sd + sf);
+			// clear the value to force fireproperty. this is because this action may load the same file but the file
+			// inside is diferent
+			List<PropertyChangeListener> list = Arrays.asList(me.getPropertyChangeListeners());
+			list.forEach(pcl -> me.removePropertyChangeListener(pcl));
+			me.putValue(DATA_LOADED, null);
+			list.forEach(pcl -> me.addPropertyChangeListener(pcl));
 			me.putValue(DATA_LOADED, nf);
 		}
 	}
@@ -105,7 +113,7 @@ public class TActionsFactory {
 			me.putValue(DATA_SAVED, nf);
 		}
 	}
-	
+
 	/**
 	 * standar comit action. this action:
 	 * <ul>
@@ -158,7 +166,7 @@ public class TActionsFactory {
 			}
 		}
 	}
-	
+
 	/**
 	 * generic constant to store information about grouping or group
 	 */

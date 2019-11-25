@@ -158,10 +158,6 @@ public class ScreenSensor extends JPanel {
 	// return po;
 	// }
 
-	public static void logInfo(String txt) {
-		// System.out.println("info:" + txt);
-	}
-
 	/**
 	 * perform custom corrections. this metod is called during the OCR operation. the result returned from this method
 	 * will be setted as final OCR of the {@link ScreenSensor} instance
@@ -219,7 +215,8 @@ public class ScreenSensor extends JPanel {
 			// from the screen
 			capturedImage = sensorsArray.getRobot().createScreenCapture(bou);
 		}
-		logInfo(getName() + ": Imgen captured.");
+		
+		Hero.logger.info(getName() + ": Imgen captured.");
 
 		/*
 		 * color reducction or image treatment before OCR operation or enable/disable action
@@ -233,7 +230,7 @@ public class ScreenSensor extends JPanel {
 		setEnabled(false);
 		// TODO: test performance changin prepared image for captured image because is smaller
 		if (!(whitePercent > shape.enableWhen)) {
-			logInfo(getName() + ": is disabled.");
+			Hero.logger.info(getName() + ": is disabled.");
 			return;
 		}
 		setEnabled(true);
@@ -355,11 +352,11 @@ public class ScreenSensor extends JPanel {
 		// is this an OCR area ?
 		boolean doo = shape.isOCRArea;
 		if (!doo) {
-			logInfo(getName() + ": no ocr performed. Porperty shape.isOCRArea=" + doo);
+			Hero.logger.info(getName() + ": no ocr performed. Porperty shape.isOCRArea=" + doo);
 			return null;
 		}
 
-		logInfo(getName() + ": performing OCR...");
+		Hero.logger.info(getName() + ": performing OCR...");
 		regions = Hero.iTesseract.getSegmentedRegions(preparedImage, pageIteratorLevel);
 		ocrResult = Hero.iTesseract.doOCR(preparedImage);
 		List<Word> wlst = Hero.iTesseract.getWords(preparedImage, pageIteratorLevel);
@@ -390,7 +387,7 @@ public class ScreenSensor extends JPanel {
 		BufferedImage imagea = getCapturedImage();
 		File dir = new File(SAMPLE_PATH);
 		String[] imgs = dir.list();
-		logInfo(getName() + ": Comparing images ...");
+		Hero.logger.info(getName() + ": Comparing images ...");
 		for (String img : imgs) {
 			File f = new File(SAMPLE_PATH + img);
 			BufferedImage imageb = ImageIO.read(f);
@@ -405,7 +402,7 @@ public class ScreenSensor extends JPanel {
 		// if the card is the file name is card_facedown, set null for ocr
 		if (ocr.equals("card_facedown")) {
 			ocr = null;
-			logInfo(getName() + ": card id face down.");
+			Hero.logger.info(getName() + ": card id face down.");
 		}
 
 		// if the card diference is most than 30%, its posible than some garbage is interfiring whit the screen capture.
@@ -413,7 +410,7 @@ public class ScreenSensor extends JPanel {
 		// image diference over 30% is a complete diferent image.
 		if (dif > 30) {
 			ocr = null;
-			logInfo(getName() + ": card diference of " + dif + "% dectected. setting this card area as null.");
+			Hero.logger.info(getName() + ": card diference of " + dif + "% dectected. setting this card area as null.");
 		}
 
 		return ocr;

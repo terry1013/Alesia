@@ -45,6 +45,10 @@ public class MessageConsole {
 	public void showWarnMessage(ActionEvent event) {
 		
 	}
+	@Action
+	public void cleanConsole(ActionEvent event) {
+		textComponent.setText("");
+	}
 	/**
 	 * Use the text component specified as a simply console to display text messages.
 	 *

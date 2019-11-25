@@ -29,13 +29,13 @@ import gui.*;
  * @author terry
  *
  */
-public class ScreenRegions extends TUIPanel {
+public class SensorsPanel extends TUIPanel {
 
 	// private JScrollPane scrollPane;
 	private JPanel mainJPanel;
 //	private ActionMap actionMap;
 
-	public ScreenRegions() {
+	public SensorsPanel() {
 		setAditionalInformationVisible(false);
 //		actionMap = Alesia.getInstance().getContext().getActionMap(this);
 

@@ -47,6 +47,7 @@ public class MessageConsolePanel extends WebPanel {
 		toolbar.add(TUIUtils.getWebButtonForToolBar(console.getActionMap().get("showAllMessage")));
 		toolbar.add(TUIUtils.getWebButtonForToolBar(console.getActionMap().get("showInfoMessage")));
 		toolbar.add(TUIUtils.getWebButtonForToolBar(console.getActionMap().get("showWarnMessage")));
+		toolbar.add(TUIUtils.getWebButtonForToolBar(console.getActionMap().get("cleanConsole")));
 
 		JScrollPane jsp = new JScrollPane(editorPane);
 		jsp.setPreferredSize(new Dimension(100, 150));
