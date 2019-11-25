@@ -6,10 +6,8 @@ import java.util.*;
 
 import javax.swing.*;
 
+import org.apache.commons.math3.stat.descriptive.*;
 import org.apache.poi.hslf.usermodel.*;
-import org.apache.poi.sl.usermodel.*;
-
-import core.*;
 
 /**
  * this class represent the sensors configured using power point. This class read the powerpoint file and extract all
@@ -30,6 +28,17 @@ public class SensorDisposition {
 	}
 	public ImageIcon getBackgroundImage() {
 		return backgroundImage;
+	}
+	
+	private boolean isCardArea(String name) {
+		return name.startsWith("hero.card") || name.startsWith("flop") || name.equals("turn") || name.equals("river")
+				|| (name.startsWith("villan") && name.contains("card"));
+	}
+
+
+	private boolean isOCRArea(String name) {
+		return name.equals("pot") || name.equals("call") || name.equals("raise")
+				|| (name.startsWith("villan") && name.contains("name")) || (name.startsWith("villan") && name.contains("call"));
 	}
 
 	public void read() {
@@ -79,13 +88,26 @@ public class SensorDisposition {
 							name = name.replace("action.", "");
 						}
 						sha.name = name;
+						sha.isCardArea = isCardArea(name);
+						sha.isOCRArea = isOCRArea(name);
+						sha.isButtonArea = 		name.contains("button");
+
 						shapes.put(name, sha);
 					}
 				}
 			}
 			ppt.close();
+			checkCardsDimensions();
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+	}
+	
+	private void checkCardsDimensions() {
+		DescriptiveStatistics stat = new DescriptiveStatistics();
+		shapes.values().stream().filter(sh -> sh.isCardArea).forEach(sh -> stat.addValue(sh.bounds.getWidth()*sh.bounds.getHeight()));
+		if(stat.getMax() != stat.getMin()) {
+			Hero.logger.severe("Card areas are of the same dimensions.");
 		}
 	}
 

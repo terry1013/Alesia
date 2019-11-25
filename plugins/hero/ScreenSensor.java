@@ -6,6 +6,7 @@ import java.io.*;
 import java.util.List;
 
 import javax.imageio.*;
+import javax.naming.spi.*;
 import javax.swing.*;
 
 import com.alee.utils.*;
@@ -79,6 +80,7 @@ public class ScreenSensor extends JPanel {
 	 */
 	public static double getImageDiferences(BufferedImage imagea, BufferedImage imageb, int per) {
 		long diference = 0;
+		// compare image sizes. if the images are not the same dimension. create a scaled instance of the biggert
 		// long t1 = System.currentTimeMillis();
 		if (imagea.getWidth() != imageb.getWidth() || imagea.getHeight() != imageb.getHeight()) {
 			throw new IllegalArgumentException("images dimensions are not the same.");
@@ -252,7 +254,7 @@ public class ScreenSensor extends JPanel {
 		String ch = getMaxColor();
 		String st = "<html>Name: " + getName() + "<br>Enabled: " + isEnabled() + "<br>Exception: " + ex + "<br>W%: "
 				+ whitePercent + "<br>maxC: <FONT COLOR=\"#" + ch + "\"><B>" + ch + "</B></FONT>" + "<br>isOCRArea: "
-				+ isOCRArea() + "<br>OCR: " + ocrResult + "</html>";
+				+ shape.isOCRArea + "<br>OCR: " + ocrResult + "</html>";
 		setToolTipText(st);
 		repaint();
 	}
@@ -306,26 +308,7 @@ public class ScreenSensor extends JPanel {
 	public boolean isActionArea() {
 		return shape.isActionArea;
 	}
-	/**
-	 * Return <code>true</code> if this area is a button area. the button area is the place where the button (flag) is
-	 * placed to indicate that the player is big blind, small blind or dealer
-	 * 
-	 * @return true or false
-	 */
-	public boolean isButtonArea() {
-		String sn = getName();
-		return sn.contains("button");
-	}
-	/**
-	 * Retrun <code>true</code> if this area represent a card area
-	 * 
-	 * @return true for card area
-	 */
-	public boolean isCardArea() {
-		String sn = getName();
-		return sn.startsWith("hero.card") || sn.startsWith("flop") || sn.equals("turn") || sn.equals("river")
-				|| (sn.startsWith("villan") && sn.contains("card"));
-	}
+
 	public boolean isComunityCard() {
 		String sn = getName();
 		return sn.startsWith("flop") || sn.equals("turn") || sn.equals("river");
@@ -334,12 +317,6 @@ public class ScreenSensor extends JPanel {
 	public boolean isHoleCard() {
 		String sn = getName();
 		return sn.startsWith("hero.card");
-	}
-
-	public boolean isOCRArea() {
-		String sn = getName();
-		return sn.equals("pot") || sn.equals("call") || sn.equals("raise")
-				|| (sn.startsWith("villan") && sn.contains("name")) || (sn.startsWith("villan") && sn.contains("call"));
 	}
 
 	public boolean isVillanCard() {
@@ -352,16 +329,14 @@ public class ScreenSensor extends JPanel {
 	 * the succed or failure of the ocr operation.
 	 */
 	private void doOCR() {
-		long t1 = System.currentTimeMillis();
 		regions = null;
 		ocrResult = null;
 		exception = null;
 		try {
-			if (isCardArea()) {
+			if (shape.isCardArea) {
 				ocrResult = getStringForCard();
 			} else {
 				ocrResult = getStringForAreas();
-				Hero.logPerformance("For Tesseract areas", t1);
 			}
 		} catch (Exception e) {
 			System.err.println("Exception on " + getName());
@@ -376,11 +351,11 @@ public class ScreenSensor extends JPanel {
 	 * @throws TesseractException
 	 */
 	private String getStringForAreas() throws TesseractException {
-
+		long t1 = System.currentTimeMillis();
 		// is this an OCR area ?
-		boolean doo = isOCRArea();
+		boolean doo = shape.isOCRArea;
 		if (!doo) {
-			logInfo(getName() + ": no ocr performed. Porperty isOCRArea()=" + doo);
+			logInfo(getName() + ": no ocr performed. Porperty shape.isOCRArea=" + doo);
 			return null;
 		}
 
@@ -388,6 +363,7 @@ public class ScreenSensor extends JPanel {
 		regions = Hero.iTesseract.getSegmentedRegions(preparedImage, pageIteratorLevel);
 		ocrResult = Hero.iTesseract.doOCR(preparedImage);
 		List<Word> wlst = Hero.iTesseract.getWords(preparedImage, pageIteratorLevel);
+		Hero.logPerformance("For Tesseract areas", t1);
 		return OCRCorrection(this);
 	}
 
@@ -403,8 +379,8 @@ public class ScreenSensor extends JPanel {
 	 */
 	private String getStringForCard() throws Exception {
 
-		// must be a card area
-		if (!isCardArea()) {
+		// ensure is an card area
+		if (shape.isCardArea) {
 			throw new IllegalArgumentException("The screen sensor must be a card area sensor.");
 		}
 
@@ -475,18 +451,15 @@ public class ScreenSensor extends JPanel {
 		this.maxColor = TColorUtils.getMaxColor(bufimg);
 
 		// TODO: TEMPORAL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		// TODO: TEMPORAL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		// TODO: the pot font is so thing that stardar imagen treat don.t detect white pixels
 		if (getName().equals("pot")) {
 			bufimg = ImageHelper.convertImageToBinary(bufimg);
 		}
-		// TODO: TEMPORAL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+		// update global variable
 		this.whitePercent = TColorUtils.getWhitePercent(bufimg);
-		if (isButtonArea()) {
 
-		}
-
-		if (isOCRArea()) {
+		if (shape.isOCRArea) {
 			BufferedImage escaled = ImageHelper.getScaledInstance(capturedImage, scaledWidth, scaledHeight);
 			bufimg = ImageHelper.convertImageToGrayscale(escaled);
 		}
@@ -494,6 +467,11 @@ public class ScreenSensor extends JPanel {
 		this.preparedImage = bufimg;
 	}
 
+	/**
+	 * Return the string representation of the {@link #maxColor} variable
+	 * 
+	 * @return
+	 */
 	public String getMaxColor() {
 		return TColorUtils.getRGBColor(maxColor);
 	}
