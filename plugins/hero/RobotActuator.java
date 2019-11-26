@@ -61,7 +61,7 @@ public class RobotActuator {
 	 * signal only. the property "show location of pointer when press control key" must be set on in mouse properties
 	 */
 	public void doClick() {
-		if (Hero.trooper.isTestMode()) {
+		if (Trooper.getInstance().isTestMode()) {
 			type(KeyEvent.VK_CONTROL);
 			robot.delay(mouseDelay);
 			return;

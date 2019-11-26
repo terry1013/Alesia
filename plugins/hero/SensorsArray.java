@@ -33,10 +33,9 @@ public class SensorsArray {
 	private SensorDisposition sensorDisposition;
 	private Vector<String> attentionAreas;
 
-	public SensorsArray(PokerSimulator ps) {
+	public SensorsArray() {
+		this.pokerSimulator = new PokerSimulator();
 		this.robot = Hero.getNewRobot();
-		this.pokerSimulator = ps;
-
 		this.readingBorder = new LineBorder(Color.BLUE, 2);
 		this.lookingBorder = new LineBorder(Color.GREEN, 2);
 		this.standByBorder = new LineBorder(Color.lightGray, 2);
@@ -131,6 +130,7 @@ public class SensorsArray {
 	 */
 	public void init() {
 		screenSensors.stream().forEach((ss) -> ss.init());
+		pokerSimulator.init();
 		setAttentionOn();
 	}
 
@@ -222,17 +222,22 @@ public class SensorsArray {
 		}
 	}
 
-	public void takeSample() {
+	/**
+	 * Utility method to take the image of all card areas and store in the {@link ScreenSensor#SAMPLE_PATH} directory.
+	 * Used for retrive the images of the cards in configuration step to used for detect the card rack during the
+	 * gameplay
+	 */
+	public void takeCardSample() {
 		try {
 			for (ScreenSensor ss : screenSensors) {
-				// if (ss.isCardArea()) {
-				ss.capture(false);
-				BufferedImage bi = ss.getCapturedImage();
-				String ext = "gif";
-				File f = new File(ScreenSensor.SAMPLE_PATH + "sample_" + System.currentTimeMillis() + "." + ext);
-				f.createNewFile();
-				ImageIO.write(bi, ext, f);
-				// }
+				if (ss.isCardCard()) {
+					ss.capture(false);
+					BufferedImage bi = ss.getCapturedImage();
+					String ext = "gif";
+					File f = new File(ScreenSensor.SAMPLE_PATH + "sample_" + System.currentTimeMillis() + "." + ext);
+					f.createNewFile();
+					ImageIO.write(bi, ext, f);
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -273,5 +278,10 @@ public class SensorsArray {
 		}
 		setAttentionOn();
 		setStandByBorder();
+		pokerSimulator.init();
 	}
+	public PokerSimulator getPokerSimulator() {
+		return pokerSimulator;
+	}
+
 }

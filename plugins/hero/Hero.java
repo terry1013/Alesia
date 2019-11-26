@@ -16,6 +16,9 @@ import java.util.*;
 import java.util.logging.*;
 
 import javax.swing.*;
+import javax.swing.Action;
+
+import org.jdesktop.application.*;
 
 import com.alee.laf.*;
 
@@ -27,16 +30,15 @@ import net.sourceforge.tess4j.*;
 public class Hero extends TPlugin {
 
 	protected static Tesseract iTesseract;
-	protected static Trooper trooper;
 	protected static ActionMap actionMap;
 	protected static MessageConsolePanel console; 
+	protected static SensorsPanel sensorsPanel;
 	protected static Logger logger;
 
 	public Hero() {
 		iTesseract = new Tesseract(); // JNA Interface Mapping
 		iTesseract.setDatapath("plugins/hero/tessdata"); // path to tessdata directory
 		// iTesseract.setLanguage("pok");
-		trooper = new Trooper();
 		actionMap = Alesia.getInstance().getContext().getActionMap(this);
 		logger = Logger.getLogger("Hero");
 		logger.setLevel(Level.ALL);
@@ -53,36 +55,15 @@ public class Hero extends TPlugin {
 	}
 
 	@org.jdesktop.application.Action
-	public void takeSample(ActionEvent event) {
-		Hero.trooper.getSensorsArray().takeSample();
-	}
-
-	@org.jdesktop.application.Action
 	public void screenRegions(ActionEvent event) {
-		Alesia.getMainPanel().setContentPanel(new SensorsPanel());
+		sensorsPanel = new SensorsPanel();
+		Alesia.getMainPanel().setContentPanel(sensorsPanel);
 	}
 
 	@org.jdesktop.application.Action
 	public void drawEditor(ActionEvent event) {
 		DrawingEditor de = new DrawingEditor();
 		Alesia.getMainPanel().setContentPanel(de);
-	}
-
-	@org.jdesktop.application.Action
-	public void runTrooper(ActionEvent event) {
-		console.clearConsole();
-		Hero.trooper.setTestMode(false);
-		Hero.trooper.start();
-	}
-	@org.jdesktop.application.Action
-	public void testTrooper(ActionEvent event) {
-		Hero.trooper.setTestMode(true);
-		Hero.trooper.start();
-	}
-
-	@org.jdesktop.application.Action
-	public void stopTrooper(ActionEvent event) {
-		Hero.trooper.stop();
 	}
 
 	public static void logPerformance(String txt, long t1) {

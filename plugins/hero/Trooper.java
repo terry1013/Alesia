@@ -1,7 +1,11 @@
 package plugins.hero;
 
+import java.awt.event.*;
 import java.io.*;
 import java.util.*;
+
+import javax.swing.*;
+import javax.swing.Action;
 
 import org.apache.commons.math3.stat.descriptive.*;
 import org.jdesktop.application.*;
@@ -28,31 +32,49 @@ import core.*;
  */
 public class Trooper extends Task {
 
+	private static Trooper instance;
 	private PokerSimulator pokerSimulator;
 	private RobotActuator robotActuator;
 	private SensorsArray sensorsArray;
+
 	private boolean isTestMode;
-	private boolean isTakingSamples;
-	private boolean isRunning;
-
 	private Vector<String> availableActions;
-	private int countdown;
-
+	private int countdown = 5;
+	private File enviorement;
 	private long time1;
-
 	private DescriptiveStatistics outGameStats;
+	private ActionMap actionMap;
+
+	public static Action getLoadAction() {
+		Action load = TActionsFactory.getAction("fileChooserOpen");
+		load.addPropertyChangeListener(evt -> {
+			if (evt.getPropertyName().equals(TActionsFactory.DATA_LOADED)) {
+				Trooper.getInstance().setEnviorement((File) load.getValue(TActionsFactory.DATA_LOADED));
+			}
+		});
+		return load;
+	}
+	
 	public Trooper() {
 		super(Alesia.getInstance());
-		this.pokerSimulator = new PokerSimulator();
 		this.robotActuator = new RobotActuator();
-		this.sensorsArray = new SensorsArray(pokerSimulator);
+		this.sensorsArray = new SensorsArray();
+		this.pokerSimulator = sensorsArray.getPokerSimulator();
 		this.availableActions = new Vector();
 		this.outGameStats = new DescriptiveStatistics(10);
-	}
+		this.actionMap = Alesia.getInstance().getContext().getActionMap(this);
 
+		// if there are a previous enviorement, set the enviorement
+		if (enviorement != null) {
+			setEnviorement(enviorement);
+		}
+		instance = this;
+	}
+	public static Trooper getInstance() {
+		return instance;
+	}
 	public void clearEnviorement() {
 		sensorsArray.init();
-		pokerSimulator.init();
 
 		// at first time execution, a standar time of 10 second is used
 		long tt = time1 == 0 ? 10000 : System.currentTimeMillis() - time1;
@@ -60,10 +82,10 @@ public class Trooper extends Task {
 		time1 = System.currentTimeMillis();
 		Hero.logger.info("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
 	}
-
-	public PokerSimulator getPokerSimulator() {
-		return pokerSimulator;
+	public Action getAction(String key) {
+		return actionMap.get(key);
 	}
+
 	/**
 	 * Return the expectation of the pot odd against the <code>val</code> argument. This method cosider:
 	 * <ul>
@@ -128,52 +150,36 @@ public class Trooper extends Task {
 		return sensorsArray.getScreenSensor("raise.up").isEnabled();
 	}
 
-	public boolean isRunning() {
-		return isRunning;
-	}
-
-	public boolean isTakingSamples() {
-		return isTakingSamples;
-	}
-
 	public boolean isTestMode() {
 		return isTestMode;
 	}
 
-	/**
-	 * set the enviorement. this method create a new enviorement discarting all previous created objects
-	 * 
-	 */
-	public void setEnviorement(Object obj) {
-		File f = (File) obj;
-		SensorDisposition sDisp = new SensorDisposition(f);
-		sDisp.read();
-		sensorsArray.createSensorsArray(sDisp);
-		robotActuator.setEnviorement(sDisp);
-		pokerSimulator.init();
+	@org.jdesktop.application.Action
+	public Task runTrooper(ActionEvent event) {
+		Hero.console.clearConsole();
+		Trooper t = new Trooper();
+		t.setTestMode(false);
+		return t;
 	}
-	public void setTakingSamples(boolean isTakingSamples) {
-		this.isTakingSamples = isTakingSamples;
-	}
-
 	public void setTestMode(boolean isTestMode) {
 		this.isTestMode = isTestMode;
 	}
 
-	public void start() {
-		isRunning = true;
-		this.countdown = 5;
-//		try {
-//			doInBackground();
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-		Alesia.getInstance().getContext().getTaskService().execute(this);
+	@org.jdesktop.application.Action
+	public void stopTrooper(ActionEvent event) {
+		cancel(false);
+	}
+	@org.jdesktop.application.Action
+	public void takeCardSample(ActionEvent event) {
+		getSensorsArray().takeCardSample();
 	}
 
-	public void stop() {
-		isRunning = false;
-		cancel(true);
+	@org.jdesktop.application.Action
+	public Task testTrooper(ActionEvent event) {
+		Hero.console.clearConsole();
+		Trooper t = new Trooper();
+		t.setTestMode(true);
+		return t;
 	}
 
 	/**
@@ -211,6 +217,7 @@ public class Trooper extends Task {
 		}
 		// TODO: compute more raise actions until potodd < 0
 	}
+
 	/**
 	 * decide de action(s) to perform. This method is called when the {@link Trooper} detect that is my turn to play. At
 	 * this point, the game enviorement is waiting for an accion. This method must report all posible actions using the
@@ -289,6 +296,19 @@ public class Trooper extends Task {
 				|| sensorsArray.getScreenSensor("raise").isEnabled();
 	}
 	/**
+	 * set the enviorement. this method create a new enviorement discarting all previous created objects
+	 * 
+	 */
+	private void setEnviorement(File file) {
+		SensorDisposition sDisp = new SensorDisposition(file);
+		sDisp.read();
+		this.enviorement = file;
+		sensorsArray.createSensorsArray(sDisp);
+		robotActuator.setEnviorement(sDisp);
+		
+		Hero.sensorsPanel.createPanel(this);
+	}
+	/**
 	 * use de actions stored in {@link #availableActions} list. At this point, the game table is waiting for the herro
 	 * action.
 	 * <p>
@@ -314,12 +334,12 @@ public class Trooper extends Task {
 	@Override
 	protected Object doInBackground() throws Exception {
 
-		while (isRunning) {
+		while (!isCancelled()) {
 
 			// countdown before start
 			if (countdown > 0) {
 				countdown--;
-				
+
 				Hero.logger.info("Seconds to start: " + countdown);
 				Thread.sleep(1000);
 				continue;

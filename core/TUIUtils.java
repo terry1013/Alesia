@@ -1144,6 +1144,8 @@ public class TUIUtils {
 	public static WebButton getWebButtonForToolBar(Action action) {
 		overRideIcons(16, null, action);
 		WebButton jb = new WebButton(action);
+        jb.setRequestFocusEnabled(false);
+
 		// TooltipManager.setTooltip(jb, (String) taa.getValue(TAbstractAction.SHORT_DESCRIPTION), TooltipWay.down);
 		// jb.setDrawFocus(false);
 		// jb.setShadeWidth(0);

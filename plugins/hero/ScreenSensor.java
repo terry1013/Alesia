@@ -6,7 +6,6 @@ import java.io.*;
 import java.util.List;
 
 import javax.imageio.*;
-import javax.naming.spi.*;
 import javax.swing.*;
 
 import com.alee.utils.*;
@@ -63,6 +62,7 @@ public class ScreenSensor extends JPanel {
 
 		showOriginal(true);
 	}
+
 	/**
 	 * Compare the images <code>imagea</code> and <code>imageg</code> pixel by pixel returning the percentage of
 	 * diference. If the images are equals, return values closer to 0.0, and for complety diferent images, return values
@@ -206,7 +206,7 @@ public class ScreenSensor extends JPanel {
 		Rectangle bou = shape.bounds;
 
 		// capture the image
-		if (Hero.trooper.isTestMode()) {
+		if (Trooper.getInstance().isTestMode()) {
 			// from the drawin panel background
 			ImageIcon ii = sensorsArray.getSensorDisposition().getBackgroundImage();
 			BufferedImage bgimage = ImageUtils.getBufferedImage(ii);
@@ -215,7 +215,7 @@ public class ScreenSensor extends JPanel {
 			// from the screen
 			capturedImage = sensorsArray.getRobot().createScreenCapture(bou);
 		}
-		
+
 		Hero.logger.info(getName() + ": Imgen captured.");
 
 		/*
@@ -304,6 +304,10 @@ public class ScreenSensor extends JPanel {
 	 */
 	public boolean isActionArea() {
 		return shape.isActionArea;
+	}
+
+	public boolean isCardCard() {
+		return shape.isCardArea;
 	}
 
 	public boolean isComunityCard() {
