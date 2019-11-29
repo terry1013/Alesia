@@ -59,7 +59,7 @@ public class UpdateManager {
 				DownloadManager.download(ad, al, false);
 			}
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 
@@ -86,7 +86,7 @@ public class UpdateManager {
 				}
 			}
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 
@@ -200,7 +200,7 @@ public class UpdateManager {
 				Exit.restarApplication();
 			}
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 }

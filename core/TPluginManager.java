@@ -99,7 +99,7 @@ public class TPluginManager extends PluginManager<TPlugin> {
 //					TResources.addResourcePath(pip + pid + "/");
 				}
 			} catch (Exception e) {
-				SystemLog.logException(e);
+				e.printStackTrace();
 				SystemLog.severe("Plugin not instaled");
 			}
 		}

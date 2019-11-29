@@ -190,6 +190,8 @@ public class PokerSimulator {
 		exception = null;
 	}
 
+	private int heroChips = 0;
+	
 	public void setCallValue(int callValue) {
 		this.callValue = callValue;
 	}
@@ -326,5 +328,11 @@ public class PokerSimulator {
 		}
 
 		infoJtextArea.setText(text);
+	}
+	public int getHeroChips() {
+		return heroChips;
+	}
+	public void setHeroChips(int heroChips) {
+		this.heroChips = heroChips;
 	}
 }

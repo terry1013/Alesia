@@ -70,7 +70,7 @@ public class ImportFromFile extends UIListPanel implements PropertyChangeListene
 			getToolBar().setVisible(true);
 		} catch (Exception e) {
 			setMessage("inputfile.msg06", f);
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 
 	}
@@ -168,7 +168,7 @@ public class ImportFromFile extends UIListPanel implements PropertyChangeListene
 			Reader in = new FileReader(TResources.getFile(columnModelDef + ".csv"));
 			coldefl = (new CSVParser(in, CSVFormat.EXCEL.withHeader()).getRecords());
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 		SimpleDateFormat dfomat = null;
 		tempBuffer.clear();

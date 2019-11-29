@@ -30,7 +30,7 @@ public class SensorsArray {
 	private Robot robot;
 	private Border readingBorder, lookingBorder, standByBorder;
 	private PokerSimulator pokerSimulator;
-	private SensorDisposition sensorDisposition;
+	private ScreenAreas screenAreas;
 	private Vector<String> attentionAreas;
 
 	public SensorsArray() {
@@ -85,8 +85,8 @@ public class SensorsArray {
 		return av;
 	}
 
-	public SensorDisposition getSensorDisposition() {
-		return sensorDisposition;
+	public ScreenAreas getSensorDisposition() {
+		return screenAreas;
 	}
 
 	public Robot getRobot() {
@@ -154,6 +154,13 @@ public class SensorsArray {
 	}
 
 	/**
+	 * this is the color max color on the villanX.button area indicating that i´this area has the dealler button. this
+	 * is uded by {@link #updateTablePosition()} to calculate the Hero.s position in the table
+	 */
+	public static String DEALER_BUTTON_COLOR = "008080";
+	
+
+	/**
 	 * Update the table position. the Herro´s table position is determinated detecting the dealer button and counting
 	 * clockwise. the position 1 is th small blind, 2 big blind, 3 under the gun, and so on. The dealer position is the
 	 * highest value
@@ -163,14 +170,14 @@ public class SensorsArray {
 		int dp = -1;
 		for (int i = 1; i <= vil; i++) {
 			String sscol = getScreenSensor("villan" + i + ".button").getMaxColor();
-			dp = (sscol.equals("008080")) ? i : dp;
+			dp = (sscol.equals(DEALER_BUTTON_COLOR)) ? i : dp;
 		}
 		int tp = dp == -1 ? vil + 1 : vil + 1 - dp;
 		pokerSimulator.setTablePosition(tp);
 	}
 
-	private void seeTable(boolean read, String... ssn) {
-		setAttentionOn(ssn);
+	private void seeTable(boolean read, String... sensors) {
+		setAttentionOn(sensors);
 		setStandByBorder();
 		for (String sn : attentionAreas) {
 			ScreenSensor ss = getScreenSensor(sn);
@@ -181,18 +188,19 @@ public class SensorsArray {
 	}
 
 	/**
-	 * Perform read operation on the ssn areas names or all areas. The read operation will perform OCR operation if the
+	 * Perform read operation on the ssn areas names or all areas. The read operation will perform OCR operation.
 	 * 
-	 * @param ssn
+	 * @param sensors
 	 */
-	public void read(String... ssn) {
-		seeTable(true, ssn);
+	public void read(String... sensors) {
+		seeTable(true, sensors);
 
 		// update simulator
 		pokerSimulator.setNunOfPlayers(getActivePlayers());
 		updateTablePosition();
 		pokerSimulator.setPotValue(getScreenSensor("pot").getIntOCR());
 		pokerSimulator.setCallValue(getScreenSensor("call").getIntOCR());
+		pokerSimulator.setHeroChips(getScreenSensor("hero.chips").getIntOCR());
 		pokerSimulator.setRaiseValue(getScreenSensor("raise").getIntOCR());
 
 		// update hero carts and comunity cards (if this method was called for card areas)
@@ -266,12 +274,12 @@ public class SensorsArray {
 	 * 
 	 * @param dpanel - the enviorement
 	 */
-	protected void createSensorsArray(SensorDisposition sDisp) {
-		this.sensorDisposition = sDisp;
+	protected void createSensorsArray(ScreenAreas areas) {
+		this.screenAreas = areas;
 		this.screenSensors = new Vector<ScreenSensor>();
 		this.attentionAreas = new Vector<>();
 
-		Vector<Shape> figs = new Vector<>(sensorDisposition.getShapes().values());
+		Vector<Shape> figs = new Vector<>(screenAreas.getShapes().values());
 		for (Shape shape : figs) {
 			ScreenSensor ss = new ScreenSensor(this, shape);
 			screenSensors.addElement(ss);

@@ -336,7 +336,7 @@ public class HTMLEditor extends JPanel implements ActionListener {
 		try {
 			return editor.getText();
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 			return "";
 		}
 	}

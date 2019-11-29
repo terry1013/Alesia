@@ -50,7 +50,7 @@ class Canvas extends JPanel {
 			scrollPane = new JScrollPane(editorPane);
 			add(scrollPane, BorderLayout.CENTER);
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 

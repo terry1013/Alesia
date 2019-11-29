@@ -2,6 +2,7 @@ package gui.console;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.util.logging.*;
 
 import javax.swing.*;
 import javax.swing.event.*;
@@ -22,95 +23,6 @@ import core.*;
  * You can limit the number of lines to hold in the Document.
  */
 public class MessageConsole {
-	private JTextComponent textComponent;
-	private Document document;
-	private boolean isAppend;
-	private DocumentListener limitLinesListener;
-	private ActionMap actionMap;
-
-	public MessageConsole(JTextComponent textComponent) {
-		this(textComponent, true);
-		actionMap = Alesia.getInstance().getContext().getActionMap(this);
-	}
-
-	@Action
-	public void showAllMessage(ActionEvent event) {
-		
-	}
-	@Action
-	public void showInfoMessage(ActionEvent event) {
-		
-	}
-	@Action
-	public void showWarnMessage(ActionEvent event) {
-		
-	}
-	@Action
-	public void cleanConsole(ActionEvent event) {
-		textComponent.setText("");
-	}
-	/**
-	 * Use the text component specified as a simply console to display text messages.
-	 *
-	 * The messages can either be appended to the end of the console or inserted as the first line of the console.
-	 */
-	public MessageConsole(JTextComponent textComponent, boolean isAppend) {
-		this.textComponent = textComponent;
-		this.document = textComponent.getDocument();
-		this.isAppend = isAppend;
-		textComponent.setEditable(false);
-	}
-	
-	public ActionMap getActionMap() {
-		return actionMap;
-	}
-
-	/**
-	 * Redirect the output from the standard output to the console using the default text color and null PrintStream
-	 */
-	public void redirectOut() {
-		redirectOut(null, null);
-	}
-
-	/**
-	 * Redirect the output from the standard output to the console using the specified color and PrintStream. When a
-	 * PrintStream is specified the message will be added to the Document before it is also written to the PrintStream.
-	 */
-	public void redirectOut(Color textColor, PrintStream printStream) {
-		ConsoleOutputStream cos = new ConsoleOutputStream(textColor, printStream);
-		System.setOut(new PrintStream(cos, true));
-	}
-
-	/**
-	 * Redirect the output from the standard error to the console using the default text color and null PrintStream
-	 */
-	public void redirectErr() {
-		redirectErr(null, null);
-	}
-
-	/**
-	 * Redirect the output from the standard error to the console using the specified color and PrintStream. When a
-	 * PrintStream is specified the message will be added to the Document before it is also written to the PrintStream.
-	 */
-	public void redirectErr(Color textColor, PrintStream printStream) {
-		ConsoleOutputStream cos = new ConsoleOutputStream(textColor, printStream);
-		System.setErr(new PrintStream(cos, true));
-	}
-
-	/**
-	 * To prevent memory from being used up you can control the number of lines to display in the console
-	 *
-	 * This number can be dynamically changed, but the console will only be updated the next time the Document is
-	 * updated.
-	 */
-	public void setMessageLines(int lines) {
-		if (limitLinesListener != null)
-			document.removeDocumentListener(limitLinesListener);
-
-		limitLinesListener = new LimitLinesDocumentListener(lines, isAppend);
-		document.addDocumentListener(limitLinesListener);
-	}
-
 	/**
 	 * Class to intercept output from a PrintStream and add it to a Document. The output can optionally be redirected to
 	 * a different PrintStream. The text displayed in the Document can be color coded to indicate the output source.
@@ -161,41 +73,6 @@ public class MessageConsole {
 		}
 
 		/*
-		 * We don't want to have blank lines in the Document. The first line added will simply be the message. For
-		 * additional lines it will be:
-		 *
-		 * newLine + message
-		 */
-		private void handleAppend(String message) {
-			// This check is needed in case the text in the Document has been
-			// cleared. The buffer may contain the EOL string from the previous
-			// message.
-
-			if (document.getLength() == 0)
-				buffer.setLength(0);
-
-			if (EOL.equals(message)) {
-				buffer.append(message);
-			} else {
-				buffer.append(message);
-				clearBuffer();
-			}
-
-		}
-		/*
-		 * We don't want to merge the new message with the existing message so the line will be inserted as:
-		 *
-		 * message + newLine
-		 */
-		private void handleInsert(String message) {
-			buffer.append(message);
-
-			if (EOL.equals(message)) {
-				clearBuffer();
-			}
-		}
-
-		/*
 		 * The message and the newLine have been added to the buffer in the appropriate order so we can now update the
 		 * Document and send the text to the optional PrintStream.
 		 */
@@ -228,5 +105,105 @@ public class MessageConsole {
 
 			buffer.setLength(0);
 		}
+		/*
+		 * We don't want to have blank lines in the Document. The first line added will simply be the message. For
+		 * additional lines it will be:
+		 *
+		 * newLine + message
+		 */
+		private void handleAppend(String message) {
+			// This check is needed in case the text in the Document has been
+			// cleared. The buffer may contain the EOL string from the previous
+			// message.
+
+			if (document.getLength() == 0)
+				buffer.setLength(0);
+
+			if (EOL.equals(message)) {
+				buffer.append(message);
+			} else {
+				buffer.append(message);
+				clearBuffer();
+			}
+
+		}
+
+		/*
+		 * We don't want to merge the new message with the existing message so the line will be inserted as:
+		 *
+		 * message + newLine
+		 */
+		private void handleInsert(String message) {
+			buffer.append(message);
+
+			if (EOL.equals(message)) {
+				clearBuffer();
+			}
+		}
 	}
+	private JTextComponent textComponent;
+	private Document document;
+	private boolean isAppend;
+	private DocumentListener limitLinesListener;
+
+	public MessageConsole(JTextComponent textComponent) {
+		this(textComponent, true);
+	}
+	/**
+	 * Use the text component specified as a simply console to display text messages.
+	 *
+	 * The messages can either be appended to the end of the console or inserted as the first line of the console.
+	 */
+	public MessageConsole(JTextComponent textComponent, boolean isAppend) {
+		this.textComponent = textComponent;
+		this.document = textComponent.getDocument();
+		this.isAppend = isAppend;
+		textComponent.setEditable(false);
+	}
+	/**
+	 * Redirect the output from the standard error to the console using the default text color and null PrintStream
+	 */
+	public void redirectErr() {
+		redirectErr(null, null);
+	}
+	
+	/**
+	 * Redirect the output from the standard error to the console using the specified color and PrintStream. When a
+	 * PrintStream is specified the message will be added to the Document before it is also written to the PrintStream.
+	 */
+	public void redirectErr(Color textColor, PrintStream printStream) {
+		ConsoleOutputStream cos = new ConsoleOutputStream(textColor, printStream);
+		System.setErr(new PrintStream(cos, true));
+	}
+
+	/**
+	 * Redirect the output from the standard output to the console using the default text color and null PrintStream
+	 */
+	public void redirectOut() {
+		redirectOut(null, null);
+	}
+
+	/**
+	 * Redirect the output from the standard output to the console using the specified color and PrintStream. When a
+	 * PrintStream is specified the message will be added to the Document before it is also written to the PrintStream.
+	 */
+	public void redirectOut(Color textColor, PrintStream printStream) {
+		ConsoleOutputStream cos = new ConsoleOutputStream(textColor, printStream);
+		System.setOut(new PrintStream(cos, true));
+	}
+
+	/**
+	 * To prevent memory from being used up you can control the number of lines to display in the console
+	 *
+	 * This number can be dynamically changed, but the console will only be updated the next time the Document is
+	 * updated.
+	 */
+	public void setMessageLines(int lines) {
+		if (limitLinesListener != null)
+			document.removeDocumentListener(limitLinesListener);
+
+		limitLinesListener = new LimitLinesDocumentListener(lines, isAppend);
+		document.addDocumentListener(limitLinesListener);
+	}
+
 }

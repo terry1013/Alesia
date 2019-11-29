@@ -9,6 +9,7 @@ import javax.swing.*;
 
 import org.apache.commons.math3.stat.descriptive.*;
 import org.apache.poi.hslf.usermodel.*;
+import org.slf4j.*;
 
 /**
  * this class represent the sensors configured using power point. This class read the powerpoint file and extract all
@@ -17,13 +18,13 @@ import org.apache.poi.hslf.usermodel.*;
  * @author terry
  *
  */
-public class SensorDisposition {
+public class ScreenAreas {
 
 	private Hashtable<String, Shape> shapes;
 	private File file;
 	private ImageIcon backgroundImage;
 
-	public SensorDisposition(File file) {
+	public ScreenAreas(File file) {
 		this.shapes = new Hashtable<>();
 		this.file = file;
 	}
@@ -37,7 +38,7 @@ public class SensorDisposition {
 	}
 
 	private boolean isOCRArea(String name) {
-		return name.equals("pot") || name.equals("call") || name.equals("raise")
+		return name.equals("hero.chips") || name.equals("pot") || name.equals("call") || name.equals("raise")
 				|| (name.startsWith("villan") && name.contains("name"))
 				|| (name.startsWith("villan") && name.contains("call"));
 	}
@@ -47,14 +48,14 @@ public class SensorDisposition {
 
 			FileInputStream fis = new FileInputStream(file);
 			HSLFSlideShow ppt = new HSLFSlideShow(new HSLFSlideShowImpl(fis));
-			Hero.logger.config("reading " + file);
+			LoggerFactory.getLogger("Hero").info("reading " + file);
 
 			// background. paste the image from clipboard genera an PNG image
 			HSLFSlideMaster master = ppt.getSlideMasters().get(0);
 			HSLFFill fill = master.getBackground().getFill();
 			HSLFPictureData pic = fill.getPictureData();
 			byte[] data = pic.getData();
-			Hero.logger.config(
+			LoggerFactory.getLogger("Hero").trace(
 					"background detected type=" + pic.getType() + " Dimesions " + pic.getImageDimensionInPixels());
 			backgroundImage = new ImageIcon(data);
 			for (HSLFSlide slide : ppt.getSlides()) {
@@ -81,8 +82,8 @@ public class SensorDisposition {
 						anchor.setRect(anchor.getX() * 1.3333, anchor.getY() * 1.3333, anchor.getWidth() * 1.3333,
 								anchor.getHeight() * 1.3333);
 						Shape sha = new Shape(anchor.getBounds());
-//						Hero.logger.config("shape found " + name + " Bounds" + "[x=" + sha.bounds.x + ",y="
-//								+ sha.bounds.y + ",width=" + sha.bounds.width + ",height=" + sha.bounds.height + "]");
+						LoggerFactory.getLogger("Hero").trace("shape found " + name + " Bounds" + "[x=" + sha.bounds.x + ",y="
+								+ sha.bounds.y + ",width=" + sha.bounds.width + ",height=" + sha.bounds.height + "]");
 						// marck action areas
 						if (name.startsWith("action.")) {
 							sha.isActionArea = true;
@@ -110,14 +111,14 @@ public class SensorDisposition {
 		shapes.values().stream().filter(sh -> sh.isCardArea)
 				.forEach(sh -> stat.addValue(sh.bounds.getWidth() * sh.bounds.getHeight()));
 		if (stat.getMax() != stat.getMin()) {
-			Hero.logger.severe("Card areas HAS NOT the same dimensions.");
-			Hero.logger.severe("Base card: " + base.width + " height=" + base.height);
+			LoggerFactory.getLogger("Hero").error("Card areas HAS NOT the same dimensions.");
+			LoggerFactory.getLogger("Hero").error("Base card: " + base.width + " height=" + base.height);
 			shapes.values().stream().filter(sh -> sh.isCardArea && !base.equals(sh.bounds.getSize()))
-					.forEach(losh -> Hero.logger
-							.severe(losh.name + " with=" + losh.bounds.width + " height=" + losh.bounds.height));
+					.forEach(losh -> LoggerFactory.getLogger("Hero")
+							.error(losh.name + " with=" + losh.bounds.width + " height=" + losh.bounds.height));
 
 		} else {
-			Hero.logger.info("Card areas checked. all card have width=" + base.width + " height=" + base.height);
+			LoggerFactory.getLogger("Hero").info("Card areas checked. all card have width=" + base.width + " height=" + base.height);
 		}
 	}
 

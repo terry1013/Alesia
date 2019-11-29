@@ -16,17 +16,74 @@ import java.io.InputStream;
 import java.net.*;
 import java.util.*;
 import java.util.jar.*;
+import java.util.logging.*;
+import java.util.logging.Logger;
 import java.util.zip.*;
 
 import javax.swing.*;
 
 import org.omg.CORBA.portable.*;
+import org.slf4j.*;
+import org.slf4j.impl.*;
 
 import com.jgoodies.common.base.*;
 
 import core.datasource.*;
 
 public class TResources {
+
+	public static String LOGGER_CONSOLE = "Console";
+	public static String LOGGER_FULL = "Full";
+
+	public static org.slf4j.Logger getSlf4jLogger(String name) {
+		System.setProperty("org.slf4j.simpleLogger.showDateTime", "false");
+		System.setProperty("org.slf4j.simpleLogger.showThreadName", "false");
+		
+		// set a system property such that Simple Logger will include timestamp in the given format
+		System.setProperty("org.slf4j.simpleLogger.dateTimeFormat", "dd-MM-yy HH:mm:ss");
+		// set minimum log level for SLF4J Simple Logger at warn
+		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "trace");
+		// configure SLF4J Simple Logger to redirect output to a file
+//		System.setProperty("org.slf4j.simpleLogger.logFile", "_.log");
+		SimpleLogger sl = (SimpleLogger) LoggerFactory.getLogger(name);
+		return sl;
+	}
+
+	public static Logger getLogger(String name, String flavor) {
+		String fmt = System.getProperty("java.util.logging.SimpleFormatter.format");
+		// fmt = (flavor.equals(LOGGER_FULL)) ? "%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %5$s%6$s%n" : fmt;
+		// fmt = (flavor.equals(LOGGER_CONSOLE)) ? "%4$s: %5$s%6$s" : fmt;
+		// System.setProperty("java.util.logging.SimpleFormatter.format", fmt);
+		// System.setProperty("java.util.logging.SimpleFormatter.format", "%4$s: %5$s%6$%n");
+		// System.setProperty("java.util.logging.SimpleFormatter.format", "%1$");
+		Level lvl = Level.ALL;
+		// lvl = (flavor.equals(LOGGER_FULL)) ? Level.INFO : lvl;
+		// lvl = (flavor.equals(LOGGER_CONSOLE)) ? Level.ALL : lvl;
+
+		Logger log = null;
+		try {
+			FileHandler fh = new FileHandler("_.log");
+			fh.setLevel(lvl);
+
+			ConsoleHandler ch = new ConsoleHandler();
+			ch.setLevel(lvl);
+
+			log = Logger.getLogger(name);
+			Handler[] hs = log.getHandlers();
+			for (int x = 0; x < hs.length; x++) {
+				log.removeHandler(hs[x]);
+			}
+
+			if (flavor.equals(LOGGER_FULL)) {
+				log.addHandler(fh);
+			} else {
+				log.addHandler(ch);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return log;
+	}
 
 	public static String USER_DIR = System.getProperty("user.dir");
 	private static String TEMP_PATH = System.getProperty("java.io.tmpdir") + "Alesia/";
@@ -106,7 +163,8 @@ public class TResources {
 				jos.close();
 			}
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
+			e.printStackTrace();
 		}
 		return jarf;
 	}
@@ -148,7 +206,7 @@ public class TResources {
 			v = new Vector(tempFileList);
 		} catch (Exception e) {
 			// retorna vector vacio
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 		return v;
 	}
@@ -308,7 +366,7 @@ public class TResources {
 	 * @param qf - nombre de archivo (path/nombre.ext)
 	 * @return documento public static Document getXMLDocument(String qn) { File f = new File(dir + qn); Document doc =
 	 *         null; try { SAXBuilder sb = new SAXBuilder(); doc = sb.build(f); } catch (Exception e) {
-	 *         SystemLog.logException(e); } return doc; }
+	 *         e.printStackTrace(); } return doc; }
 	 */
 
 	/**
@@ -340,7 +398,7 @@ public class TResources {
 			String tdir = System.getProperty("user.dir") + "/";
 			extractZipFile(f, tdir);
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 
@@ -465,7 +523,7 @@ public class TResources {
 			// TODO: verificar si ptf debe ser cargado
 
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 		return ptfbundle;
 	}
@@ -492,7 +550,7 @@ public class TResources {
 	 * 
 	 *        message.setContent(mmp); message.saveChanges();
 	 * 
-	 *        Transport.send(message); Thread.sleep(10000); } catch (Exception e) { SystemLog.logException(e); } }
+	 *        Transport.send(message); Thread.sleep(10000); } catch (Exception e) { e.printStackTrace(); } }
 	 */
 
 	/**

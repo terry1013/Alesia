@@ -70,7 +70,7 @@ public class TPreferences {
 			properties = new Properties();
 			inputStream = new FileInputStream(new File(COMM_FILE));
 			properties.load(inputStream);
-			sendMessage(REQUEST_MAXIMIZE, "false");
+			sendMessage(Alesia.REQUEST_MAXIMIZE, "false");
 
 			// if aditionalConfigFile is present, try load aditional properties
 			Object acf = properties.get("aditionalConfigFile");
@@ -219,7 +219,7 @@ public class TPreferences {
 			rdta = bos.toByteArray();
 			out.close();
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 		return rdta;
 	}
@@ -233,7 +233,7 @@ public class TPreferences {
 			ImageIO.write(bi, "JPG", baos);
 			dta = baos.toByteArray();
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 		return dta;
 	}
@@ -254,7 +254,7 @@ public class TPreferences {
 			o = in.readObject();
 			in.close();
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 		return o;
 	}

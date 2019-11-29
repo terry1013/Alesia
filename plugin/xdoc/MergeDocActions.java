@@ -67,7 +67,7 @@ public class MergeDocActions extends TAbstractAction {
 				dsk.print(tmpf);
 			}
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 }

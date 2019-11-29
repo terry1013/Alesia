@@ -111,7 +111,7 @@ public class ManifestViewer extends UIComponentPanel implements ListSelectionLis
 			}
 			this.jli_list.setModel(dlm);
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 

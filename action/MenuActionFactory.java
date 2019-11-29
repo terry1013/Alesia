@@ -64,7 +64,7 @@ public class MenuActionFactory extends TAbstractAction {
 			JDialog dialog = getDialog(uicmp, (String) getValue(NAME));
 			dialog.setVisible(true);
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 }

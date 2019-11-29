@@ -58,7 +58,7 @@ public class UpdateManifestView extends TAbstractAction implements PropertyChang
 			}
 		} catch(Exception e) {
 			// no deberia
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 	

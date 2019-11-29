@@ -90,7 +90,7 @@ public class DataBaseUtilities {
 	 *         Constructor cnt = cls.getConstructor(new Class[]{String.class}); // obj = cnt.newInstance(new Object[] {
 	 *         fn_fv_si_cl[k + 1] }); obj = cnt.newInstance(new Object[]{fv}); } flds[k / 4] = new
 	 *         TEntry(fn_fv_si_cl[k], obj); siz[k / 4] = Integer.parseInt(fn_fv_si_cl[k + 2]); } } catch (Exception e) {
-	 *         SystemLog.logException(e); } return new Record(tn, 0, flds, siz); }
+	 *         e.printStackTrace(); } return new Record(tn, 0, flds, siz); }
 	 */
 
 	/**
@@ -109,7 +109,7 @@ public class DataBaseUtilities {
 	 *         Time.valueOf(fn_fv_si_cl[k + 1]); } else { Class cls = Class.forName(fn_fv_si_cl[k + 3]); Constructor cnt
 	 *         = cls.getConstructor(new Class[]{String.class}); obj = cnt.newInstance(new Object[]{fn_fv_si_cl[k + 1]});
 	 *         } } flds[k/4] = new LTEntry(fn_fv_si_cl[k], obj); siz[k/4] = Integer.parseInt(fn_fv_si_cl[k + 2]); } }
-	 *         catch (Exception e) { SystemLog.logException(e); // nada } return new Record(tn, 0, flds, siz); }
+	 *         catch (Exception e) { e.printStackTrace(); // nada } return new Record(tn, 0, flds, siz); }
 	 */
 
 	/**

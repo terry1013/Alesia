@@ -17,7 +17,7 @@ public class RobotActuator {
 	private int mouseDelay = 200;
 	private int keyStrokeDelay = 20;
 
-	private SensorDisposition sensorDisposition;
+	private ScreenAreas sensorDisposition;
 
 	public RobotActuator() {
 		this.robot = Hero.getNewRobot();
@@ -33,17 +33,26 @@ public class RobotActuator {
 	 * @param aName - the action name to perform
 	 */
 	public void perform(String aName) {
+		String[] actions = aName.split(";");
+		for (String action : actions) {
+			Shape fig = sensorDisposition.getShapes().get(action);
+			if (fig != null) {
+				Point p = fig.getRandomPoint();
+				mouseMove(p.x, p.y);
 
-		// TODO: return boolean to indicate if the action was performed succesfully
-		Shape fig = sensorDisposition.getShapes().get(aName);
-		if (fig != null) {
-			Point p = fig.getCenterPoint();
-			mouseMove(p.x, p.y);
-			doClick();
-			Hero.logger.fine("Action " + aName + " performed.");
-		} else {
-			Hero.logger.fine("From RobotActuator.perform: Action " + aName
-					+ " not performed. no button was found with that name");
+				// TODO: remove. temporal to emulate all in in th
+				if (action.contains("allin")) {
+					doClick();
+					doClick();
+					doClick();
+				}
+
+				doClick();
+				Hero.logger.info("Action " + action + " performed.");
+			} else {
+				Hero.logger.trace("From RobotActuator.perform: Action " + action
+						+ " not performed. no button was found with that name");
+			}
 		}
 	}
 	/**
@@ -52,7 +61,7 @@ public class RobotActuator {
 	 * 
 	 * @param dpanel - the panel
 	 */
-	public void setEnviorement(SensorDisposition sDisp) {
+	public void setEnviorement(ScreenAreas sDisp) {
 		this.sensorDisposition = sDisp;
 	}
 

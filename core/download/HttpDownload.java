@@ -53,7 +53,7 @@ public class HttpDownload extends AbstractDownload {
 			td = Long.parseLong(con.getHeaderField("Content-Length"));
 			con.disconnect();
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 		return td > beg;
 	}

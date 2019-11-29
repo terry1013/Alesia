@@ -35,13 +35,64 @@ public class SensorsPanel extends TUIPanel {
 	public SensorsPanel() {
 		setAditionalInformationVisible(false);
 		// actionMap = Alesia.getInstance().getContext().getActionMap(this);
-		this.loadAction = Trooper.getLoadAction();
+		this.loadAction = Hero.getLoadAction();
 		setToolBar(loadAction);
 		this.mainJPanel = new JPanel(new BorderLayout());
 		JPanel jp = new JPanel(new BorderLayout());
 		jp.add(mainJPanel, BorderLayout.CENTER);
 		jp.add(Hero.console, BorderLayout.SOUTH);
 		setBodyComponent(jp);
+	}
+
+	/**
+	 * create the {@link ScreenSensor} array plus all UI components
+	 * 
+	 */
+	public void setEnviorement(Trooper trooper) {
+		setVisible(false);
+		updateTrooper(trooper);
+		mainJPanel.removeAll();
+		// left panel: all sensors from the screen
+		// JPanel jpleft = new JPanel(new GridLayout(3, 0, 4, 4));
+		JPanel arrayjp = new JPanel();
+		arrayjp.setLayout(new BoxLayout(arrayjp, BoxLayout.Y_AXIS));
+		arrayjp.add(createCardPanel());
+		arrayjp.add(createVillansPanel());
+		arrayjp.add(createActionAreaPanel());
+
+		// sensor array + pokerprothesis
+		// JPanel jp = new JPanel(new GridLayout(0, 2, 4, 4));
+		// jp.add(jpleft);
+
+		JComponent jl = trooper.getSensorsArray().getPokerSimulator().getInfoJTextArea();
+		// jl.setBorder(new TitledBorder("Simulation"));
+		JTabbedPane jtp = new JTabbedPane();
+		jtp.add(new JScrollPane(arrayjp), "Sensor Array");
+		jtp.add(jl, "simulator data");
+
+		mainJPanel.add(jtp, BorderLayout.CENTER);
+
+		// jp.add(jl);
+
+		// mainJPanel.add(jp, BorderLayout.CENTER);
+		// scrollPane.setViewportView(jp);
+		setVisible(true);
+	}
+
+	public void updateTrooper(Trooper trooper) {
+		this.trooper = trooper;
+		setToolBar(loadAction, Hero.actionMap.get("runTrooper"), Hero.actionMap.get("testTrooper"),
+				Hero.actionMap.get("stopTrooper"), Hero.actionMap.get("takeCardSample"));
+	}
+
+	private JPanel createActionAreaPanel() {
+		JPanel aapanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 4));
+		aapanel.setBorder(new TitledBorder("Buttons & actions"));
+		Vector<ScreenSensor> btns = trooper.getSensorsArray().getActionAreas();
+		for (ScreenSensor btn : btns) {
+			aapanel.add(btn);
+		}
+		return aapanel;
 	}
 
 	/**
@@ -56,6 +107,7 @@ public class SensorsPanel extends TUIPanel {
 		mycard.add(trooper.getSensorsArray().getScreenSensor("hero.card2"));
 		mycard.add(trooper.getSensorsArray().getScreenSensor("hero.button"));
 		mycard.add(trooper.getSensorsArray().getScreenSensor("hero.call"));
+		mycard.add(trooper.getSensorsArray().getScreenSensor("hero.chips"));
 		mycard.add(trooper.getSensorsArray().getScreenSensor("pot"));
 
 		JPanel comcard = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 4));
@@ -77,7 +129,6 @@ public class SensorsPanel extends TUIPanel {
 		return mcpo;
 
 	}
-
 	/**
 	 * create a panel for all configured villans. v1|v1|v2|...
 	 * 
@@ -105,51 +156,6 @@ public class SensorsPanel extends TUIPanel {
 		}
 		// villans.setBorder(new TitledBorder("Villans"));
 		return villans;
-	}
-
-	private JPanel createActionAreaPanel() {
-		JPanel aapanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 4));
-		aapanel.setBorder(new TitledBorder("Buttons & actions"));
-		Vector<ScreenSensor> btns = trooper.getSensorsArray().getActionAreas();
-		for (ScreenSensor btn : btns) {
-			aapanel.add(btn);
-		}
-		return aapanel;
-	}
-	/**
-	 * create the {@link ScreenSensor} array plus all UI components
-	 * 
-	 */
-	public void createPanel(Trooper trooper) {
-		this.trooper = trooper;
-		setToolBar(loadAction, trooper.getAction("runTrooper"), trooper.getAction("testTrooper"),
-				trooper.getAction("stopTrooper"), trooper.getAction("takeCardSample"));
-
-		mainJPanel.removeAll();
-		// left panel: all sensors from the screen
-		// JPanel jpleft = new JPanel(new GridLayout(3, 0, 4, 4));
-		JPanel arrayjp = new JPanel();
-		arrayjp.setLayout(new BoxLayout(arrayjp, BoxLayout.Y_AXIS));
-		arrayjp.add(createCardPanel());
-		arrayjp.add(createVillansPanel());
-		arrayjp.add(createActionAreaPanel());
-
-		// sensor array + pokerprothesis
-		// JPanel jp = new JPanel(new GridLayout(0, 2, 4, 4));
-		// jp.add(jpleft);
-
-		JComponent jl = trooper.getSensorsArray().getPokerSimulator().getInfoJTextArea();
-		// jl.setBorder(new TitledBorder("Simulation"));
-		JTabbedPane jtp = new JTabbedPane();
-		jtp.add(new JScrollPane(arrayjp), "Sensor Array");
-		jtp.add(jl, "simulator data");
-
-		mainJPanel.add(jtp, BorderLayout.CENTER);
-
-		// jp.add(jl);
-
-		// mainJPanel.add(jp, BorderLayout.CENTER);
-		// scrollPane.setViewportView(jp);
 	}
 
 }

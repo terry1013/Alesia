@@ -210,7 +210,7 @@ public class XDocReportTask implements TRunnable {
 			ConnectionManager.getAccessTo("xd_merged_doc").add(mr);
 
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 
@@ -297,7 +297,7 @@ public class XDocReportTask implements TRunnable {
 			}
 			ImageIO.write(image, fileType, myFile);
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 		return new FileImageProvider(myFile);
 	}

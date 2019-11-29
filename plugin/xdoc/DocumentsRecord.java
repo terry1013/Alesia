@@ -182,7 +182,7 @@ public class DocumentsRecord extends AbstractRecordDataInput implements Property
 				}
 				preValidate(fileJB);
 			} catch (Exception e) {
-				SystemLog.logException(e);
+				e.printStackTrace();
 			}
 		}
 	}

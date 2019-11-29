@@ -1,11 +1,7 @@
 package plugins.hero;
 
-import java.awt.event.*;
 import java.io.*;
 import java.util.*;
-
-import javax.swing.*;
-import javax.swing.Action;
 
 import org.apache.commons.math3.stat.descriptive.*;
 import org.jdesktop.application.*;
@@ -43,32 +39,22 @@ public class Trooper extends Task {
 	private File enviorement;
 	private long time1;
 	private DescriptiveStatistics outGameStats;
-	private ActionMap actionMap;
 
-	public static Action getLoadAction() {
-		Action load = TActionsFactory.getAction("fileChooserOpen");
-		load.addPropertyChangeListener(evt -> {
-			if (evt.getPropertyName().equals(TActionsFactory.DATA_LOADED)) {
-				Trooper.getInstance().setEnviorement((File) load.getValue(TActionsFactory.DATA_LOADED));
-			}
-		});
-		return load;
-	}
-	
 	public Trooper() {
+		this(null);
+	}
+	public Trooper(Trooper clone) {
 		super(Alesia.getInstance());
 		this.robotActuator = new RobotActuator();
-		this.sensorsArray = new SensorsArray();
-		this.pokerSimulator = sensorsArray.getPokerSimulator();
 		this.availableActions = new Vector();
 		this.outGameStats = new DescriptiveStatistics(10);
-		this.actionMap = Alesia.getInstance().getContext().getActionMap(this);
 
-		// if there are a previous enviorement, set the enviorement
-		if (enviorement != null) {
-			setEnviorement(enviorement);
-		}
+		this.sensorsArray = new SensorsArray();
+		this.pokerSimulator = sensorsArray.getPokerSimulator();
 		instance = this;
+		if (clone != null && clone.enviorement != null) {
+			setEnviorement(clone.enviorement);
+		}
 	}
 	public static Trooper getInstance() {
 		return instance;
@@ -81,9 +67,6 @@ public class Trooper extends Task {
 		outGameStats.addValue(tt);
 		time1 = System.currentTimeMillis();
 		Hero.logger.info("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
-	}
-	public Action getAction(String key) {
-		return actionMap.get(key);
 	}
 
 	/**
@@ -101,7 +84,7 @@ public class Trooper extends Task {
 	 * 
 	 * @return expected pot odd
 	 */
-	public double getPotOdds(int val) {
+	public double getPotOdds(int val, String name) {
 		int pot = pokerSimulator.getPotValue() + getVillansCall();
 
 		/*
@@ -122,7 +105,7 @@ public class Trooper extends Task {
 		poto = (val == 0) ? 0 : poto;
 		// for val=-1 (posible error) return -1 expectaive
 		poto = (val < 0) ? -1 : poto;
-		Hero.logger.info(pnam + " prob=" + totp + " pot=" + pot + " value=" + val + " potodd=" + poto);
+		Hero.logger.info(pnam + " prob=" + totp + " pot=" + pot + " value=" + val + " potodd for " + name + "=" + poto);
 		return poto;
 	}
 
@@ -154,32 +137,8 @@ public class Trooper extends Task {
 		return isTestMode;
 	}
 
-	@org.jdesktop.application.Action
-	public Task runTrooper(ActionEvent event) {
-		Hero.console.clearConsole();
-		Trooper t = new Trooper();
-		t.setTestMode(false);
-		return t;
-	}
 	public void setTestMode(boolean isTestMode) {
 		this.isTestMode = isTestMode;
-	}
-
-	@org.jdesktop.application.Action
-	public void stopTrooper(ActionEvent event) {
-		cancel(false);
-	}
-	@org.jdesktop.application.Action
-	public void takeCardSample(ActionEvent event) {
-		getSensorsArray().takeCardSample();
-	}
-
-	@org.jdesktop.application.Action
-	public Task testTrooper(ActionEvent event) {
-		Hero.console.clearConsole();
-		Trooper t = new Trooper();
-		t.setTestMode(true);
-		return t;
 	}
 
 	/**
@@ -205,17 +164,24 @@ public class Trooper extends Task {
 	 * 
 	 */
 	private void addPotOddActions() {
-		sensorsArray.read("pot", "call", "raise");
+		sensorsArray.read("pot", "call", "raise", "hero.chips");
 		int call = pokerSimulator.getCallValue();
 		int raise = pokerSimulator.getRaiseValue();
+		int pot = pokerSimulator.getPotValue() + getVillansCall();
+		int chips = pokerSimulator.getHeroChips();
 
-		if (getPotOdds(call) >= 0) {
+		if (getPotOdds(call, "call") >= 0) {
 			addAction("call");
 		}
-		if (getPotOdds(raise) >= 0) {
+		if (getPotOdds(raise, "raise") >= 0) {
 			addAction("raise");
 		}
-		// TODO: compute more raise actions until potodd < 0
+		if (getPotOdds(pot, "pot") >= 0) {
+			addAction("raise.pot;raise");
+		}
+		if (getPotOdds(chips, "hero chips") >= 0) {
+			addAction("raise.allin;raise");
+		}
 	}
 
 	/**
@@ -299,14 +265,15 @@ public class Trooper extends Task {
 	 * set the enviorement. this method create a new enviorement discarting all previous created objects
 	 * 
 	 */
-	private void setEnviorement(File file) {
-		SensorDisposition sDisp = new SensorDisposition(file);
+	public void setEnviorement(File file) {
+		ScreenAreas sDisp = new ScreenAreas(file);
 		sDisp.read();
 		this.enviorement = file;
 		sensorsArray.createSensorsArray(sDisp);
 		robotActuator.setEnviorement(sDisp);
-		
-		Hero.sensorsPanel.createPanel(this);
+
+		Hero.sensorsPanel.setEnviorement(this);
+
 	}
 	/**
 	 * use de actions stored in {@link #availableActions} list. At this point, the game table is waiting for the herro
@@ -319,7 +286,7 @@ public class Trooper extends Task {
 		if (isMyTurnToPlay() && availableActions.size() > 0) {
 			final StringBuffer actl = new StringBuffer();
 			availableActions.stream().forEach((act) -> actl.append(act + ", "));
-			Hero.logger.fine("Available actions to perform: " + actl.substring(0, actl.length() - 2));
+			Hero.logger.info("Available actions to perform: " + actl.substring(0, actl.length() - 2));
 			Hero.logger.info("Current hand: " + pokerSimulator.getMyHandHelper().getHand().toString());
 			if (availableActions.size() == 1) {
 				robotActuator.perform(availableActions.elementAt(0));
@@ -359,16 +326,16 @@ public class Trooper extends Task {
 			// look the standar actions buttons. this standar button indicate that the game is waiting for my play
 			// sensorsArray.lookTable("fold", "call", "raise");
 			if (isMyTurnToPlay()) {
-				Hero.logger.fine("Deciding ...");
+				Hero.logger.info("Deciding ...");
 				decide();
-				Hero.logger.fine("-------------------");
-				Hero.logger.fine("Acting ...");
+				Hero.logger.info("-------------------");
+				Hero.logger.info("Acting ...");
 				act();
-				Hero.logger.fine("-------------------");
+				Hero.logger.info("-------------------");
 			}
-			Hero.logger.fine("Thinkin ...");
+			Hero.logger.info("Thinkin ...");
 			think();
-			Hero.logger.fine("-------------------");
+			Hero.logger.info("-------------------");
 
 			// check simulator status: in case of any error, try to clean the simulator and wait for the next cycle
 			if (pokerSimulator.getException() != null) {

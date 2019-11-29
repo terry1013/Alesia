@@ -1,9 +1,19 @@
-2019-10-20 21:07:30 Plugin DateLook not installed because property plugin.active = false
-2019-10-20 21:07:30 Plugin DBTweezer not installed because property plugin.active = false
-2019-10-20 21:07:30 Plugin ETeam not installed because property plugin.active = false
-2019-10-20 21:07:30 Plugin Flicka found
-2019-10-20 21:07:32 Plugin Flicka.startPlugin() sucsefully
-2019-10-20 21:07:32 Plugin Hero found
-2019-10-20 21:07:32 Plugin Hero.startPlugin() sucsefully
-2019-10-20 21:07:32 Plugin MailBomber not installed because property plugin.active = false
-2019-10-20 21:07:32 Plugin XDoc not installed because property plugin.active = false
+INFO Alesia - Connecting to local database ...
+INFO com.alee.managers.settings.SettingsManager - Settings group 'Alesia' loaded successfully
+INFO Alesia - Loading plugins ...
+INFO com.alee.managers.plugin.PluginManager - Scanning plugins directory (recursive): plugins
+INFO com.alee.managers.plugin.PluginManager - Scanning plugins directory (recursive): plugins
+INFO com.alee.managers.plugin.PluginManager - Plugin detected: Hero v1.0.0, Status: detected
+INFO com.alee.managers.plugin.PluginManager - Scanning plugins directory (recursive): plugins
+INFO com.alee.managers.plugin.PluginManager - Scanning plugins directory (recursive): plugins
+INFO com.alee.managers.plugin.PluginManager - Scanning plugins directory (recursive): plugins
+INFO com.alee.managers.plugin.PluginManager - Scanning plugins directory (recursive): plugins
+INFO com.alee.managers.plugin.PluginManager - Scanning plugins directory (recursive): plugins
+INFO com.alee.managers.plugin.PluginManager - Scanning plugins directory (recursive): plugins
+INFO com.alee.managers.plugin.PluginManager - Scanning plugins directory (recursive): plugins
+INFO com.alee.managers.plugin.PluginManager - Scanning plugins directory (recursive): plugins
+INFO com.alee.managers.plugin.PluginManager - Initializing plugins
+INFO com.alee.managers.plugin.PluginManager - [hero/plugin.xml] [Hero v1.0.0] Initializing plugin
+INFO com.alee.managers.plugin.PluginManager - [hero/plugin.xml] [Hero v1.0.0] Plugin initialized
+INFO com.alee.managers.plugin.PluginManager - Plugins initialization finished
+INFO Alesia - Starting task manager ...

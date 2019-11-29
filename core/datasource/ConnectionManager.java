@@ -226,7 +226,7 @@ public class ConnectionManager {
 			}
 			res.close();
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 

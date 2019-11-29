@@ -72,7 +72,7 @@ public class TAbstractTableModel extends AbstractTableModel {
 				// temporal
 				fireTableDataChanged();
 				System.out.println("--------");
-				// SystemLog.logException(e);
+				// e.printStackTrace();
 			}
 		}
 	}

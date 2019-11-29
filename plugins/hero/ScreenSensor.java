@@ -216,7 +216,7 @@ public class ScreenSensor extends JPanel {
 			capturedImage = sensorsArray.getRobot().createScreenCapture(bou);
 		}
 
-		Hero.logger.info(getName() + ": Imgen captured.");
+		Hero.logger.trace(getName() + ": Imgen captured.");
 
 		/*
 		 * color reducction or image treatment before OCR operation or enable/disable action
@@ -230,7 +230,7 @@ public class ScreenSensor extends JPanel {
 		setEnabled(false);
 		// TODO: test performance changin prepared image for captured image because is smaller
 		if (!(whitePercent > shape.enableWhen)) {
-			Hero.logger.info(getName() + ": is disabled.");
+			Hero.logger.trace(getName() + ": is disabled.");
 			return;
 		}
 		setEnabled(true);
@@ -356,11 +356,11 @@ public class ScreenSensor extends JPanel {
 		// is this an OCR area ?
 		boolean doo = shape.isOCRArea;
 		if (!doo) {
-			Hero.logger.info(getName() + ": no ocr performed. Porperty shape.isOCRArea=" + doo);
+			Hero.logger.trace(getName() + ": no ocr performed. Porperty shape.isOCRArea=" + doo);
 			return null;
 		}
 
-		Hero.logger.info(getName() + ": performing OCR...");
+		Hero.logger.trace(getName() + ": performing OCR...");
 		regions = Hero.iTesseract.getSegmentedRegions(preparedImage, pageIteratorLevel);
 		ocrResult = Hero.iTesseract.doOCR(preparedImage);
 		List<Word> wlst = Hero.iTesseract.getWords(preparedImage, pageIteratorLevel);
@@ -381,7 +381,7 @@ public class ScreenSensor extends JPanel {
 	private String getStringForCard() throws Exception {
 
 		// ensure is an card area
-		if (shape.isCardArea) {
+		if (!shape.isCardArea) {
 			throw new IllegalArgumentException("The screen sensor must be a card area sensor.");
 		}
 
@@ -391,7 +391,7 @@ public class ScreenSensor extends JPanel {
 		BufferedImage imagea = getCapturedImage();
 		File dir = new File(SAMPLE_PATH);
 		String[] imgs = dir.list();
-		Hero.logger.info(getName() + ": Comparing images ...");
+		Hero.logger.trace(getName() + ": Comparing images ...");
 		for (String img : imgs) {
 			File f = new File(SAMPLE_PATH + img);
 			BufferedImage imageb = ImageIO.read(f);
@@ -406,7 +406,7 @@ public class ScreenSensor extends JPanel {
 		// if the card is the file name is card_facedown, set null for ocr
 		if (ocr.equals("card_facedown")) {
 			ocr = null;
-			Hero.logger.info(getName() + ": card id face down.");
+			Hero.logger.trace(getName() + ": card id face down.");
 		}
 
 		// if the card diference is most than 30%, its posible than some garbage is interfiring whit the screen capture.
@@ -414,7 +414,7 @@ public class ScreenSensor extends JPanel {
 		// image diference over 30% is a complete diferent image.
 		if (dif > 30) {
 			ocr = null;
-			Hero.logger.info(getName() + ": card diference of " + dif + "% dectected. setting this card area as null.");
+			Hero.logger.trace(getName() + ": card diference of " + dif + "% dectected. setting this card area as null.");
 		}
 
 		return ocr;

@@ -3,12 +3,12 @@ package gui.console;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
-import java.util.logging.*;
 
 import javax.swing.*;
 import javax.swing.text.*;
 
 import org.jdesktop.application.Action;
+import org.slf4j.*;
 
 import com.alee.extended.layout.*;
 import com.alee.laf.button.*;
@@ -31,14 +31,14 @@ import core.*;
  * @author terry
  *
  */
-public class MessageConsolePanel extends WebPanel {
+public class MessageConsolePanel2 extends WebPanel {
 
 	private WebEditorPane editorPane;
 	private Logger logger;
 	private ActionMap actionMap;
 	private MessageConsole console;
 
-	public MessageConsolePanel(Logger logger) {
+	public MessageConsolePanel2(org.slf4j.Logger logger) {
 		setLayout(new VerticalFlowLayout(VerticalFlowLayout.TOP));
 		actionMap = Alesia.getInstance().getContext().getActionMap(this);
 		this.editorPane = new WebEditorPane();
@@ -61,8 +61,8 @@ public class MessageConsolePanel extends WebPanel {
 		WebPanel toolbar = new WebPanel(new LineLayout(LineLayout.HORIZONTAL));
 
 		GroupPane gp = new GroupPane();
-		WebToggleButton wtb = TUIUtils.getWebToggleButton(actionMap.get("showAllMessage"));
-		wtb.registerSettings(new Configuration<ButtonState>("Console.showAllMessage"));
+		WebToggleButton wtb = TUIUtils.getWebToggleButton(actionMap.get("showTraceMessage"));
+		wtb.registerSettings(new Configuration<ButtonState>("Console.showTraceMessage"));
 		gp.add(wtb);
 		wtb = TUIUtils.getWebToggleButton(actionMap.get("showInfoMessage"));
 		wtb.registerSettings(new Configuration<ButtonState>("Console.showInfoMessage"));
@@ -84,7 +84,7 @@ public class MessageConsolePanel extends WebPanel {
 
 		add(toolbar);
 		add(jsp);
-		setLoggerLever(SettingsManager.get("LoggerLevel", Level.ALL));
+		setLoggerLever(SettingsManager.get("LoggerLevel", "info"));
 	}
 
 	public void cleanConsole() {
@@ -96,25 +96,22 @@ public class MessageConsolePanel extends WebPanel {
 	}
 
 	@Action
-	public void showAllMessage(ActionEvent event) {
-		setLoggerLever(Level.ALL);
+	public void showTraceMessage(ActionEvent event) {
+		setLoggerLever("trace");
 	}
 
 	@Action
 	public void showInfoMessage(ActionEvent event) {
-		setLoggerLever(Level.INFO);
+		setLoggerLever("info");
 	}
 
 	@Action
 	public void showWarnMessage(ActionEvent event) {
-		setLoggerLever(Level.WARNING);
+		setLoggerLever("warn");
 	}
 
-	private void setLoggerLever(Level level) {
-		logger.setLevel(level);
-		Arrays.asList(logger.getHandlers()).stream().forEach(h->h.setLevel(level));
-		Level ll = level.equals(Level.ALL) ? Level.INFO : level;
-		logger.log(ll, "Logger level changed to " + level.getName());
+	private void setLoggerLever(String level) {
+		System.out.println("Log level changed to " +level);
 		SettingsManager.set("LoggerLevel", level);
 	}
 }

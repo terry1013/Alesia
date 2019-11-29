@@ -12,13 +12,14 @@ package plugins.hero;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.*;
 import java.util.*;
-import java.util.logging.*;
 
 import javax.swing.*;
 import javax.swing.Action;
 
 import org.jdesktop.application.*;
+import org.slf4j.*;
 
 import com.alee.laf.*;
 
@@ -31,7 +32,7 @@ public class Hero extends TPlugin {
 
 	protected static Tesseract iTesseract;
 	protected static ActionMap actionMap;
-	protected static MessageConsolePanel console; 
+	protected static MessageConsolePanel2 console;
 	protected static SensorsPanel sensorsPanel;
 	protected static Logger logger;
 
@@ -40,40 +41,19 @@ public class Hero extends TPlugin {
 		iTesseract.setDatapath("plugins/hero/tessdata"); // path to tessdata directory
 		// iTesseract.setLanguage("pok");
 		actionMap = Alesia.getInstance().getContext().getActionMap(this);
-		logger = Logger.getLogger("Hero");
-		logger.setLevel(Level.ALL);
-		console = new MessageConsolePanel();
-		WebLookAndFeel.setForceSingleEventsThread(false);
+		logger = TResources.getSlf4jLogger("Hero");
+		console = new MessageConsolePanel2(logger);
 	}
-
-	@Override
-	public ArrayList<javax.swing.Action> getUI(String type) {
-		ArrayList<Action> alist = new ArrayList<>();
-		alist.add(actionMap.get("screenRegions"));
-//		alist.add(actionMap.get("drawEditor"));
-		return alist;
+	public static Action getLoadAction() {
+		Action load = TActionsFactory.getAction("fileChooserOpen");
+		load.addPropertyChangeListener(evt -> {
+			if (evt.getPropertyName().equals(TActionsFactory.DATA_LOADED)) {
+				new Trooper();
+				Trooper.getInstance().setEnviorement((File) load.getValue(TActionsFactory.DATA_LOADED));
+			}
+		});
+		return load;
 	}
-
-	@org.jdesktop.application.Action
-	public void screenRegions(ActionEvent event) {
-		sensorsPanel = new SensorsPanel();
-		Alesia.getMainPanel().setContentPanel(sensorsPanel);
-	}
-
-	@org.jdesktop.application.Action
-	public void drawEditor(ActionEvent event) {
-		DrawingEditor de = new DrawingEditor();
-		Alesia.getMainPanel().setContentPanel(de);
-	}
-
-	public static void logPerformance(String txt, long t1) {
-		// StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-		// the 3th element contain the method´s name who call this method
-//		String mn = Thread.currentThread().getStackTrace()[2].getMethodName();
-		String sp = TStringUtils.formatSpeed(System.currentTimeMillis() - t1);
-		logger.fine(txt + ": " + sp);
-	}
-
 	/**
 	 * This metod is separated because maybe in the future we will need diferents robot for diferent graphics
 	 * configurations
@@ -88,5 +68,65 @@ public class Hero extends TPlugin {
 			e.printStackTrace();
 		}
 		return r;
+	}
+
+	public static void logPerformance(String txt, long t1) {
+		// StackTraceElement[] ste = Thread.currentThread().getStackTrace();
+		// the 3th element contain the method´s name who call this method
+		// String mn = Thread.currentThread().getStackTrace()[2].getMethodName();
+		String sp = TStringUtils.formatSpeed(System.currentTimeMillis() - t1);
+		logger.trace(txt + ": " + sp);
+	}
+	@org.jdesktop.application.Action
+	public void drawEditor(ActionEvent event) {
+		DrawingEditor de = new DrawingEditor();
+		Alesia.getMainPanel().setContentPanel(de);
+	}
+
+	@Override
+	public ArrayList<javax.swing.Action> getUI(String type) {
+		ArrayList<Action> alist = new ArrayList<>();
+		alist.add(actionMap.get("screenRegions"));
+		// alist.add(actionMap.get("drawEditor"));
+		return alist;
+	}
+
+	@org.jdesktop.application.Action
+	public Task runTrooper(ActionEvent event) {
+		return start(false);
+	}
+
+	@org.jdesktop.application.Action
+	public void screenRegions(ActionEvent event) {
+		sensorsPanel = new SensorsPanel();
+		Alesia.getMainPanel().setContentPanel(sensorsPanel);
+	}
+
+	@org.jdesktop.application.Action
+	public void stopTrooper(ActionEvent event) {
+		actionMap.get("testTrooper").setEnabled(true);
+		actionMap.get("runTrooper").setEnabled(true);
+		Trooper.getInstance().cancel(false);
+		WebLookAndFeel.setForceSingleEventsThread(true);
+	}
+
+	@org.jdesktop.application.Action
+	public void takeCardSample(ActionEvent event) {
+		Trooper.getInstance().getSensorsArray().takeCardSample();
+	}
+
+	@org.jdesktop.application.Action
+	public Task testTrooper(ActionEvent event) {
+		return start(true);
+	}
+
+	private Task start(boolean test) {
+		WebLookAndFeel.setForceSingleEventsThread(false);
+		// Hero.console.cleanConsole();
+		Trooper t = new Trooper(Trooper.getInstance());
+		t.setTestMode(true);
+		actionMap.get("testTrooper").setEnabled(false);
+		actionMap.get("runTrooper").setEnabled(false);
+		return t;
 	}
 }

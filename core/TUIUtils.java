@@ -25,7 +25,6 @@ import javax.swing.Action;
 import javax.swing.border.*;
 import javax.swing.table.*;
 import javax.swing.table.TableColumn;
-import javax.swing.text.*;
 import javax.swing.text.html.*;
 
 import org.jdesktop.application.*;
@@ -33,24 +32,19 @@ import org.jdesktop.application.*;
 import com.alee.extended.date.*;
 import com.alee.extended.filechooser.*;
 import com.alee.extended.image.*;
-import com.alee.extended.layout.*;
 import com.alee.extended.panel.*;
 import com.alee.laf.button.*;
 import com.alee.laf.checkbox.*;
-import com.alee.laf.label.*;
-import com.alee.laf.panel.*;
 import com.alee.laf.text.*;
 import com.alee.laf.toolbar.*;
 import com.alee.managers.style.*;
-import com.alee.managers.tooltip.*;
 import com.alee.utils.*;
 import com.alee.utils.swing.*;
 
-import action.*;
 import core.datasource.*;
 import gui.*;
-import gui.console.*;
 import gui.wlaf.*;
+import javafx.scene.control.*;
 
 /**
  * static methods for grapichal user interfaces utils
@@ -1165,8 +1159,8 @@ public class TUIUtils {
 		overRideIcons(16, null, action);
 		WebToggleButton jb = new WebToggleButton(StyleId.togglebutton, action);
 		// test: for toglebuttons, perform action performed over the action
-//		jb.addItemListener(
-//				evt -> ((AbstractButton) evt.getSource()).getAction().actionPerformed(new ActionEvent(jb, -1, "")));
+		// jb.addItemListener(
+		// evt -> ((AbstractButton) evt.getSource()).getAction().actionPerformed(new ActionEvent(jb, -1, "")));
 		jb.setText(null);
 		jb.setPreferredWidth(46);
 		return jb;

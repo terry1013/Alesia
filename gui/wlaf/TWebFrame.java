@@ -172,6 +172,7 @@ public class TWebFrame extends WebFrame {
 	}
 	public void setSplashIncrementText(String text) {
 		splashIncrementLabel.setText(text);
+		Alesia.logger.info(text);
 	}
 
 	public void setSplashIcon(Icon splashIcon) {

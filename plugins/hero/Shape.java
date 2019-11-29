@@ -2,6 +2,7 @@ package plugins.hero;
 
 import java.awt.*;
 
+import org.apache.commons.math3.distribution.*;
 import org.apache.poi.hslf.usermodel.*;
 
 /**
@@ -44,7 +45,7 @@ public class Shape {
 
 	/**
 	 * set to true during the construction if ths shape is a card area. hero.cards, villans cards and comunity cards all
-	 * are card areas. this property is based when the name of the shape int the ppt file 
+	 * are card areas. this property is based when the name of the shape int the ppt file
 	 */
 	public boolean isCardArea = false;
 
@@ -55,14 +56,31 @@ public class Shape {
 	public boolean isButtonArea = false;
 	/**
 	 * mark if this shape is required to be readed by tesserac. this property is hardcoded in a method nside of
-	 * {@link SensorDisposition}
+	 * {@link ScreenAreas}
 	 */
 	public boolean isOCRArea = false;
 
-	public Point getCenterPoint() {
-		return center;
+	/**
+	 * indicate how menay clicks require this area to be completed. this attribute must be named <code>clicks</code> in
+	 * the shape name. by default, an action area nedds only a mouse/keyboard click to complete. this parameter is used by 
+	 * {@link RobotActuator}
+	 */
+	public int clicks = 1;
+
+	/**
+	 * Return a random point normal distributed allong the x and y axis
+	 * 
+	 * @return a random point
+	 */
+	public Point getRandomPoint() {
+		int sx = (int) distributionX.sample();
+		int sy = (int) distributionY.sample();
+		return new Point(sx, sy);
 	}
 
+	private NormalDistribution distributionX;
+	private NormalDistribution distributionY;
+	
 	public Shape(Rectangle rec) {
 		this.bounds = rec;
 		int cx = rec.width / 2;
@@ -70,5 +88,7 @@ public class Shape {
 		center = new Point();
 		center.x = rec.x + cx;
 		center.y = rec.y + cy;
+		this.distributionX = new NormalDistribution(center.x, 1);
+		this.distributionY = new NormalDistribution(center.y, 1);
 	}
 }

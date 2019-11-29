@@ -58,7 +58,7 @@ public class AbstractDownload implements Runnable, PropertyChangeListener {
 			this.isRunning = true;
 			this.parameters = new Hashtable<String, Object>();
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 
@@ -77,7 +77,7 @@ public class AbstractDownload implements Runnable, PropertyChangeListener {
 			outputStream.close();
 			targetFile.delete();
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 
@@ -142,7 +142,7 @@ public class AbstractDownload implements Runnable, PropertyChangeListener {
 				DownloadManager.done(this);
 			}
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 }

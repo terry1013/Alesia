@@ -43,7 +43,7 @@ public class DownloadManager {
 			service = Executors.newFixedThreadPool(1);
 
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 
@@ -94,7 +94,7 @@ public class DownloadManager {
 			readers.add(ad);
 			service.submit(ad);
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 
@@ -119,7 +119,7 @@ public class DownloadManager {
 				ad = new FileDownload(f, new File(tarf));
 			}
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 		return ad;
 	}
@@ -144,7 +144,7 @@ public class DownloadManager {
 			}
 			readers.remove(ad);
 		} catch (Exception e) {
-			SystemLog.logException(e);
+			e.printStackTrace();
 		}
 	}
 

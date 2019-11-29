@@ -50,7 +50,6 @@ import com.alee.utils.*;
 import com.alee.utils.CollectionUtils;
 
 import core.datasource.*;
-import core.download.*;
 import core.tasks.*;
 import gui.*;
 import gui.docking.*;
@@ -64,7 +63,6 @@ import gui.wlaf.*;
 public class Alesia extends Application {
 
 	public static ArrayList<Skin> skins;
-	public static final String LOG_FILE = "_.log";
 
 	private static AudioClip newMsg, errMsg;
 	private static TWebFrame mainFrame;
@@ -80,6 +78,23 @@ public class Alesia extends Application {
 	private TPluginManager pluginManager;
 	private static DockingContainer mainPanel;
 
+	//
+	// public static Logger getLogger(String name) {
+	// // set a system property such that Simple Logger will include timestamp
+	// System.setProperty("org.slf4j.simpleLogger.showDateTime", "false");
+	//
+	// // set a system property such that Simple Logger will include timestamp in the given format
+	// System.setProperty("org.slf4j.simpleLogger.dateTimeFormat", "dd-MM-yy HH:mm:ss");
+	//
+	// // set minimum log level for SLF4J Simple Logger at warn
+	// System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "warn");
+	//
+	// // configure SLF4J Simple Logger to redirect output to a file
+	// System.setProperty("org.slf4j.simpleLogger.logFile", "_.log");
+	// Logger log = org.slf4j.LoggerFactory.getLogger(name);
+	// log.debug(arg0);
+	// return log;
+	// }
 	public static ActionMap getActionMap() {
 		return getInstance().getContext().getActionMap();
 	}
@@ -235,7 +250,7 @@ public class Alesia extends Application {
 					System.exit(0);
 				}
 			}
-			Alesia.logger.error("", e);
+			e.printStackTrace();
 			ExceptionDialog.showDialog(e);
 			System.exit(-1);
 		}
@@ -362,7 +377,7 @@ public class Alesia extends Application {
 			Thread.sleep(2000);
 			Runtime.getRuntime().exec("cmd /c start /MIN restart.bat");
 		} catch (Exception e) {
-			logger.error("", e);
+			e.printStackTrace();
 		}
 	}
 
@@ -375,8 +390,8 @@ public class Alesia extends Application {
 		// Properties prp = System.getProperties();
 
 		// point apache log to this log
-		logger = LoggerFactory.getLogger(Alesia.class);
 		TResources.init();
+		logger = TResources.getSlf4jLogger("Alesia");
 
 		Font fo;
 		try {
@@ -387,7 +402,7 @@ public class Alesia extends Application {
 			title1 = fo.deriveFont(20f).deriveFont(Font.PLAIN);
 			title2 = fo.deriveFont(14f).deriveFont(Font.PLAIN);
 		} catch (Exception e) {
-			logger.error("Error trying loading fonts", e);
+			e.printStackTrace();
 			title1 = new Font("Arial", Font.PLAIN, 16);
 			title2 = new Font("Arial", Font.PLAIN, 14);
 		}
@@ -412,7 +427,7 @@ public class Alesia extends Application {
 	}
 	@Override
 	protected void ready() {
-		
+
 		Alesia.mainFrame.setSplashIncrementText("Loading plugins ...");
 		pluginManager = new TPluginManager();
 		pluginManager.scanPluginsDirectory();

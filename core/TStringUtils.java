@@ -47,7 +47,7 @@ public class TStringUtils {
 			try {
 				// TODO: complete implementation.
 				PropertyResourceBundle prb = new PropertyResourceBundle(new FileInputStream(f));
-				Alesia.logger.info("property file %s found.", f.getName());
+				Alesia.logger.info("property file " + f.getName() + " found.");
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -174,7 +174,7 @@ public class TStringUtils {
 			BigInteger bi = new BigInteger(1, bytes);
 			dmsg = String.format("%0" + (bytes.length << 1) + "X", bi);
 		} catch (Exception e) {
-			SystemLog.logException1(e, true);
+			e.printStackTrace();
 		}
 		return dmsg;
 	}
@@ -366,11 +366,12 @@ public class TStringUtils {
 	 * @return String en formato <b>Clio Version: 1.36 Update: 0</b> o similar
 	 */
 	public static String getAboutAppShort() {
-		return TStringUtils.getString("name") + " " + TStringUtils.getString("version") + " " +TStringUtils.getString("vendor");
+		return TStringUtils.getString("name") + " " + TStringUtils.getString("version") + " "
+				+ TStringUtils.getString("vendor");
 
-//		return TStringUtils.getString("about.app.name") + " " + TStringUtils.getString("about.version") + " "
-//				+ SystemVariables.getStringVar("versionID") + " " + TStringUtils.getString("about.update") + " "
-//				+ SystemVariables.getStringVar("updateID");
+		// return TStringUtils.getString("about.app.name") + " " + TStringUtils.getString("about.version") + " "
+		// + SystemVariables.getStringVar("versionID") + " " + TStringUtils.getString("about.update") + " "
+		// + SystemVariables.getStringVar("updateID");
 	}
 
 	public static String getRecordId() {
@@ -781,9 +782,10 @@ public class TStringUtils {
 
 	/**
 	 * retun a list of {@link TEntry} constructed with the fields values passes as argument.
+	 * 
 	 * @param list - list of row from database
-	 * @param key - field name for key 
-	 * @param value - field name for value 
+	 * @param key - field name for key
+	 * @param value - field name for value
 	 * @return list of {@link TEntry}
 	 * @since 2.3
 	 */
