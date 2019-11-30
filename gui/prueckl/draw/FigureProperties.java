@@ -96,7 +96,7 @@ public class FigureProperties extends AbstractAction {
 			// jTextArea.setPreferredSize(new Dimension(200, 200));
 			JScrollPane jsp = new JScrollPane(jTextArea);
 
-			int resp = JOptionPane.showConfirmDialog(Alesia.getMainFrame(), jsp, "Edit Properties",
+			int resp = JOptionPane.showConfirmDialog(Alesia.mainFrame, jsp, "Edit Properties",
 					JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
 			if (resp == JOptionPane.OK_OPTION) {
 				actionPerformed2();

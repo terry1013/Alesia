@@ -1,7 +1,12 @@
 <SettingsGroup id="SG-1kf5Q-Vyt4N-mPWYz-TaZ1E-ID" name="Alesia">
-  <application type="WindowState" location="800,63" size="567,717" state="0"/>
-  <Console.showTraceMessage type="ButtonState" selected="true"/>
-  <Console.showInfoMessage type="ButtonState" selected="false"/>
+  <TWebFrame type="WindowState" location="796,40" size="573,735" state="0"/>
+  <Console.showAllMessage type="ButtonState" selected="false"/>
+  <Loggin.Level type="java.util.logging.Level">
+    <name>INFO</name>
+    <value>800</value>
+    <resourceBundleName>sun.util.logging.resources.logging</resourceBundleName>
+  </Loggin.Level>
+  <Console.showInfoMessage type="ButtonState" selected="true"/>
   <Console.showWarnMessage type="ButtonState" selected="false"/>
-  <LoggerLevel type="string">trace</LoggerLevel>
+  <Console.showFinerMessage type="ButtonState" selected="false"/>
 </SettingsGroup>

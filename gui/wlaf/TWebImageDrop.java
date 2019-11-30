@@ -4,6 +4,7 @@ import java.awt.event.*;
 import java.awt.image.*;
 import java.io.*;
 import java.util.*;
+import java.util.logging.*;
 
 import javax.imageio.*;
 import javax.swing.*;
@@ -76,7 +77,7 @@ public class TWebImageDrop extends WebImageDrop {
 				ImageIO.write(bi, "jpg", bos);
 			}
 		} catch (Exception e) {
-			SystemLog.logException1(e);
+			e.printStackTrace();
 		}
 		return bi == null ? new byte[0] : bos.toByteArray();
 	}

@@ -40,7 +40,7 @@ public class SensorsPanel extends TUIPanel {
 		this.mainJPanel = new JPanel(new BorderLayout());
 		JPanel jp = new JPanel(new BorderLayout());
 		jp.add(mainJPanel, BorderLayout.CENTER);
-		jp.add(Hero.console, BorderLayout.SOUTH);
+		jp.add(Hero.consolePanel, BorderLayout.SOUTH);
 		setBodyComponent(jp);
 	}
 

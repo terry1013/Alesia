@@ -84,7 +84,7 @@ public class TActionsFactory {
 	@Action
 	public void fileChooserOpen(ActionEvent event) {
 		ApplicationAction me = getMe(event);
-		FileDialog dialog = new FileDialog(Alesia.getMainFrame(), null, FileDialog.LOAD);
+		FileDialog dialog = new FileDialog(Alesia.mainFrame, null, FileDialog.LOAD);
 		dialog.setMultipleMode(false);
 		dialog.setVisible(true);
 		String sf = dialog.getFile();
@@ -103,7 +103,7 @@ public class TActionsFactory {
 	@Action
 	public void fileChooserSave(ActionEvent event) {
 		ApplicationAction me = getMe(event);
-		FileDialog dialog = new FileDialog(Alesia.getMainFrame(), null, FileDialog.SAVE);
+		FileDialog dialog = new FileDialog(Alesia.mainFrame, null, FileDialog.SAVE);
 		dialog.setMultipleMode(false);
 		dialog.setVisible(true);
 		String sf = dialog.getFile();
@@ -195,7 +195,7 @@ public class TActionsFactory {
 
 		LocalProperty lsel = getLastSelected(group);
 		TEntry tels = lsel == null ? null : new TEntry(lsel.getId(), lsel.get("name"));
-		TEntry sel = (TEntry) JOptionPane.showInputDialog(Alesia.getMainFrame(), "Select the elements to load", "Load",
+		TEntry sel = (TEntry) JOptionPane.showInputDialog(Alesia.mainFrame, "Select the elements to load", "Load",
 				JOptionPane.PLAIN_MESSAGE, null, te.toArray(), tels);
 
 		// save the last selected and store the value from db in the loadPerformed property
@@ -237,7 +237,7 @@ public class TActionsFactory {
 		LocalProperty lss = getLastSelected(group);
 		String ls = lss == null ? null : lss.getString("name");
 
-		String savn = (String) JOptionPane.showInputDialog(Alesia.getMainFrame(), "Write the name", "Save",
+		String savn = (String) JOptionPane.showInputDialog(Alesia.mainFrame, "Write the name", "Save",
 				JOptionPane.PLAIN_MESSAGE, null, null, ls);
 
 		// save & update last selected

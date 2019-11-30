@@ -9,7 +9,6 @@ import javax.swing.*;
 
 import org.apache.commons.math3.stat.descriptive.*;
 import org.apache.poi.hslf.usermodel.*;
-import org.slf4j.*;
 
 /**
  * this class represent the sensors configured using power point. This class read the powerpoint file and extract all
@@ -48,14 +47,13 @@ public class ScreenAreas {
 
 			FileInputStream fis = new FileInputStream(file);
 			HSLFSlideShow ppt = new HSLFSlideShow(new HSLFSlideShowImpl(fis));
-			LoggerFactory.getLogger("Hero").info("reading " + file);
 
 			// background. paste the image from clipboard genera an PNG image
 			HSLFSlideMaster master = ppt.getSlideMasters().get(0);
 			HSLFFill fill = master.getBackground().getFill();
 			HSLFPictureData pic = fill.getPictureData();
 			byte[] data = pic.getData();
-			LoggerFactory.getLogger("Hero").trace(
+			Hero.logger.fine(
 					"background detected type=" + pic.getType() + " Dimesions " + pic.getImageDimensionInPixels());
 			backgroundImage = new ImageIcon(data);
 			for (HSLFSlide slide : ppt.getSlides()) {
@@ -82,8 +80,8 @@ public class ScreenAreas {
 						anchor.setRect(anchor.getX() * 1.3333, anchor.getY() * 1.3333, anchor.getWidth() * 1.3333,
 								anchor.getHeight() * 1.3333);
 						Shape sha = new Shape(anchor.getBounds());
-						LoggerFactory.getLogger("Hero").trace("shape found " + name + " Bounds" + "[x=" + sha.bounds.x + ",y="
-								+ sha.bounds.y + ",width=" + sha.bounds.width + ",height=" + sha.bounds.height + "]");
+						Hero.logger.fine("shape found " + name + " Bounds" + "[x=" + sha.bounds.x + ",y=" + sha.bounds.y
+								+ ",width=" + sha.bounds.width + ",height=" + sha.bounds.height + "]");
 						// marck action areas
 						if (name.startsWith("action.")) {
 							sha.isActionArea = true;
@@ -111,14 +109,14 @@ public class ScreenAreas {
 		shapes.values().stream().filter(sh -> sh.isCardArea)
 				.forEach(sh -> stat.addValue(sh.bounds.getWidth() * sh.bounds.getHeight()));
 		if (stat.getMax() != stat.getMin()) {
-			LoggerFactory.getLogger("Hero").error("Card areas HAS NOT the same dimensions.");
-			LoggerFactory.getLogger("Hero").error("Base card: " + base.width + " height=" + base.height);
+			Hero.logger.severe("Card areas HAS NOT the same dimensions.");
+			Hero.logger.severe("Base card: " + base.width + " height=" + base.height);
 			shapes.values().stream().filter(sh -> sh.isCardArea && !base.equals(sh.bounds.getSize()))
-					.forEach(losh -> LoggerFactory.getLogger("Hero")
-							.error(losh.name + " with=" + losh.bounds.width + " height=" + losh.bounds.height));
+					.forEach(losh -> Hero.logger
+							.severe(losh.name + " with=" + losh.bounds.width + " height=" + losh.bounds.height));
 
 		} else {
-			LoggerFactory.getLogger("Hero").info("Card areas checked. all card have width=" + base.width + " height=" + base.height);
+			Hero.logger.info("Card areas checked. all card have width=" + base.width + " height=" + base.height);
 		}
 	}
 

@@ -17,10 +17,13 @@ import java.awt.event.*;
 import java.io.*;
 import java.sql.*;
 import java.util.*;
+import java.util.List;
+import java.util.logging.*;
 
 import javax.swing.*;
 import javax.swing.Action;
 
+import org.apache.commons.logging.impl.*;
 import org.apache.shiro.*;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.config.*;
@@ -31,7 +34,6 @@ import org.apache.shiro.subject.*;
 import org.apache.shiro.util.*;
 import org.javalite.activejdbc.*;
 import org.jdesktop.application.*;
-import org.slf4j.*;
 
 import com.alee.extended.image.*;
 import com.alee.extended.layout.*;
@@ -65,9 +67,9 @@ public class Alesia extends Application {
 	public static ArrayList<Skin> skins;
 
 	private static AudioClip newMsg, errMsg;
-	private static TWebFrame mainFrame;
+	public static TWebFrame mainFrame;
 
-	public static Logger logger;
+	private static Logger logger;
 	public static TTaskManager manager;
 	public static Font title1;
 	public static Font title2;
@@ -78,29 +80,8 @@ public class Alesia extends Application {
 	private TPluginManager pluginManager;
 	private static DockingContainer mainPanel;
 
-	//
-	// public static Logger getLogger(String name) {
-	// // set a system property such that Simple Logger will include timestamp
-	// System.setProperty("org.slf4j.simpleLogger.showDateTime", "false");
-	//
-	// // set a system property such that Simple Logger will include timestamp in the given format
-	// System.setProperty("org.slf4j.simpleLogger.dateTimeFormat", "dd-MM-yy HH:mm:ss");
-	//
-	// // set minimum log level for SLF4J Simple Logger at warn
-	// System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "warn");
-	//
-	// // configure SLF4J Simple Logger to redirect output to a file
-	// System.setProperty("org.slf4j.simpleLogger.logFile", "_.log");
-	// Logger log = org.slf4j.LoggerFactory.getLogger(name);
-	// log.debug(arg0);
-	// return log;
-	// }
 	public static ActionMap getActionMap() {
 		return getInstance().getContext().getActionMap();
-	}
-
-	public static TWebFrame getMainFrame() {
-		return mainFrame;
 	}
 
 	public static DockingContainer getMainPanel() {
@@ -117,7 +98,26 @@ public class Alesia extends Application {
 	 */
 	public static void main(String[] args) {
 		Locale.setDefault(Locale.US);
-		CoreSwingUtils.enableEventQueueLogging();
+
+		// CoreSwingUtils.enableEventQueueLogging();
+
+		// Loggin configuration:
+		// TODO: For slf4j: the bridge betwen slf4j is set using the slf4j-jdk14-1.7.25 jar lib
+		// for Apache: Set the system property
+		// For Alesia. look on the configuration file. if the file exist, i use it
+		System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
+//		System.setProperty("org.apache.commons.logging.Log", Jdk14Logger.class.getName());
+		File logc = new File("logging.properties");
+		logger = Logger.getLogger("Alesia");
+		if (logc.exists()) {
+			System.setProperty("java.util.logging.config.file", logc.getName());
+			try {
+				LogManager.getLogManager().readConfiguration();
+			} catch (Exception e) {
+				ExceptionDialog.showDialog(e);
+			}
+		}
+		logger.info("Wellcome to Alesia.");
 		Application.launch(Alesia.class, args);
 	}
 
@@ -130,7 +130,7 @@ public class Alesia extends Application {
 			popOvertext = content.getTitleText();
 			content.setTitleVisible(false);
 		}
-		final WebPopOver popOver = new WebPopOver(Alesia.getMainFrame());
+		final WebPopOver popOver = new WebPopOver(Alesia.mainFrame);
 		popOver.setModalityType(ModalityType.TOOLKIT_MODAL);
 		popOver.setMovable(false);
 		popOver.setLayout(new VerticalFlowLayout());
@@ -148,11 +148,11 @@ public class Alesia extends Application {
 		popOver.add(tit);
 		popOver.add(content);
 
-		// popOver.setLocationRelativeTo(Alesia.getMainFrame());
+		// popOver.setLocationRelativeTo(Alesia.mainFrame);
 		popOver.pack();
-		popOver.setLocationRelativeTo(Alesia.getMainFrame());
+		popOver.setLocationRelativeTo(Alesia.mainFrame);
 		popOver.setVisible(true);
-		// popOver.show(Alesia.getMainFrame());
+		// popOver.show(Alesia.mainFrame);
 
 		return content.getValues();
 	}
@@ -245,7 +245,7 @@ public class Alesia extends Application {
 			if (e instanceof InitException) {
 				SQLException se = (SQLException) e.getCause();
 				if (se.getSQLState().equals("S1000")) {
-					logger.warn("Another active instance found. Sending request maximize.");
+					logger.warning("Another active instance found. Sending request maximize.");
 					SettingsManager.set(REQUEST_MAXIMIZE, true);
 					System.exit(0);
 				}
@@ -389,9 +389,13 @@ public class Alesia extends Application {
 
 		// Properties prp = System.getProperties();
 
-		// point apache log to this log
 		TResources.init();
-		logger = TResources.getSlf4jLogger("Alesia");
+		
+//		local storage configuration 
+//		File lf = new File("LocalStorage.txt").getParentFile();
+//		getContext().getLocalStorage().setDirectory(lf.getParentFile());
+//		
+//		getContext().getLocalStorage().se
 
 		Font fo;
 		try {

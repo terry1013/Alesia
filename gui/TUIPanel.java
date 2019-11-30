@@ -104,7 +104,7 @@ public class TUIPanel extends JPanel {
 			// dialog.setTitle(" ");
 			return dialog;
 		}
-		dialog = new WebDialog(StyleId.dialogDecorated, Alesia.getMainFrame());
+		dialog = new WebDialog(StyleId.dialogDecorated, Alesia.mainFrame);
 		// standar behavior: if the title of the tuipanel is visible, this method remove the string and put in as this
 		// dialog title
 		if (isTitleVisible()) {
@@ -118,7 +118,7 @@ public class TUIPanel extends JPanel {
 		dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 		computeAndSetInitialDialogSize();
 		setDialogAspectRatio();
-		dialog.setLocationRelativeTo(Alesia.getMainFrame());
+		dialog.setLocationRelativeTo(Alesia.mainFrame);
 		return dialog;
 	}
 	/**

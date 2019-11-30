@@ -8,6 +8,8 @@ import java.util.*;
 import javax.imageio.*;
 import javax.swing.border.*;
 
+import org.apache.commons.math3.stat.descriptive.*;
+
 import core.*;
 import gui.prueckl.draw.*;
 
@@ -158,7 +160,6 @@ public class SensorsArray {
 	 * is uded by {@link #updateTablePosition()} to calculate the Hero.s position in the table
 	 */
 	public static String DEALER_BUTTON_COLOR = "008080";
-	
 
 	/**
 	 * Update the table position. the Herro´s table position is determinated detecting the dealer button and counting
@@ -175,6 +176,7 @@ public class SensorsArray {
 		int tp = dp == -1 ? vil + 1 : vil + 1 - dp;
 		pokerSimulator.setTablePosition(tp);
 	}
+	DescriptiveStatistics ocrTime = new DescriptiveStatistics(10);
 
 	private void seeTable(boolean read, String... sensors) {
 		setAttentionOn(sensors);
@@ -183,6 +185,9 @@ public class SensorsArray {
 			ScreenSensor ss = getScreenSensor(sn);
 			ss.setBorder(read ? readingBorder : lookingBorder);
 			ss.capture(read);
+			if (ss.getOCRPerformanceTime() > 0) {
+				ocrTime.addValue(ss.getOCRPerformanceTime());
+			}
 		}
 		setStandByBorder();
 	}
@@ -212,7 +217,7 @@ public class SensorsArray {
 				pokerSimulator.addCard(sss.getName(), ocr);
 			}
 		}
-
+		Hero.logger.info("average OCR time: " + ocrTime.getMean());
 	}
 	/**
 	 * Indicate to the array sensor that put attention only in an area (or o grup of them). This {@link SensorsArray}

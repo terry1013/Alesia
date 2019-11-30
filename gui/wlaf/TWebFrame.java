@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.logging.*;
 
 import javax.swing.*;
 
@@ -48,13 +49,9 @@ public class TWebFrame extends WebFrame {
 		v.add(TResources.getIcon("appicon", 32).getImage());
 		setIconImages(v);
 
-		registerSettings(new Configuration<WindowState>("application", new SerializableSupplier<WindowState>() {
-			@Override
-			public WindowState get() {
-				// initial size
-				return new WindowState(new Dimension(800, 600));
-			}
-		}));
+		setSize(new Dimension(800, 600));
+		setLocationRelativeTo(null);
+		registerSettings(new Configuration<WindowState>("TWebFrame"));
 
 		WindowAdapter ad = new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
@@ -172,7 +169,7 @@ public class TWebFrame extends WebFrame {
 	}
 	public void setSplashIncrementText(String text) {
 		splashIncrementLabel.setText(text);
-		Alesia.logger.info(text);
+		Logger.getLogger("Alesia").info(text);
 	}
 
 	public void setSplashIcon(Icon splashIcon) {

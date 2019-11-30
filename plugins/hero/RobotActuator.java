@@ -50,7 +50,7 @@ public class RobotActuator {
 				doClick();
 				Hero.logger.info("Action " + action + " performed.");
 			} else {
-				Hero.logger.trace("From RobotActuator.perform: Action " + action
+				Hero.logger.fine("From RobotActuator.perform: Action " + action
 						+ " not performed. no button was found with that name");
 			}
 		}

@@ -525,7 +525,7 @@ public class TUIUtils {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				if (directoryChooser == null) {
-					directoryChooser = new WebDirectoryChooser(Alesia.getMainFrame());
+					directoryChooser = new WebDirectoryChooser(Alesia.mainFrame);
 				}
 				directoryChooser.setVisible(true);
 				if (directoryChooser.getResult() == DialogOptions.OK_OPTION) {

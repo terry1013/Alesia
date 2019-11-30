@@ -50,7 +50,7 @@ public class ConnectionManager {
 	 */
 	public static void connect() throws Exception {
 		String dbDriver = "org.hsqldb.jdbcDriver";
-		String dbUrl = "jdbc:hsqldb:file:_local";
+		String dbUrl = "jdbc:hsqldb:file:localDB";
 		Base.open(dbDriver, dbUrl, "sa", "");
 		localDB = new DB("localDb");
 		localDB.open(dbDriver, dbUrl, null);
@@ -129,8 +129,7 @@ public class ConnectionManager {
 			// con = rc && lc;
 			con = lc;
 		} catch (Exception e) {
-			SystemLog.logException1(e, false);
-		}
+			e.printStackTrace();		}
 		return con;
 	}
 
@@ -195,8 +194,7 @@ public class ConnectionManager {
 			 * res1.getString("PROCEDURE_SCHEM")+" "+res1.getString("PROCEDURE_NAME")); }
 			 */
 		} catch (Exception e) {
-			SystemLog.logException1(e);
-		}
+			e.printStackTrace();		}
 	}
 
 	/**
@@ -287,7 +285,7 @@ public class ConnectionManager {
 //			localDB.exec("SHUTDOWN");
 			localDB.close();
 		} catch (Exception e) {
-			SystemLog.logException1(e);
+			e.printStackTrace();
 		}
 	}
 }

@@ -23,8 +23,6 @@
 	<classpathentry kind="lib" path="lib/jgoodies-forms-1.8.0.jar" sourcepath="C:/Users/terry/Documents/java/jgoodies/jgoodies-forms-1.8.0/jgoodies-forms-1.8.0-sources.jar"/>
 	<classpathentry kind="lib" path="lib/jgoodies-validation-2.5.1.jar" sourcepath="C:/Users/terry/Documents/java/jgoodies/jgoodies-validation-2.5.1/jgoodies-validation-2.5.1-sources.jar"/>
 	<classpathentry kind="lib" path="lib/shiro-core-1.4.1.jar" sourcepath="C:/Users/terry/Documents/java/Apache/shiro/shiro-root-1.4.1-source-release.zip"/>
-	<classpathentry kind="lib" path="lib/slf4j-api-1.7.25.jar" sourcepath="C:/Users/terry/Documents/java/slf4j/slf4j-api-1.7.25-sources.jar"/>
-	<classpathentry kind="lib" path="lib/slf4j-simple-1.7.25.jar" sourcepath="C:/Users/terry/Documents/java/slf4j/slf4j-simple-1.7.25-sources.jar"/>
 	<classpathentry kind="lib" path="lib/timingframework-swing-3.0.jar"/>
 	<classpathentry kind="lib" path="lib/activejdbc-2.3.1-j8.jar" sourcepath="C:/Users/terry/Documents/java/db/activejdbc/activejdbc-2.3.1-j8-sources.jar"/>
 	<classpathentry kind="lib" path="instrumentation/build_time_libs/activejdbc-instrumentation-2.3.jar"/>
@@ -65,5 +63,7 @@
 	<classpathentry kind="lib" path="lib/poi-excelant-4.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-4.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-schemas-4.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j-api-1.7.25.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j-simple-1.7.25.jar"/>
 	<classpathentry kind="output" path=""/>
 </classpath>

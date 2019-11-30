@@ -14,12 +14,12 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.*;
+import java.util.logging.*;
 
 import javax.swing.*;
 import javax.swing.Action;
 
 import org.jdesktop.application.*;
-import org.slf4j.*;
 
 import com.alee.laf.*;
 
@@ -32,7 +32,7 @@ public class Hero extends TPlugin {
 
 	protected static Tesseract iTesseract;
 	protected static ActionMap actionMap;
-	protected static MessageConsolePanel2 console;
+	protected static ConsolePanel consolePanel;
 	protected static SensorsPanel sensorsPanel;
 	protected static Logger logger;
 
@@ -41,8 +41,8 @@ public class Hero extends TPlugin {
 		iTesseract.setDatapath("plugins/hero/tessdata"); // path to tessdata directory
 		// iTesseract.setLanguage("pok");
 		actionMap = Alesia.getInstance().getContext().getActionMap(this);
-		logger = TResources.getSlf4jLogger("Hero");
-		console = new MessageConsolePanel2(logger);
+		logger = Logger.getLogger("Hero");
+		consolePanel = new ConsolePanel(logger);
 	}
 	public static Action getLoadAction() {
 		Action load = TActionsFactory.getAction("fileChooserOpen");
@@ -71,11 +71,8 @@ public class Hero extends TPlugin {
 	}
 
 	public static void logPerformance(String txt, long t1) {
-		// StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-		// the 3th element contain the method´s name who call this method
-		// String mn = Thread.currentThread().getStackTrace()[2].getMethodName();
 		String sp = TStringUtils.formatSpeed(System.currentTimeMillis() - t1);
-		logger.trace(txt + ": " + sp);
+		logger.finest(txt + ": " + sp);
 	}
 	@org.jdesktop.application.Action
 	public void drawEditor(ActionEvent event) {
@@ -124,7 +121,7 @@ public class Hero extends TPlugin {
 		WebLookAndFeel.setForceSingleEventsThread(false);
 		// Hero.console.cleanConsole();
 		Trooper t = new Trooper(Trooper.getInstance());
-		t.setTestMode(true);
+		t.setTestMode(test);
 		actionMap.get("testTrooper").setEnabled(false);
 		actionMap.get("runTrooper").setEnabled(false);
 		return t;

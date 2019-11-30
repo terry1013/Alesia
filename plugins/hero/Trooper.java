@@ -66,7 +66,7 @@ public class Trooper extends Task {
 		long tt = time1 == 0 ? 10000 : System.currentTimeMillis() - time1;
 		outGameStats.addValue(tt);
 		time1 = System.currentTimeMillis();
-		Hero.logger.info("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
+		Hero.logger.fine("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
 	}
 
 	/**
@@ -326,17 +326,13 @@ public class Trooper extends Task {
 			// look the standar actions buttons. this standar button indicate that the game is waiting for my play
 			// sensorsArray.lookTable("fold", "call", "raise");
 			if (isMyTurnToPlay()) {
-				Hero.logger.info("Deciding ...");
+//				Hero.logger.info("Deciding ...");
 				decide();
-				Hero.logger.info("-------------------");
-				Hero.logger.info("Acting ...");
+//				Hero.logger.info("Acting ...");
 				act();
-				Hero.logger.info("-------------------");
 			}
-			Hero.logger.info("Thinkin ...");
+//			Hero.logger.info("Thinkin ...");
 			think();
-			Hero.logger.info("-------------------");
-
 			// check simulator status: in case of any error, try to clean the simulator and wait for the next cycle
 			if (pokerSimulator.getException() != null) {
 				// clearEnviorement();
