@@ -2,8 +2,8 @@
   <TWebFrame type="WindowState" location="796,40" size="573,735" state="0"/>
   <Console.showAllMessage type="ButtonState" selected="false"/>
   <Loggin.Level type="java.util.logging.Level">
-    <name>INFO</name>
-    <value>800</value>
+    <name>ALL</name>
+    <value>-2147483648</value>
     <resourceBundleName>sun.util.logging.resources.logging</resourceBundleName>
   </Loggin.Level>
   <Console.showInfoMessage type="ButtonState" selected="true"/>

@@ -39,7 +39,7 @@ import net.sourceforge.tess4j.util.*;
  */
 public class ScreenSensor extends JPanel {
 
-	public static String SAMPLE_PATH = "plugins/hero/samples/";
+	public static String IMAGE_CARDS = "plugins/hero/image_cards/";
 	private Shape shape;
 	private List<Rectangle> regions;
 	private SensorsArray sensorsArray;
@@ -51,6 +51,8 @@ public class ScreenSensor extends JPanel {
 	private BufferedImage preparedImage, capturedImage, lastOcrImage;
 	private Exception exception;
 	private String ocrResult;
+
+	private int ocrTime = -1;
 
 	public ScreenSensor(SensorsArray sa, Shape sha) {
 		super(new FlowLayout());
@@ -125,19 +127,6 @@ public class ScreenSensor extends JPanel {
 	}
 
 	/**
-	 * Return a random {@link Point} selectd inside of the area (0,width) (0,height)
-	 * 
-	 * @param width - width of the area
-	 * @param height - height of the area
-	 * @return a random point inside area
-	 */
-	public static Point getRandCoordenates(int width, int height) {
-		int x = (int) Math.random() * width;
-		int y = (int) Math.random() * height;
-		return new Point(x, y);
-	}
-
-	/**
 	 * Return the triger point coordenates setted for the figure asociated whiht this screen sensor. If no
 	 * <code>triger.point</code> property is setted inthe figure, this method return <code>null</code>
 	 * 
@@ -157,6 +146,19 @@ public class ScreenSensor extends JPanel {
 	// }
 	// return po;
 	// }
+
+	/**
+	 * Return a random {@link Point} selectd inside of the area (0,width) (0,height)
+	 * 
+	 * @param width - width of the area
+	 * @param height - height of the area
+	 * @return a random point inside area
+	 */
+	public static Point getRandCoordenates(int width, int height) {
+		int x = (int) Math.random() * width;
+		int y = (int) Math.random() * height;
+		return new Point(x, y);
+	}
 
 	/**
 	 * perform custom corrections. this metod is called during the OCR operation. the result returned from this method
@@ -182,7 +184,6 @@ public class ScreenSensor extends JPanel {
 		ocr = ocr.replaceAll("\\s", "");
 		return ocr;
 	}
-
 	public static String replaceWhitNumbers(String srcs) {
 		String rstr = srcs.replace("z", "2");
 		rstr = rstr.replace("Z", "2");
@@ -255,10 +256,11 @@ public class ScreenSensor extends JPanel {
 		setToolTipText(st);
 		repaint();
 	}
+
 	/**
-	 * Return the image captureds by this sensor area.
+	 * Return the image captureds by this sensor area. The captured image is the exact image without any treatment
 	 * 
-	 * @return the image
+	 * @return the captured image
 	 */
 	public BufferedImage getCapturedImage() {
 		return capturedImage;
@@ -269,12 +271,44 @@ public class ScreenSensor extends JPanel {
 	}
 
 	/**
+	 * Return the int value from this sensor. This method return <code>-1</code> if any error is found during the
+	 * parsing operation.
+	 * 
+	 * @return int value or <code>-1</code>
+	 */
+	public int getIntOCR() {
+		String ocr = getOCR();
+		int val = -1;
+		try {
+			if (ocr != null) {
+				val = Integer.parseInt(ocr);
+			}
+		} catch (Exception e) {
+			Hero.logger.severe(getName() + "Error getting int value. The OCR is: " + ocr);
+		}
+		return val;
+	}
+
+	/**
+	 * Return the string representation of the {@link #maxColor} variable
+	 * 
+	 * @return
+	 */
+	public String getMaxColor() {
+		return TColorUtils.getRGBColor(maxColor);
+	}
+
+	/**
 	 * Retrun the optical caracter recognition extracted from the asociated area
 	 * 
 	 * @return OCR result
 	 */
 	public String getOCR() {
 		return ocrResult;
+	}
+
+	public long getOCRPerformanceTime() {
+		return ocrTime;
 	}
 
 	public BufferedImage getPreparedImage() {
@@ -309,7 +343,6 @@ public class ScreenSensor extends JPanel {
 	public boolean isCardCard() {
 		return shape.isCardArea;
 	}
-
 	public boolean isComunityCard() {
 		String sn = getName();
 		return sn.startsWith("flop") || sn.equals("turn") || sn.equals("river");
@@ -319,7 +352,6 @@ public class ScreenSensor extends JPanel {
 		String sn = getName();
 		return sn.startsWith("hero.card");
 	}
-
 	public boolean isVillanCard() {
 		String sn = getName();
 		return (sn.startsWith("villan") && sn.contains("card"));
@@ -343,6 +375,7 @@ public class ScreenSensor extends JPanel {
 			Hero.logger.severe(getName() + " twrow an exception " + e);
 		}
 	}
+
 	/**
 	 * Perform tesseract ocr operation for generic areas.
 	 * 
@@ -363,18 +396,13 @@ public class ScreenSensor extends JPanel {
 		regions = Hero.iTesseract.getSegmentedRegions(preparedImage, pageIteratorLevel);
 		ocrResult = Hero.iTesseract.doOCR(preparedImage);
 		List<Word> wlst = Hero.iTesseract.getWords(preparedImage, pageIteratorLevel);
-		ocrTime = (int) (System.currentTimeMillis()-t1);
+		ocrTime = (int) (System.currentTimeMillis() - t1);
 		return OCRCorrection(this);
-	}
-	
-	private int ocrTime = -1;
-	public long getOCRPerformanceTime() {
-		return ocrTime;
 	}
 
 	/**
 	 * return the String representation of the card area by comparing the {@link ScreenSensor#getCapturedImage()} image
-	 * against the list of card founded in the {@link #SAMPLE_PATH} enviorement variables. The most probable image file
+	 * against the list of card founded in the {@link #IMAGE_CARDS} enviorement variables. The most probable image file
 	 * name is return.
 	 * <p>
 	 * This method is intendet for card areas. If the images diferences are hier than {@link #CARD_AREA_DIFERENCE}, the
@@ -393,11 +421,11 @@ public class ScreenSensor extends JPanel {
 		String ocr = null;
 		double dif = 100.0;
 		BufferedImage imagea = getCapturedImage();
-		File dir = new File(SAMPLE_PATH);
+		File dir = new File(IMAGE_CARDS);
 		String[] imgs = dir.list();
 		Hero.logger.fine(getName() + ": Comparing images ...");
 		for (String img : imgs) {
-			File f = new File(SAMPLE_PATH + img);
+			File f = new File(IMAGE_CARDS + img);
 			BufferedImage imageb = ImageIO.read(f);
 			double s = ScreenSensor.getImageDiferences(imagea, imageb, 100);
 			// System.out.println(ss.getSensorName() + "\\t" + f.getName() + "\\t" + s);
@@ -442,7 +470,6 @@ public class ScreenSensor extends JPanel {
 	// }
 	// return iw;
 	// }
-
 	/**
 	 * perform image operation to set globals variables relatet whit the image previous to OCR, color count operations.
 	 * acording to the tipe of area that this sensor represent, the underling image can be transformed in diferent ways.
@@ -473,14 +500,6 @@ public class ScreenSensor extends JPanel {
 	}
 
 	/**
-	 * Return the string representation of the {@link #maxColor} variable
-	 * 
-	 * @return
-	 */
-	public String getMaxColor() {
-		return TColorUtils.getRGBColor(maxColor);
-	}
-	/**
 	 * set for this sensor that draw the original caputured image or the prepared image. this method affect only the
 	 * visual representation of the component.
 	 * 
@@ -496,25 +515,6 @@ public class ScreenSensor extends JPanel {
 			// plus 2 of image border
 			setPreferredSize(new Dimension(scaledWidth + 2, scaledHeight + 2));
 		}
-	}
-
-	/**
-	 * Return the int value from this sensor. This method return <code>-1</code> if any error is found during the
-	 * parsing operation.
-	 * 
-	 * @return int value or <code>-1</code>
-	 */
-	public int getIntOCR() {
-		String ocr = getOCR();
-		int val = -1;
-		try {
-			if (ocr != null) {
-				val = Integer.parseInt(ocr);
-			}
-		} catch (Exception e) {
-			Hero.logger.severe(getName() + "Error getting int value. The OCR is: " + ocr);
-		}
-		return val;
 	}
 
 	@Override

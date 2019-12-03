@@ -138,8 +138,9 @@ public class SensorsPanel extends TUIPanel {
 		int tv = trooper.getSensorsArray().getVillans();
 		JPanel villans = new JPanel(new GridLayout(1, tv, 4, 4));
 		for (int i = 1; i <= tv; i++) {
-			JPanel vinf_p = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 4));
+			JPanel vinf_p = new JPanel(new GridLayout(1,3,4,4));
 			vinf_p.add(trooper.getSensorsArray().getScreenSensor("villan" + i + ".name"));
+			vinf_p.add(trooper.getSensorsArray().getScreenSensor("villan" + i + ".chips"));
 			vinf_p.add(trooper.getSensorsArray().getScreenSensor("villan" + i + ".call"));
 
 			JPanel vcar_p = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 4));

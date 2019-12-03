@@ -73,7 +73,7 @@ public class SensorsArray {
 	/**
 	 * Return the number of current active players (me plus active villans). a villan is active if he has dealed cards
 	 * 
-	 * @return - num of active villans
+	 * @return - num of active villans + me
 	 */
 	public int getActivePlayers() {
 		int av = 1;
@@ -143,10 +143,22 @@ public class SensorsArray {
 		}
 		return ve;
 	}
+	
 	/**
-	 * this metho campture all screeen´s areas without do any ocr operation. This method is intended to retrive all
-	 * sensor areas and set the enable status for fast comparation.
+	 * Shorcut method for read the seonsor <code>sensor</code>,perform the OCR operation an retrive the result
 	 * 
+	 * @param sensor - name of the sensor
+	 * 
+	 * @return value of the sensor
+	 */
+	public String readAndGetOCR(String sensor) {
+		read(sensor);
+		String ocr = getScreenSensor(sensor).getOCR();
+		return ocr;
+	}
+	/**
+	 * this metho campture all screeen´s areas without do any ocr operation. Use this mothod to retrive all sensor areas
+	 * and set the enable status for fast comparation.
 	 */
 	public void lookTable(String... aname) {
 		long t1 = System.currentTimeMillis();
@@ -193,9 +205,15 @@ public class SensorsArray {
 	}
 
 	/**
-	 * Perform read operation on the ssn areas names or all areas. The read operation will perform OCR operation.
+	 * Perform read operation on the {@link ScreenSensor} passed as argument. This method perform the OCR operation on
+	 * the selected areas and update the {@link PokerSimulator} for numerical values.
+	 * <p>
+	 * if in the sensors argument, ther are a card area, this method update the pocker simulator and this may fire a new
+	 * simulation.
+	 * <p>
+	 * After this method execution, the simulator reflect the actual game status
 	 * 
-	 * @param sensors
+	 * @param sensors - the list of sensors to read
 	 */
 	public void read(String... sensors) {
 		seeTable(true, sensors);
@@ -236,7 +254,7 @@ public class SensorsArray {
 	}
 
 	/**
-	 * Utility method to take the image of all card areas and store in the {@link ScreenSensor#SAMPLE_PATH} directory.
+	 * Utility method to take the image of all card areas and store in the {@link ScreenSensor#IMAGE_CARDS} directory.
 	 * Used for retrive the images of the cards in configuration step to used for detect the card rack during the
 	 * gameplay
 	 */
@@ -247,7 +265,7 @@ public class SensorsArray {
 					ss.capture(false);
 					BufferedImage bi = ss.getCapturedImage();
 					String ext = "gif";
-					File f = new File(ScreenSensor.SAMPLE_PATH + "sample_" + System.currentTimeMillis() + "." + ext);
+					File f = new File(ScreenSensor.IMAGE_CARDS + "sample_" + System.currentTimeMillis() + "." + ext);
 					f.createNewFile();
 					ImageIO.write(bi, ext, f);
 				}

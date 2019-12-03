@@ -3,6 +3,8 @@ package plugins.hero;
 import java.io.*;
 import java.util.*;
 
+import org.apache.commons.math3.distribution.*;
+import org.apache.commons.math3.geometry.euclidean.twod.*;
 import org.apache.commons.math3.stat.descriptive.*;
 import org.jdesktop.application.*;
 
@@ -275,6 +277,29 @@ public class Trooper extends Task {
 		Hero.sensorsPanel.setEnviorement(this);
 
 	}
+
+	/**
+	 * Action have agresiveness. fold has 0 agresiveness, check 1, call 2 and so on, this allow a numeric value for the
+	 * agresion. Some methods use this agresion to press the charge agains the oter players
+	 */
+	/**
+	 * this method increase the probability of chose an agresive action. This method take into accoun the diference
+	 * between the numbers of villans current active.
+	 * <p>
+	 * For all active villans (at the battle start) the probability of random select an action is uniform to all. At the
+	 * Head usp, the probaility of chose the mosts agresive options icrease
+	 * 
+	 * @param options
+	 * @return
+	 */
+	private String getRandomSelection() {
+//		int vills = sensorsArray.getVillans();
+//		int av = sensorsArray.getActivePlayers() - 1;
+//
+//		double fact = Math.abs((av / vills) - 1) + 1;
+//		 EnumeratedIntegerDistribution eid = new EnumeratedIntegerDistribution(data)
+		return null;
+	}
 	/**
 	 * use de actions stored in {@link #availableActions} list. At this point, the game table is waiting for the herro
 	 * action.
@@ -326,12 +351,12 @@ public class Trooper extends Task {
 			// look the standar actions buttons. this standar button indicate that the game is waiting for my play
 			// sensorsArray.lookTable("fold", "call", "raise");
 			if (isMyTurnToPlay()) {
-//				Hero.logger.info("Deciding ...");
+				// Hero.logger.info("Deciding ...");
 				decide();
-//				Hero.logger.info("Acting ...");
+				// Hero.logger.info("Acting ...");
 				act();
 			}
-//			Hero.logger.info("Thinkin ...");
+			// Hero.logger.info("Thinkin ...");
 			think();
 			// check simulator status: in case of any error, try to clean the simulator and wait for the next cycle
 			if (pokerSimulator.getException() != null) {
@@ -348,8 +373,8 @@ public class Trooper extends Task {
 	 * to perform large computations.
 	 */
 	protected void think() {
-		// read all the table only for warm up the sensors hoping that many of then will not change in the near future
-		// sensorsArray.read();
+//		update the villans db table 
+
 		// 191020: ayer ya la implementacion por omision jugo una partida completa y estuvo a punto de vencer a la
 		// chatarra de Texas poker - poker holdem. A punto de vencer porque jugaba tan lento que me aburri del sueno :D
 	}

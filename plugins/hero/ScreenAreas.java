@@ -37,7 +37,7 @@ public class ScreenAreas {
 	}
 
 	private boolean isOCRArea(String name) {
-		return name.equals("hero.chips") || name.equals("pot") || name.equals("call") || name.equals("raise")
+		return name.contains(".chips") || name.equals("pot") || name.equals("call") || name.equals("raise")
 				|| (name.startsWith("villan") && name.contains("name"))
 				|| (name.startsWith("villan") && name.contains("call"));
 	}

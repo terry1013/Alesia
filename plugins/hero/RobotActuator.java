@@ -39,6 +39,7 @@ public class RobotActuator {
 			if (fig != null) {
 				Point p = fig.getRandomPoint();
 				mouseMove(p.x, p.y);
+				Hero.logger.info(action + ": "+p.toString());
 
 				// TODO: remove. temporal to emulate all in in th
 				if (action.contains("allin")) {
