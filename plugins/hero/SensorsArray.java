@@ -10,7 +10,6 @@ import javax.swing.border.*;
 
 import org.apache.commons.math3.stat.descriptive.*;
 
-import core.*;
 import gui.prueckl.draw.*;
 
 /**
@@ -98,19 +97,19 @@ public class SensorsArray {
 	/**
 	 * return the {@link ScreenSensor} by name. The name comes from property <code>name</code>
 	 * 
-	 * @param ssn - screen sensor name
+	 * @param sensorName - screen sensor name
 	 * 
 	 * @return the screen sensor instance or <code>null</code> if no sensor is found.
 	 */
-	public ScreenSensor getScreenSensor(String ssn) {
+	public ScreenSensor getScreenSensor(String sensorName) {
 		ScreenSensor ss = null;
 		for (ScreenSensor sensor : screenSensors) {
-			if (sensor.getName().equals(ssn)) {
+			if (sensor.getName().equals(sensorName)) {
 				ss = sensor;
 			}
 		}
 		if (ss == null) {
-			System.err.println("No sensor name " + ssn + " was found.");
+			Hero.logger.severe("No sensor name " + sensorName + " was found.");
 		}
 		return ss;
 	}
@@ -143,7 +142,7 @@ public class SensorsArray {
 		}
 		return ve;
 	}
-	
+
 	/**
 	 * Shorcut method for read the seonsor <code>sensor</code>,perform the OCR operation an retrive the result
 	 * 
@@ -174,7 +173,7 @@ public class SensorsArray {
 	public static String DEALER_BUTTON_COLOR = "008080";
 
 	/**
-	 * Update the table position. the Herro´s table position is determinated detecting the dealer button and counting
+	 * Update the table position. the Hero´s table position is determinated detecting the dealer button and counting
 	 * clockwise. the position 1 is th small blind, 2 big blind, 3 under the gun, and so on. The dealer position is the
 	 * highest value
 	 */
@@ -188,7 +187,8 @@ public class SensorsArray {
 		int tp = dp == -1 ? vil + 1 : vil + 1 - dp;
 		pokerSimulator.setTablePosition(tp);
 	}
-	DescriptiveStatistics ocrTime = new DescriptiveStatistics(10);
+	DescriptiveStatistics tesseractTime = new DescriptiveStatistics(10);
+	DescriptiveStatistics imageDiffereceTime = new DescriptiveStatistics(10);
 
 	private void seeTable(boolean read, String... sensors) {
 		setAttentionOn(sensors);
@@ -198,7 +198,11 @@ public class SensorsArray {
 			ss.setBorder(read ? readingBorder : lookingBorder);
 			ss.capture(read);
 			if (ss.getOCRPerformanceTime() > 0) {
-				ocrTime.addValue(ss.getOCRPerformanceTime());
+				if(ss.isCardCard()) {
+					imageDiffereceTime.addValue(ss.getOCRPerformanceTime());
+				} else {
+					tesseractTime.addValue(ss.getOCRPerformanceTime());
+				}
 			}
 		}
 		setStandByBorder();
@@ -235,7 +239,8 @@ public class SensorsArray {
 				pokerSimulator.addCard(sss.getName(), ocr);
 			}
 		}
-		Hero.logger.info("average OCR time: " + ocrTime.getMean());
+		Hero.logger.fine("average Tesseract OCR time: " + tesseractTime.getMean());
+		Hero.logger.fine("average ImageDiference OCR time: " + imageDiffereceTime.getMean());
 	}
 	/**
 	 * Indicate to the array sensor that put attention only in an area (or o grup of them). This {@link SensorsArray}
@@ -250,6 +255,28 @@ public class SensorsArray {
 			screenSensors.stream().forEach(ss -> attentionAreas.add(ss.getName()));
 		} else {
 			Collections.addAll(attentionAreas, anames);
+		}
+	}
+	/**
+	 * Utility method to take the image of the villans?.name areas for some and store in the
+	 * {@link GameRecorder#IMAGE_ACTIONS}. This method is invoked during configuration step to retribe samples of the
+	 * designated areas that contain image information for determinate the action performed by the villans during the
+	 * gameplay
+	 */
+	public void takeActionSample() {
+		try {
+			for (ScreenSensor ss : screenSensors) {
+				if (ss.getName().contains(".name")) {
+					ss.capture(false);
+					BufferedImage bi = ss.getCapturedImage();
+					String ext = "gif";
+					File f = new File(GameRecorder.IMAGE_ACTIONS + "sample_" + System.currentTimeMillis() + "." + ext);
+					f.createNewFile();
+					ImageIO.write(bi, ext, f);
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 

@@ -113,6 +113,11 @@ public class Hero extends TPlugin {
 	}
 
 	@org.jdesktop.application.Action
+	public void takeActionSample(ActionEvent event) {
+		Trooper.getInstance().getSensorsArray().takeActionSample();
+	}
+
+	@org.jdesktop.application.Action
 	public Task testTrooper(ActionEvent event) {
 		return start(true);
 	}

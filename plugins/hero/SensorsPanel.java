@@ -16,6 +16,8 @@ import java.util.*;
 import javax.swing.*;
 import javax.swing.border.*;
 
+import com.alee.extended.layout.*;
+
 import gui.*;
 
 /**
@@ -50,7 +52,12 @@ public class SensorsPanel extends TUIPanel {
 	 */
 	public void setEnviorement(Trooper trooper) {
 		setVisible(false);
-		updateTrooper(trooper);
+
+		this.trooper = trooper;
+		setToolBar(loadAction, Hero.actionMap.get("runTrooper"), Hero.actionMap.get("testTrooper"),
+				Hero.actionMap.get("stopTrooper"), Hero.actionMap.get("takeCardSample"),
+				Hero.actionMap.get("takeActionSample"));
+
 		mainJPanel.removeAll();
 		// left panel: all sensors from the screen
 		// JPanel jpleft = new JPanel(new GridLayout(3, 0, 4, 4));
@@ -77,12 +84,6 @@ public class SensorsPanel extends TUIPanel {
 		// mainJPanel.add(jp, BorderLayout.CENTER);
 		// scrollPane.setViewportView(jp);
 		setVisible(true);
-	}
-
-	public void updateTrooper(Trooper trooper) {
-		this.trooper = trooper;
-		setToolBar(loadAction, Hero.actionMap.get("runTrooper"), Hero.actionMap.get("testTrooper"),
-				Hero.actionMap.get("stopTrooper"), Hero.actionMap.get("takeCardSample"));
 	}
 
 	private JPanel createActionAreaPanel() {
@@ -138,7 +139,8 @@ public class SensorsPanel extends TUIPanel {
 		int tv = trooper.getSensorsArray().getVillans();
 		JPanel villans = new JPanel(new GridLayout(1, tv, 4, 4));
 		for (int i = 1; i <= tv; i++) {
-			JPanel vinf_p = new JPanel(new GridLayout(1,3,4,4));
+			JPanel vinf_p = new JPanel();
+			vinf_p.setLayout(new FlowLayout(FlowLayout.LEFT, 4, 4));
 			vinf_p.add(trooper.getSensorsArray().getScreenSensor("villan" + i + ".name"));
 			vinf_p.add(trooper.getSensorsArray().getScreenSensor("villan" + i + ".chips"));
 			vinf_p.add(trooper.getSensorsArray().getScreenSensor("villan" + i + ".call"));

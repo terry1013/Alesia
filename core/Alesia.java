@@ -106,7 +106,7 @@ public class Alesia extends Application {
 		// for Apache: Set the system property
 		// For Alesia. look on the configuration file. if the file exist, i use it
 		System.setProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager");
-//		System.setProperty("org.apache.commons.logging.Log", Jdk14Logger.class.getName());
+		System.setProperty("org.apache.commons.logging.Log", Jdk14Logger.class.getName());
 		File logc = new File("logging.properties");
 		logger = Logger.getLogger("Alesia");
 		if (logc.exists()) {

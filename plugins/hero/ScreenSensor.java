@@ -3,11 +3,14 @@ package plugins.hero;
 import java.awt.*;
 import java.awt.image.*;
 import java.io.*;
+import java.util.*;
 import java.util.List;
+import java.util.logging.*;
 
 import javax.imageio.*;
 import javax.swing.*;
 
+import com.alee.extended.collapsible.*;
 import com.alee.utils.*;
 
 import core.*;
@@ -40,6 +43,7 @@ import net.sourceforge.tess4j.util.*;
 public class ScreenSensor extends JPanel {
 
 	public static String IMAGE_CARDS = "plugins/hero/image_cards/";
+	private static Hashtable<String, BufferedImage> cardsTable = ScreenSensor.loadImages(IMAGE_CARDS);
 	private Shape shape;
 	private List<Rectangle> regions;
 	private SensorsArray sensorsArray;
@@ -50,6 +54,7 @@ public class ScreenSensor extends JPanel {
 	private double whitePercent;
 	private BufferedImage preparedImage, capturedImage, lastOcrImage;
 	private Exception exception;
+
 	private String ocrResult;
 
 	private int ocrTime = -1;
@@ -61,9 +66,29 @@ public class ScreenSensor extends JPanel {
 		setName(shape.name);
 		this.scaledWidth = (int) (shape.bounds.width * 2.5);
 		this.scaledHeight = (int) (shape.bounds.height * 2.5);
-
 		showOriginal(true);
 	}
+
+	/**
+	 * Return the triger point coordenates setted for the figure asociated whiht this screen sensor. If no
+	 * <code>triger.point</code> property is setted inthe figure, this method return <code>null</code>
+	 * 
+	 * @return coordinates or null
+	 */
+	// public static Point getTrigerPoint(Shape fig) {
+	// String tpnt = fig.getProperties().getProperty("triger.point", "");
+	// Rectangle r = fig.getBounds();
+	// Point po = null;
+	// if (!tpnt.equals("")) {
+	// String[] xy = tpnt.split("[,]");
+	// int x = Integer.parseInt(xy[0]);
+	// int y = Integer.parseInt(xy[1]);
+	// x = (x < 0) ? r.width + x : x;
+	// y = (y < 0) ? r.height + y : y;
+	// po = new Point(x, y);
+	// }
+	// return po;
+	// }
 
 	/**
 	 * Compare the images <code>imagea</code> and <code>imageg</code> pixel by pixel returning the percentage of
@@ -127,26 +152,35 @@ public class ScreenSensor extends JPanel {
 	}
 
 	/**
-	 * Return the triger point coordenates setted for the figure asociated whiht this screen sensor. If no
-	 * <code>triger.point</code> property is setted inthe figure, this method return <code>null</code>
+	 * utilice the {@link ScreenSensor#getImageDiferences(BufferedImage, BufferedImage, int)} to compare the
+	 * <code>imagea</code> argument against the list of images <code>images</code>. the name of the image with less
+	 * diference is returned.
+	 * <p>
+	 * This method return <code>null</code> if no image are found or the diference bettwen images > diferenceThreshold.
+	 * the difference threshold for this method is 30%. The average image similarity (for card areas is 2%)
 	 * 
-	 * @return coordinates or null
+	 * @see ScreenSensor#getImageDiferences(BufferedImage, BufferedImage, int)
+	 * @param imagea - image to compare
+	 * @param images - list of candidates.
+	 * @return a {@link TEntry} where the key is the ocr from the image and the dif is the diference betwen the imagea
+	 *         argument and the most probable image founded.
 	 */
-	// public static Point getTrigerPoint(Shape fig) {
-	// String tpnt = fig.getProperties().getProperty("triger.point", "");
-	// Rectangle r = fig.getBounds();
-	// Point po = null;
-	// if (!tpnt.equals("")) {
-	// String[] xy = tpnt.split("[,]");
-	// int x = Integer.parseInt(xy[0]);
-	// int y = Integer.parseInt(xy[1]);
-	// x = (x < 0) ? r.width + x : x;
-	// y = (y < 0) ? r.height + y : y;
-	// po = new Point(x, y);
-	// }
-	// return po;
-	// }
-
+	public static String getOCRFromImage(BufferedImage imagea, Hashtable<String, BufferedImage> images) {
+		String ocr = null;
+		double dif = 100.0;
+		double difThreshold = 30.0;
+		ArrayList<String> names = new ArrayList<>(images.keySet());
+		for (String name : names) {
+			BufferedImage imageb = images.get(name);
+			double s = ScreenSensor.getImageDiferences(imagea, imageb, 100);
+			if (s < dif) {
+				dif = s;
+				ocr = name;
+			}
+		}
+		Hero.logger.fine("getOCRFromImage: image " + ocr + " found. Diference: " + dif);
+		return ocr == null || dif > difThreshold ? null : ocr;
+	}
 	/**
 	 * Return a random {@link Point} selectd inside of the area (0,width) (0,height)
 	 * 
@@ -158,6 +192,35 @@ public class ScreenSensor extends JPanel {
 		int x = (int) Math.random() * width;
 		int y = (int) Math.random() * height;
 		return new Point(x, y);
+	}
+	/**
+	 * Load all images located in the <code>dir</code> parameter and create a {@link Hashtable} where the key is the
+	 * file name (call, Ks, Etc.) and the value parameter is the {@link BufferedImage} loaded from that file
+	 * 
+	 * @param dir - folder source of the images
+	 * 
+	 * @return table of filename and image
+	 */
+	public static Hashtable<String, BufferedImage> loadImages(String dir) {
+		File fdir = new File(dir);
+		String[] imgs = fdir.list();
+		Hero.logger.info("Loading images from " + dir);
+		Hashtable<String, BufferedImage> images = new Hashtable<>();
+		for (String img : imgs) {
+			File f = new File(dir + img);
+			BufferedImage imageb;
+			try {
+				imageb = ImageIO.read(f);
+				String inam = f.getName().split("[.]")[0];
+				BufferedImage old = images.put(inam, imageb);
+				if (old != null) {
+					Hero.logger.warning("image file name " + inam + "duplicated.");
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return images;
 	}
 
 	/**
@@ -184,6 +247,7 @@ public class ScreenSensor extends JPanel {
 		ocr = ocr.replaceAll("\\s", "");
 		return ocr;
 	}
+
 	public static String replaceWhitNumbers(String srcs) {
 		String rstr = srcs.replace("z", "2");
 		rstr = rstr.replace("Z", "2");
@@ -195,6 +259,7 @@ public class ScreenSensor extends JPanel {
 		rstr = rstr.replace("u", "0");
 		return rstr;
 	}
+
 	/**
 	 * Capture the region of the screen specified by this sensor. this method generate and prepare the image for future
 	 * operations.
@@ -203,12 +268,12 @@ public class ScreenSensor extends JPanel {
 	 * @se {@link #getPreparedImage()}
 	 * 
 	 */
-	public void capture(boolean doocr) {
+	public void capture(boolean doOcr) {
 		Rectangle bou = shape.bounds;
 
 		// capture the image
 		if (Trooper.getInstance().isTestMode()) {
-			// from the drawin panel background
+			// from the ppt file background
 			ImageIcon ii = sensorsArray.getSensorDisposition().getBackgroundImage();
 			BufferedImage bgimage = ImageUtils.getBufferedImage(ii);
 			capturedImage = bgimage.getSubimage(bou.x, bou.y, bou.width, bou.height);
@@ -240,7 +305,7 @@ public class ScreenSensor extends JPanel {
 		 * Perform ocr operation. the ocr operation is performed only if the current captured image is diferent to the
 		 * last imagen used for ocr operation. This avoid multiple ocr operations over the same image.
 		 */
-		if (doocr) {
+		if (doOcr) {
 			if ((lastOcrImage == null)
 					|| (lastOcrImage != null && getImageDiferences(lastOcrImage, capturedImage, 100) > 0)) {
 				doOCR();
@@ -254,7 +319,7 @@ public class ScreenSensor extends JPanel {
 				+ whitePercent + "<br>maxC: <FONT COLOR=\"#" + ch + "\"><B>" + ch + "</B></FONT>" + "<br>isOCRArea: "
 				+ shape.isOCRArea + "<br>OCR: " + ocrResult + "</html>";
 		setToolTipText(st);
-		repaint();
+//		repaint();
 	}
 
 	/**
@@ -314,7 +379,6 @@ public class ScreenSensor extends JPanel {
 	public BufferedImage getPreparedImage() {
 		return preparedImage;
 	}
-
 	/**
 	 * init this sensor variables. use this method to clean for a fresh start
 	 * 
@@ -339,10 +403,10 @@ public class ScreenSensor extends JPanel {
 	public boolean isActionArea() {
 		return shape.isActionArea;
 	}
-
 	public boolean isCardCard() {
 		return shape.isCardArea;
 	}
+
 	public boolean isComunityCard() {
 		String sn = getName();
 		return sn.startsWith("flop") || sn.equals("turn") || sn.equals("river");
@@ -352,6 +416,7 @@ public class ScreenSensor extends JPanel {
 		String sn = getName();
 		return sn.startsWith("hero.card");
 	}
+
 	public boolean isVillanCard() {
 		String sn = getName();
 		return (sn.startsWith("villan") && sn.contains("card"));
@@ -362,20 +427,21 @@ public class ScreenSensor extends JPanel {
 	 * the succed or failure of the ocr operation.
 	 */
 	private void doOCR() {
+		long t1 = System.currentTimeMillis();
 		regions = null;
 		ocrResult = null;
 		exception = null;
 		try {
 			if (shape.isCardArea) {
-				ocrResult = getStringForCard();
+				ocrResult = getImageDifferenceOCR();
 			} else {
-				ocrResult = getStringForAreas();
+				ocrResult = getTesseractOCR();
 			}
 		} catch (Exception e) {
 			Hero.logger.severe(getName() + " twrow an exception " + e);
 		}
+		ocrTime = (int) (System.currentTimeMillis() - t1);
 	}
-
 	/**
 	 * Perform tesseract ocr operation for generic areas.
 	 * 
@@ -383,8 +449,7 @@ public class ScreenSensor extends JPanel {
 	 * 
 	 * @throws TesseractException
 	 */
-	private String getStringForAreas() throws TesseractException {
-		long t1 = System.currentTimeMillis();
+	private String getTesseractOCR() throws TesseractException {
 		// is this an OCR area ?
 		boolean doo = shape.isOCRArea;
 		if (!doo) {
@@ -396,58 +461,35 @@ public class ScreenSensor extends JPanel {
 		regions = Hero.iTesseract.getSegmentedRegions(preparedImage, pageIteratorLevel);
 		ocrResult = Hero.iTesseract.doOCR(preparedImage);
 		List<Word> wlst = Hero.iTesseract.getWords(preparedImage, pageIteratorLevel);
-		ocrTime = (int) (System.currentTimeMillis() - t1);
 		return OCRCorrection(this);
 	}
-
 	/**
 	 * return the String representation of the card area by comparing the {@link ScreenSensor#getCapturedImage()} image
-	 * against the list of card founded in the {@link #IMAGE_CARDS} enviorement variables. The most probable image file
-	 * name is return.
+	 * against the list of card loaded in {@link #cardsTable} static variable. The most probable image file name is
+	 * return.
 	 * <p>
-	 * This method is intendet for card areas. If the images diferences are hier than {@link #CARD_AREA_DIFERENCE}, the
-	 * card area is treated as empty or face down card area and the returned value is <code>null</code>
+	 * This method is intendet for card areas. If the diference is more than 30% or the special image
+	 * <code>card_facedown</code> is founded, this metod will return <code>null</code>
 	 * 
-	 * @return the file name of the most probable card.
+	 * @return th ocr retrived from the original file name
 	 */
-	private String getStringForCard() throws Exception {
+	private String getImageDifferenceOCR() throws Exception {
 
 		// ensure is an card area
 		if (!shape.isCardArea) {
 			throw new IllegalArgumentException("The screen sensor must be a card area sensor.");
 		}
-
-		// image comparation
-		String ocr = null;
-		double dif = 100.0;
 		BufferedImage imagea = getCapturedImage();
-		File dir = new File(IMAGE_CARDS);
-		String[] imgs = dir.list();
-		Hero.logger.fine(getName() + ": Comparing images ...");
-		for (String img : imgs) {
-			File f = new File(IMAGE_CARDS + img);
-			BufferedImage imageb = ImageIO.read(f);
-			double s = ScreenSensor.getImageDiferences(imagea, imageb, 100);
-			// System.out.println(ss.getSensorName() + "\\t" + f.getName() + "\\t" + s);
-			if (s < dif) {
-				dif = s;
-				ocr = f.getName().split("[.]")[0];
-			}
-		}
+		String ocr = getOCRFromImage(imagea, cardsTable);
 
 		// if the card is the file name is card_facedown, set null for ocr
-		if (ocr.equals("card_facedown")) {
+		if (ocr != null && ocr.equals("card_facedown")) {
 			ocr = null;
 			Hero.logger.fine(getName() + ": card id face down.");
 		}
 
-		// if the card diference is most than 30%, its posible than some garbage is interfiring whit the screen capture.
-		// in this case, the card area is marked as empty area. the average percentage of card similaryty is < 2%, so a
-		// image diference over 30% is a complete diferent image.
-		if (dif > 30) {
-			ocr = null;
-			Hero.logger.fine(getName() + ": card diference of " + dif + "% dectected. setting this card area as null.");
-		}
+		// at this point, if the ocr=null, the image diference is > difference threshold. that means than some garbage is interfiring
+		// whit the screen capture. this card area is marked as empty area.
 
 		return ocr;
 	}

@@ -3,8 +3,6 @@ package plugins.hero;
 import java.io.*;
 import java.util.*;
 
-import org.apache.commons.math3.distribution.*;
-import org.apache.commons.math3.geometry.euclidean.twod.*;
 import org.apache.commons.math3.stat.descriptive.*;
 import org.jdesktop.application.*;
 
@@ -61,9 +59,11 @@ public class Trooper extends Task {
 	public static Trooper getInstance() {
 		return instance;
 	}
-	public void clearEnviorement() {
+	
+	private void clearEnviorement() {
+		gameRecorder.flush();
 		sensorsArray.init();
-
+gameRecorder = new GameRecorder(sensorsArray);
 		// at first time execution, a standar time of 10 second is used
 		long tt = time1 == 0 ? 10000 : System.currentTimeMillis() - time1;
 		outGameStats.addValue(tt);
@@ -199,6 +199,7 @@ public class Trooper extends Task {
 		}
 	}
 	/**
+	 * TODO:
 	 * Temporal: return the sum of all villans call. used to retrive the exact amount of pot
 	 * 
 	 * @return
@@ -273,11 +274,11 @@ public class Trooper extends Task {
 		this.enviorement = file;
 		sensorsArray.createSensorsArray(sDisp);
 		robotActuator.setEnviorement(sDisp);
-
+gameRecorder = new  GameRecorder(sensorsArray);
 		Hero.sensorsPanel.setEnviorement(this);
 
 	}
-
+private GameRecorder gameRecorder;
 	/**
 	 * Action have agresiveness. fold has 0 agresiveness, check 1, call 2 and so on, this allow a numeric value for the
 	 * agresion. Some methods use this agresion to press the charge agains the oter players
@@ -313,13 +314,17 @@ public class Trooper extends Task {
 			availableActions.stream().forEach((act) -> actl.append(act + ", "));
 			Hero.logger.info("Available actions to perform: " + actl.substring(0, actl.length() - 2));
 			Hero.logger.info("Current hand: " + pokerSimulator.getMyHandHelper().getHand().toString());
+			String ha = "";
 			if (availableActions.size() == 1) {
-				robotActuator.perform(availableActions.elementAt(0));
+				ha = availableActions.elementAt(0);
 			} else {
 				double rnd = Math.random();
 				int r = (int) (rnd * availableActions.size());
-				robotActuator.perform(availableActions.elementAt(r));
+				ha = availableActions.elementAt(r);
 			}
+			
+			gameRecorder.takeSnapShot(ha);
+			robotActuator.perform(ha);
 		}
 	}
 
@@ -340,7 +345,6 @@ public class Trooper extends Task {
 			sensorsArray.lookTable();
 
 			// look the continue button and perform the action if available.
-			// sensorsArray.lookTable("continue");
 			ScreenSensor ss = sensorsArray.getScreenSensor("continue");
 			if (ss.isEnabled()) {
 				robotActuator.perform("continue");

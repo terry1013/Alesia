@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.geom.*;
 import java.io.*;
 import java.util.*;
+import java.util.function.*;
 
 import javax.swing.*;
 
@@ -97,26 +98,28 @@ public class ScreenAreas {
 				}
 			}
 			ppt.close();
-			checkCardsDimensions();
+			Predicate<Shape> pre = (sh -> sh.name.contains(".name"));
+			checkDimensions(pre, "villan2.name", "Name areas");
+			checkDimensions((sh -> sh.isCardArea), "hero.card1", "Card areas");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
-	private void checkCardsDimensions() {
+	private void checkDimensions(Predicate<Shape> predicate, String refName, String msgPrefix) {
 		DescriptiveStatistics stat = new DescriptiveStatistics();
-		Dimension base = shapes.get("hero.card1").bounds.getSize();
-		shapes.values().stream().filter(sh -> sh.isCardArea)
+		Dimension base = shapes.get(refName).bounds.getSize();
+		shapes.values().stream().filter(predicate)
 				.forEach(sh -> stat.addValue(sh.bounds.getWidth() * sh.bounds.getHeight()));
 		if (stat.getMax() != stat.getMin()) {
-			Hero.logger.severe("Card areas HAS NOT the same dimensions.");
-			Hero.logger.severe("Base card: " + base.width + " height=" + base.height);
-			shapes.values().stream().filter(sh -> sh.isCardArea && !base.equals(sh.bounds.getSize()))
+			Hero.logger.severe(msgPrefix + " HAS NOT the same dimensions.");
+			Hero.logger.severe(msgPrefix + " of reference: " + base.width + " height=" + base.height);
+			shapes.values().stream().filter(predicate.and(sh -> !base.equals(sh.bounds.getSize())))
 					.forEach(losh -> Hero.logger
 							.severe(losh.name + " with=" + losh.bounds.width + " height=" + losh.bounds.height));
 
 		} else {
-			Hero.logger.info("Card areas checked. all card have width=" + base.width + " height=" + base.height);
+			Hero.logger.info(msgPrefix + " checked. all areas have width=" + base.width + " height=" + base.height);
 		}
 	}
 
