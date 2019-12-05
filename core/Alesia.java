@@ -64,12 +64,13 @@ import gui.wlaf.*;
  */
 public class Alesia extends Application {
 
-	public static ArrayList<Skin> skins;
 
-	private static AudioClip newMsg, errMsg;
 	public static TWebFrame mainFrame;
+	public static Logger logger;
 
-	private static Logger logger;
+	public static ArrayList<Skin> skins;
+	private static AudioClip newMsg, errMsg;
+
 	public static TTaskManager manager;
 	public static Font title1;
 	public static Font title2;

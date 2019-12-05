@@ -118,7 +118,7 @@ public class DBAccess {
 			}
 
 		} catch (Exception e) {
-			SystemLog.logException1(e);
+			Alesia.logger.log(Level.SEVERE, "", e);
 		}
 	}
 
@@ -213,7 +213,7 @@ public class DBAccess {
 				auditLog("sadd", rcd);
 			}
 		} catch (Exception e) {
-			SystemLog.logException1(e);
+			Alesia.logger.log(Level.SEVERE, "", e);
 			ok = false;
 		}
 		return ok;
@@ -307,7 +307,7 @@ public class DBAccess {
 			resultSet.close();
 			sta.close();
 		} catch (Exception e) {
-			SystemLog.logException1(e);
+			Alesia.logger.log(Level.SEVERE, "", e);
 		}
 		// apply security filter
 		applySecurityFilter(v);
@@ -417,7 +417,7 @@ public class DBAccess {
 			resultSet.close();
 			sta.close();
 		} catch (Exception e) {
-			SystemLog.logException1(e);
+			Alesia.logger.log(Level.SEVERE, "", e);
 		}
 		/*
 		 * if (tableName.equals("SLE_PLANC_AMOUNT")) { System.out.println(ssta);
@@ -454,7 +454,7 @@ public class DBAccess {
 				auditLog("supd", rcd);
 			}
 		} catch (Exception e) {
-			SystemLog.logException1(e);
+			Alesia.logger.log(Level.SEVERE, "", e);
 			ok = false;
 		}
 		return ok;

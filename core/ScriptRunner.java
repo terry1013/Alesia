@@ -12,6 +12,7 @@ package core;
 
 import java.io.*;
 import java.sql.*;
+import java.util.logging.*;
 
 
 
@@ -58,7 +59,7 @@ public class ScriptRunner {
 				}
 				String trimmedLine = line.trim();
 				if (trimmedLine.startsWith("--")) {
-					SystemLog.info(trimmedLine);
+					Alesia.logger.info(trimmedLine);
 				} else if (trimmedLine.length() < 1 || trimmedLine.startsWith("//")) {
 					// Do nothing
 				} else if (trimmedLine.length() < 1 || trimmedLine.startsWith("--")) {
@@ -79,7 +80,7 @@ public class ScriptRunner {
 				connection.commit();
 			}
 		} catch (Exception e) {
-			SystemLog.logException1(e);
+			Alesia.logger.log(Level.SEVERE, "", e);
 			connection.rollback();
 			throw e;
 		}
@@ -93,7 +94,7 @@ public class ScriptRunner {
 	 * @throws Exception
 	 */
 	private void ExecuteSQL(String command) throws Exception {
-		SystemLog.info(command);
+		Alesia.logger.info(command);
 		Statement statement = connection.createStatement();
 		boolean hasResults = false;
 		hasResults = statement.execute(command);
@@ -110,13 +111,13 @@ public class ScriptRunner {
 			for (int i = 0; i < cols; i++) {
 				name += md.getColumnLabel(i) + "\t";
 			}
-			SystemLog.info(name);
+			Alesia.logger.info(name);
 			while (rs.next()) {
 				String value = "";
 				for (int i = 0; i < cols; i++) {
 					value += rs.getObject(i) + "\t";
 				}
-				SystemLog.info(value);
+				Alesia.logger.info(value);
 			}
 		}
 

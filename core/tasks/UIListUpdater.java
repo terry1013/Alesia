@@ -43,7 +43,7 @@ public class UIListUpdater implements Runnable {
 	 * @param uilp - elemento to remove
 	 */
 	public void remove(UIListPanel uilp) {
-		SystemLog.info(uilp.getClass().getName() + " Removed from UIListUpdater");
+		Alesia.logger.info(uilp.getClass().getName() + " Removed from UIListUpdater");
 		queue.remove(uilp);
 	}
 
@@ -58,11 +58,11 @@ public class UIListUpdater implements Runnable {
 					uilp.freshen();
 					queue.add(uilp);
 				} else {
-					SystemLog.info(uilp.getClass().getName() + " detached from UIListUpdater");
+					Alesia.logger.info(uilp.getClass().getName() + " detached from UIListUpdater");
 				}
 			}
 		} catch (Exception e) {
-			SystemLog.logException1(e);
+			Alesia.logger.log(Level.SEVERE, "", e);
 		}
 	}
 }

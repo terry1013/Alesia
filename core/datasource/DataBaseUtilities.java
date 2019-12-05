@@ -122,7 +122,7 @@ public class DataBaseUtilities {
 	 * @throws SQLException public static Vector complexQuery(String tn, String sqls) { Vector v = new Vector(); try {
 	 *         Statement sta = ConnectionManager.getConnection(tn).createStatement(); ResultSet rs =
 	 *         sta.executeQuery(sqls); // v.add(createModel(tn, rs)); while (rs.next()) { Record r = getRecord(tn, rs);
-	 *         v.addElement(r); } rs.close(); sta.close(); } catch (Exception e) { SystemLog.logException1(e); } return
+	 *         v.addElement(r); } rs.close(); sta.close(); } catch (Exception e) { Alesia.logger.log(Level.SEVERE, "", e); } return
 	 *         v; }
 	 */
 
@@ -149,7 +149,7 @@ public class DataBaseUtilities {
 			Statement sta = ConnectionManager.getConnection(tn).createStatement();
 			sta.executeUpdate(sql);
 		} catch (Exception e) {
-			SystemLog.logException1(e);
+			Alesia.logger.log(Level.SEVERE, "", e);
 		}
 	}
 }

@@ -21,7 +21,6 @@ class CheckComboBoxCellRenderer extends DefaultListCellRenderer {
 	public CheckComboBoxCellRenderer() {
 		this.label = new JLabel();
 		this.check = new WebCheckBox();
-		check.setAnimated(false);
 		check.setOpaque(true);
 	}
 

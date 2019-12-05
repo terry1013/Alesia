@@ -2,6 +2,7 @@ package core;
 
 import java.io.*;
 import java.util.*;
+import java.util.logging.*;
 
 import javax.swing.*;
 
@@ -11,13 +12,20 @@ import com.alee.managers.plugin.*;
 import com.alee.managers.plugin.data.*;
 import com.alee.utils.*;
 
+/**
+ * extension of {@link PluginManager} for load plugins from the file folder 
+ * 
+ * @since 2.3
+ * @author terry
+ *
+ */
 public class TPluginManager extends PluginManager<TPlugin> {
 
 	public TPluginManager() {
 		super("plugins", true);
 		setFileFilter((fn) -> fn.getName().endsWith(getPluginDescriptorFile()));
 	}
-	
+
 	/**
 	 * left panel plugin type
 	 */
@@ -25,8 +33,8 @@ public class TPluginManager extends PluginManager<TPlugin> {
 	/**
 	 * setting panel plugin type
 	 */
-	public  static String settingsUI = "settingsUI";
-	
+	public static String settingsUI = "settingsUI";
+
 	@Override
 	protected DetectedPlugin<TPlugin> detectPlugin(File file) {
 
@@ -96,11 +104,10 @@ public class TPluginManager extends PluginManager<TPlugin> {
 					// add resource path form plugins to main resource path
 					// TODO: verify. maybe need tobe appended to the main resourcemap or a new resourcemap in the
 					// chain
-//					TResources.addResourcePath(pip + pid + "/");
+					// TResources.addResourcePath(pip + pid + "/");
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
-				SystemLog.severe("Plugin not instaled");
+				Alesia.logger.log(Level.SEVERE, "", e);
 			}
 		}
 	}

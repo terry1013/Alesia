@@ -10,124 +10,126 @@
  ******************************************************************************/
 package core;
 
-import java.io.*;
+import java.util.*;
+import java.util.Map.*;
 
 /**
- * encapsula un par de elementos descritos como clave y valor. los elementos claves son los valores que internamente
- * necesita la aplicacion y el elemento valor es el mostrado. EJ: en instancias de <code>JCombobox</code> los elementos
- * son instancias de <code>TEntry</code> y el valor presentado es el almacenado en valor. el contrato general es que se
- * desea manipular un pár de elementos pero la manipulacion es a travez del valor. EJ: metodo
- * <code>	public int compareTo(Object)</code> perimitiria ordenar una lista de elemntos usando el valor enlazado con el
- * objeto (clave) al cual pertence
- * 
- * @author terry
- * 
+ * this class is a copy of {@link AbstractMap.SimpleEntry} class whit some modifications:
+ * <li> {@link #toString()} method only return the string of the value object
+ *
+ * @since 2.3
  */
-public class TEntry implements Serializable, Comparable {
-	private Object key;
-	private Object value;
+public class TEntry<K, V> implements Entry<K, V>, java.io.Serializable {
+	private static final long serialVersionUID = -8499721149061103585L;
+
+	private final K key;
+	private V value;
 
 	/**
-	 * nueva instnaica
-	 * 
-	 * @param key - elemento clave
-	 * @param value - elemento valor
+	 * Creates an entry representing a mapping from the specified key to the specified value.
+	 *
+	 * @param key the key represented by this entry
+	 * @param value the value represented by this entry
 	 */
-	public TEntry(Object key, Object value) {
+	public TEntry(K key, V value) {
 		this.key = key;
 		this.value = value;
 	}
 
 	/**
-	 * nueva instancia
-	 * 
-	 * @param arg - cadena de caracteres de forma key;description
+	 * Creates an entry representing the same mapping as the specified entry.
+	 *
+	 * @param entry the entry to copy
 	 */
-	public TEntry(String arg) {
-		String[] kv = arg.split(";");
-		if (kv.length != 2) {
-			throw new IllegalArgumentException("argument is not in key;description form");
-		} else {
-			this.key = kv[0];
-			this.value = kv[1];
-		}
+	public TEntry(Entry<? extends K, ? extends V> entry) {
+		this.key = entry.getKey();
+		this.value = entry.getValue();
 	}
 
 	/**
-	 * retorna elemento clave
-	 * 
-	 * @return clave
+	 * Returns the key corresponding to this entry.
+	 *
+	 * @return the key corresponding to this entry
 	 */
-	public Object getKey() {
+	public K getKey() {
 		return key;
 	}
 
 	/**
-	 * retorna elemento valor
-	 * 
-	 * @return
+	 * Returns the value corresponding to this entry.
+	 *
+	 * @return the value corresponding to this entry
 	 */
-	public Object getValue() {
+	public V getValue() {
 		return value;
 	}
 
 	/**
-	 * establece elemento valor
-	 * 
-	 * @param value - nuevo valor
+	 * Replaces the value corresponding to this entry with the specified value.
+	 *
+	 * @param value new value to be stored in this entry
+	 * @return the old value corresponding to the entry
 	 */
-	public void setValue(Object value) {
-		if (value == null)
-			throw new NullPointerException();
+	public V setValue(V value) {
+		V oldValue = this.value;
 		this.value = value;
+		return oldValue;
 	}
 
 	/**
-	 * establece elemento clave
+	 * Compares the specified object with this entry for equality. Returns {@code true} if the given object is also a
+	 * map entry and the two entries represent the same mapping. More formally, two entries {@code e1} and {@code e2}
+	 * represent the same mapping if
 	 * 
-	 * @param key - nueva clave
+	 * <pre>
+	 * (e1.getKey() == null ? e2.getKey() == null : e1.getKey().equals(e2.getKey()))
+	 * 		&amp;&amp; (e1.getValue() == null ? e2.getValue() == null : e1.getValue().equals(e2.getValue()))
+	 * </pre>
+	 * 
+	 * This ensures that the {@code equals} method works properly across different implementations of the
+	 * {@code Map.Entry} interface.
+	 *
+	 * @param o object to be compared for equality with this map entry
+	 * @return {@code true} if the specified object is equal to this map entry
+	 * @see #hashCode
 	 */
-	public void setKey(Object key) {
-		if (key == null)
-			throw new NullPointerException();
-		this.key = key;
-	}
-
 	public boolean equals(Object o) {
-		if (!(o instanceof TEntry)) {
+		if (!(o instanceof Map.Entry))
 			return false;
-		}
-		TEntry e = (TEntry) o;
-		return (key == null ? e.getKey() == null : key.equals(e.getKey()))
-				&& (value == null ? e.getValue() == null : value.equals(e.getValue()));
+		Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
+		return eq(key, e.getKey()) && eq(value, e.getValue());
 	}
 
-	@Override
+    private static boolean eq(Object o1, Object o2) {
+        return o1 == null ? o2 == null : o1.equals(o2);
+    }
+
+	/**
+	 * Returns the hash code value for this map entry. The hash code of a map entry {@code e} is defined to be:
+	 * 
+	 * <pre>
+	 * (e.getKey() == null ? 0 : e.getKey().hashCode()) ^ (e.getValue() == null ? 0 : e.getValue().hashCode())
+	 * </pre>
+	 * 
+	 * This ensures that {@code e1.equals(e2)} implies that {@code e1.hashCode()==e2.hashCode()} for any two Entries
+	 * {@code e1} and {@code e2}, as required by the general contract of {@link Object#hashCode}.
+	 *
+	 * @return the hash code value for this map entry
+	 * @see #equals
+	 */
 	public int hashCode() {
-		return value.hashCode();
+		return (key == null ? 0 : key.hashCode()) ^ (value == null ? 0 : value.hashCode());
 	}
 
-	@Override
+	/**
+	 * Returns only the string representation of the value object
+	 * 
+	 * @author terry
+	 * @return a String representation of this map entry
+	 */
 	public String toString() {
+		// return key + "=" + value;
 		return value.toString();
 	}
 
-	/**
-	 * try to dispatch to {@link Comparable#compareTo(Object)} of underlying value. if this is not posible, use
-	 * toString()
-	 */
-	@Override
-	public int compareTo(Object anotherTentry) {
-		TEntry te = (TEntry) anotherTentry;
-		if (te.getValue() instanceof Integer) {
-			Integer inum = (Integer) te.getValue();
-			return ((Integer) value).compareTo(inum);
-		}
-		if (te.getValue() instanceof Double) {
-			Double inum = (Double) te.getValue();
-			return ((Double) value).compareTo(inum);
-		}
-		// 20161109 que ladilla !!! parece que contamos may y le tumbaron 500 bs a mama en el deposito de mercantil
-		return value.toString().compareTo(((TEntry) anotherTentry).getValue().toString());
-	}
 }

@@ -54,7 +54,7 @@ public class ScreenAreas {
 			HSLFFill fill = master.getBackground().getFill();
 			HSLFPictureData pic = fill.getPictureData();
 			byte[] data = pic.getData();
-			Hero.logger.fine(
+			Hero.logger.finer(
 					"background detected type=" + pic.getType() + " Dimesions " + pic.getImageDimensionInPixels());
 			backgroundImage = new ImageIcon(data);
 			for (HSLFSlide slide : ppt.getSlides()) {
@@ -81,7 +81,7 @@ public class ScreenAreas {
 						anchor.setRect(anchor.getX() * 1.3333, anchor.getY() * 1.3333, anchor.getWidth() * 1.3333,
 								anchor.getHeight() * 1.3333);
 						Shape sha = new Shape(anchor.getBounds());
-						Hero.logger.fine("shape found " + name + " Bounds" + "[x=" + sha.bounds.x + ",y=" + sha.bounds.y
+						Hero.logger.finer("shape found " + name + " Bounds" + "[x=" + sha.bounds.x + ",y=" + sha.bounds.y
 								+ ",width=" + sha.bounds.width + ",height=" + sha.bounds.height + "]");
 						// marck action areas
 						if (name.startsWith("action.")) {

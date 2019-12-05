@@ -8,13 +8,6 @@
  * Contributors:
  *     terry - initial API and implementation
  ******************************************************************************/
-/**
- * Copyright (c) Terry - All right reserved. PROPRIETARY/CONFIDENTIAL.
- * Use is subject to license terms.
- *
- * @author Terry
- *
- */
 package gui;
 
 import java.awt.event.*;

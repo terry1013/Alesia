@@ -25,7 +25,6 @@ import com.alee.laf.*;
 
 import core.*;
 import gui.console.*;
-import gui.prueckl.draw.*;
 import net.sourceforge.tess4j.*;
 
 public class Hero extends TPlugin {
@@ -73,11 +72,6 @@ public class Hero extends TPlugin {
 	public static void logPerformance(String txt, long t1) {
 		String sp = TStringUtils.formatSpeed(System.currentTimeMillis() - t1);
 		logger.finest(txt + ": " + sp);
-	}
-	@org.jdesktop.application.Action
-	public void drawEditor(ActionEvent event) {
-		DrawingEditor de = new DrawingEditor();
-		Alesia.getMainPanel().setContentPanel(de);
 	}
 
 	@Override

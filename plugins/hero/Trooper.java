@@ -59,11 +59,9 @@ public class Trooper extends Task {
 	public static Trooper getInstance() {
 		return instance;
 	}
-	
+
 	private void clearEnviorement() {
-		gameRecorder.flush();
 		sensorsArray.init();
-gameRecorder = new GameRecorder(sensorsArray);
 		// at first time execution, a standar time of 10 second is used
 		long tt = time1 == 0 ? 10000 : System.currentTimeMillis() - time1;
 		outGameStats.addValue(tt);
@@ -199,8 +197,7 @@ gameRecorder = new GameRecorder(sensorsArray);
 		}
 	}
 	/**
-	 * TODO:
-	 * Temporal: return the sum of all villans call. used to retrive the exact amount of pot
+	 * TODO: Temporal: return the sum of all villans call. used to retrive the exact amount of pot
 	 * 
 	 * @return
 	 */
@@ -274,11 +271,14 @@ gameRecorder = new GameRecorder(sensorsArray);
 		this.enviorement = file;
 		sensorsArray.createSensorsArray(sDisp);
 		robotActuator.setEnviorement(sDisp);
-gameRecorder = new  GameRecorder(sensorsArray);
+		// gameRecorder = new GameRecorder(sensorsArray);
 		Hero.sensorsPanel.setEnviorement(this);
 
 	}
-private GameRecorder gameRecorder;
+	/**
+	 * the game recorder is created only after the continue action. this avoid record incomplete sesion
+	 */
+	private GameRecorder gameRecorder;
 	/**
 	 * Action have agresiveness. fold has 0 agresiveness, check 1, call 2 and so on, this allow a numeric value for the
 	 * agresion. Some methods use this agresion to press the charge agains the oter players
@@ -294,11 +294,11 @@ private GameRecorder gameRecorder;
 	 * @return
 	 */
 	private String getRandomSelection() {
-//		int vills = sensorsArray.getVillans();
-//		int av = sensorsArray.getActivePlayers() - 1;
-//
-//		double fact = Math.abs((av / vills) - 1) + 1;
-//		 EnumeratedIntegerDistribution eid = new EnumeratedIntegerDistribution(data)
+		// int vills = sensorsArray.getVillans();
+		// int av = sensorsArray.getActivePlayers() - 1;
+		//
+		// double fact = Math.abs((av / vills) - 1) + 1;
+		// EnumeratedIntegerDistribution eid = new EnumeratedIntegerDistribution(data)
 		return null;
 	}
 	/**
@@ -322,8 +322,9 @@ private GameRecorder gameRecorder;
 				int r = (int) (rnd * availableActions.size());
 				ha = availableActions.elementAt(r);
 			}
-			
-			gameRecorder.takeSnapShot(ha);
+			if (gameRecorder != null) {
+				gameRecorder.takeSnapShot(ha);
+			}
 			robotActuator.perform(ha);
 		}
 	}
@@ -347,6 +348,10 @@ private GameRecorder gameRecorder;
 			// look the continue button and perform the action if available.
 			ScreenSensor ss = sensorsArray.getScreenSensor("continue");
 			if (ss.isEnabled()) {
+				if (gameRecorder != null) {
+					gameRecorder.flush();
+				}
+				gameRecorder = new GameRecorder(sensorsArray);
 				robotActuator.perform("continue");
 				clearEnviorement();
 				continue;
@@ -377,7 +382,7 @@ private GameRecorder gameRecorder;
 	 * to perform large computations.
 	 */
 	protected void think() {
-//		update the villans db table 
+		// update the villans db table
 
 		// 191020: ayer ya la implementacion por omision jugo una partida completa y estuvo a punto de vencer a la
 		// chatarra de Texas poker - poker holdem. A punto de vencer porque jugaba tan lento que me aburri del sueno :D

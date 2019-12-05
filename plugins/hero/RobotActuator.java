@@ -3,8 +3,6 @@ package plugins.hero;
 import java.awt.*;
 import java.awt.event.*;
 
-import gui.prueckl.draw.*;
-
 /**
  * Base class to send programaticily events throw the mouse or th keyboard.
  * 
@@ -39,7 +37,7 @@ public class RobotActuator {
 			if (fig != null) {
 				Point p = fig.getRandomPoint();
 				mouseMove(p.x, p.y);
-				Hero.logger.info(action + ": "+p.toString());
+				Hero.logger.info(action + ": " + p.toString());
 
 				// TODO: remove. temporal to emulate all in in th
 				if (action.contains("allin")) {

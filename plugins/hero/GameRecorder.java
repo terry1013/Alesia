@@ -2,6 +2,7 @@ package plugins.hero;
 
 import java.awt.image.*;
 import java.util.*;
+import java.util.stream.*;
 
 /**
  * This class record the game secuence and store the result in the games db file. instance of this class are dispached
@@ -23,25 +24,19 @@ import java.util.*;
 public class GameRecorder {
 
 	public static String IMAGE_ACTIONS = "plugins/hero/image_actions/";
-	private static Hashtable<String, BufferedImage> actionsTable = ScreenSensor.loadImages(IMAGE_ACTIONS);
+	public static Hashtable<String, BufferedImage> actionsTable = ScreenSensor.loadImages(IMAGE_ACTIONS);
 
+	private int currentRound = PokerSimulator.NO_CARDS_DEALT;
 	private SensorsArray sensorsArray;
 	private int tablePosition;
 	private String comunityCards;
-	private Vector<GamePlayer> gamePlayers;
+	private Vector<GamePlayer> villans;
 	private GamePlayer trooper;
 
 	public GameRecorder(SensorsArray sensorsArray) {
 		this.sensorsArray = sensorsArray;
-		this.trooper = new GamePlayer();
+		this.trooper = new GamePlayer(0);
 		trooper.name = "trooper";
-		int lv = sensorsArray.getVillans();
-		this.gamePlayers = new Vector<>(lv);
-		for (int i = 0; i < lv; i++) {
-			GamePlayer p = new GamePlayer();
-			p.name = "villan" + (i + 1);
-			gamePlayers.add(p);
-		}
 	}
 
 	/**
@@ -50,42 +45,53 @@ public class GameRecorder {
 	 * Call this method before a new enviorement or clean eviorement invocation.
 	 */
 	public void flush() {
-
+		takeSnapShot(null);
+		String row = tablePosition + "|<sm value>|" + comunityCards + "|";
+		row += trooper.toString() + "|";
+		row += villans.stream().map(GamePlayer::toString).collect(Collectors.joining("|"));
+		Hero.logger.severe(row);
 	}
 
 	/**
 	 * Take a snapshot of the game status. at this point all elements are available for be processed by this method
 	 * because most of the screensensor are up to date. This method is invoked one moment before the trooper perform the
-	 * action.
+	 * action. if action = <code>null</code> indicate the last recording action previous to {@link #flush()} operation.
 	 * 
 	 * @param action - the trooper desition before be performed by {@link RobotActuator}
 	 */
 	public void takeSnapShot(String action) {
 
-		// trooper info
-		trooper.cards = sensorsArray.getPokerSimulator().getMyHandHelper().getHoleCards().toString();
-		trooper.actions.add(action);
+		// at firt exec, init the villans list with active seats. if a villan run before is my turn to
+		// fight, his action still on the screen at this point
+		if (villans == null) {
+			int lv = sensorsArray.getVillans();
+			this.villans = new Vector<>(lv);
+			for (int i = 1; i <= lv; i++) {
+				if (sensorsArray.isActiveSeats(i)) {
+					villans.add(new GamePlayer(i));
+				}
+			}
+		}
+		// header info
 		comunityCards = sensorsArray.getPokerSimulator().getMyHandHelper().getCommunityCards().toString();
 		tablePosition = sensorsArray.getPokerSimulator().getTablePosition();
 
-		// villans info
-		for (int i = 1; i <= gamePlayers.size(); i++) {
-			GamePlayer gp = gamePlayers.elementAt(i-1);
-			String tmp1 = sensorsArray.readAndGetOCR("villan" + i + ".card1");
-			String tmp2 = sensorsArray.readAndGetOCR("villan" + i + ".card2");
-			if (tmp1 == null || tmp2 == null) {
-				gp.cards = (tmp1 + tmp2);
-			}
-
-			ScreenSensor ss = sensorsArray.getScreenSensor("villan" + i + ".name");
-			BufferedImage imagea = ss.getCapturedImage();
-			String ocr = ScreenSensor.getOCRFromImage(imagea, actionsTable);
-			gp.actions.add(ocr == null ? "" : ocr);
-
-			int val = sensorsArray.getScreenSensor("villan" + i + ".call").getIntOCR();
-			if (val > -1) {
-				gp.val.add(val);
-			}
+		// if the game round change, add a marker inside the actions for eachplayer
+		int cr = sensorsArray.getPokerSimulator().getCurrentRound();
+		if (cr > currentRound) {
+			currentRound = cr;
+			trooper.actions.append(">");
+			villans.stream().forEach(gp1 -> gp1.actions.append(">"));
 		}
+
+		// trooper
+		trooper.card1 = sensorsArray.readAndGetOCR("hero.card1");
+		trooper.card2 = sensorsArray.readAndGetOCR("hero.card2");
+		if (action != null) {
+			trooper.actions.append(action.substring(0, 1));
+		}
+
+		// villans info
+		villans.stream().forEach(v -> v.update());
 	}
 }

@@ -10,8 +10,6 @@ import javax.swing.border.*;
 
 import org.apache.commons.math3.stat.descriptive.*;
 
-import gui.prueckl.draw.*;
-
 /**
  * This class control the array of sensor inside of the screen. This class is responsable for reading all the sensor
  * configurated in the {@link DrawingPanel} passsed as argument in the {@link #createSensorsArray(DrawingPanel)} method.
@@ -19,8 +17,6 @@ import gui.prueckl.draw.*;
  * althout this class are the eyes of the tropper, numerical values must be retrives throw {@link PokerSimulator}. the
  * poker simulator values are populated during the reading process using the method
  * {@link PokerSimulator#addCard(String, String)} at every time that a change in the enviorement is detected.
- * <p>
- * TODO: what about the pot information ????
  * 
  * @author terry
  *
@@ -70,8 +66,27 @@ public class SensorsArray {
 	}
 
 	/**
-	 * Return the number of current active players (me plus active villans). a villan is active if he has dealed cards
+	 * return <code>true</code> if the villanId seat is active. A seat is active if there are a villan sittion on it.
+	 * this method check the villan name sensor and the villan chip sensor. if both are active, the seat is active.
+	 * <p>
+	 * from this method point of view, there are a villan sittin on a seat currently playing or not. maybe he abandom
+	 * the action
 	 * 
+	 * @param villanId - the seat as configured in the ppt file. villan1 is at hero.s left
+	 * @see #getActivePlayers()
+	 * @return numers of villans active seats
+	 */
+	public boolean isActiveSeats(int villanId) {
+		ScreenSensor vname = getScreenSensor("villan" + villanId + ".name");
+		ScreenSensor vchip = getScreenSensor("villan" + villanId + ".chips");
+		return vname.isEnabled() && vchip.isEnabled();
+	}
+	/**
+	 * Return the number of current active players (me plus active villans). a villan is active if he has dealed cards.
+	 * if a player fold his card. this method will not count that player. from this method point of view. the player is
+	 * in tha game, but in this particular moment are not active.
+	 * 
+	 * @see #getActiveSeats()
 	 * @return - num of active villans + me
 	 */
 	public int getActivePlayers() {
@@ -144,7 +159,11 @@ public class SensorsArray {
 	}
 
 	/**
-	 * Shorcut method for read the seonsor <code>sensor</code>,perform the OCR operation an retrive the result
+	 * Shorcut method for read the seonsor <code>sensor</code>,perform the OCR operation an retrive the result.
+	 * <p>
+	 * WARNING: use this method with caution. this method will fire an update on the game state and the performance of
+	 * the system will be compromised. to retrive only the desired {@link ScreenSensor} informatation DON.T use this
+	 * method
 	 * 
 	 * @param sensor - name of the sensor
 	 * 
@@ -198,7 +217,7 @@ public class SensorsArray {
 			ss.setBorder(read ? readingBorder : lookingBorder);
 			ss.capture(read);
 			if (ss.getOCRPerformanceTime() > 0) {
-				if(ss.isCardCard()) {
+				if (ss.isCardCard()) {
 					imageDiffereceTime.addValue(ss.getOCRPerformanceTime());
 				} else {
 					tesseractTime.addValue(ss.getOCRPerformanceTime());
@@ -300,14 +319,6 @@ public class SensorsArray {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-	}
-
-	private boolean isActionButtonAvailable() {
-		boolean act = false;
-		for (ScreenSensor ss : screenSensors) {
-			act = (ss.isActionArea() && ss.isEnabled()) ? true : act;
-		}
-		return act;
 	}
 
 	private void setStandByBorder() {

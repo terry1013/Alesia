@@ -3,6 +3,7 @@ package gui.console;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.util.*;
 import java.util.logging.*;
 
 import javax.swing.*;
@@ -11,14 +12,12 @@ import javax.swing.text.*;
 import org.jdesktop.application.Action;
 
 import com.alee.extended.layout.*;
-import com.alee.laf.button.*;
-import com.alee.laf.grouping.*;
+import com.alee.laf.combobox.*;
 import com.alee.laf.panel.*;
 import com.alee.laf.text.*;
 import com.alee.managers.settings.*;
 
 import core.*;
-import gui.wlaf.*;
 
 /**
  * Component to show messages from the {@link Logger} system. this class is used to see the logg messages control the
@@ -36,7 +35,7 @@ public class ConsolePanel extends WebPanel {
 	private ActionMap actionMap;
 	private Logger logger;
 	private TextAreaHandler handler;
-	private  String blanck = "                                                                                                    ";
+	private String blanck = "                                                                                                    ";
 
 	public ConsolePanel(Logger logger) {
 		setLayout(new VerticalFlowLayout(VerticalFlowLayout.TOP));
@@ -52,36 +51,49 @@ public class ConsolePanel extends WebPanel {
 		handler = new TextAreaHandler(os);
 		logger.addHandler(handler);
 
-		// temporal with
+		// temporal
 		WebPanel toolbar = new WebPanel(new LineLayout(LineLayout.HORIZONTAL));
 
-		GroupPane gp = new GroupPane();
-		WebToggleButton wtb = TUIUtils.getWebToggleButton(actionMap.get("showAllMessage"));
-		wtb.registerSettings(new Configuration<ButtonState>("Console.showAllMessage"));
-		gp.add(wtb);
-		wtb = TUIUtils.getWebToggleButton(actionMap.get("showFinerMessage"));
-		wtb.registerSettings(new Configuration<ButtonState>("Console.showFinerMessage"));
-		gp.add(wtb);
-		wtb = TUIUtils.getWebToggleButton(actionMap.get("showInfoMessage"));
-		wtb.registerSettings(new Configuration<ButtonState>("Console.showInfoMessage"));
-		gp.add(wtb);
-		wtb = TUIUtils.getWebToggleButton(actionMap.get("showWarnMessage"));
-		wtb.registerSettings(new Configuration<ButtonState>("Console.showWarnMessage"));
-		gp.add(wtb);
+		Vector<Level> lvl = new Vector<>();
+		lvl.add(Level.OFF);
+		lvl.add(Level.SEVERE);
+		lvl.add(Level.WARNING);
+		lvl.add(Level.INFO);
+		lvl.add(Level.CONFIG);
+		lvl.add(Level.FINE);
+		lvl.add(Level.FINER);
+		lvl.add(Level.FINEST);
+		lvl.add(Level.ALL);
+		WebComboBox comboBox = new WebComboBox(lvl);
+		comboBox.addActionListener(evt -> setLoggerLever((Level) comboBox.getSelectedItem()));
+		comboBox.registerSettings(new Configuration<ComboBoxState>("logging.level"));
+		setLoggerLever((Level) comboBox.getSelectedItem());
+		// GroupPane gp = new GroupPane();
+		// WebToggleButton wtb = TUIUtils.getWebToggleButton(actionMap.get("showAllMessage"));
+		// wtb.registerSettings(new Configuration<ButtonState>("Console.showAllMessage"));
+		// gp.add(wtb);
+		// wtb = TUIUtils.getWebToggleButton(actionMap.get("showFinerMessage"));
+		// wtb.registerSettings(new Configuration<ButtonState>("Console.showFinerMessage"));
+		// gp.add(wtb);
+		// wtb = TUIUtils.getWebToggleButton(actionMap.get("showInfoMessage"));
+		// wtb.registerSettings(new Configuration<ButtonState>("Console.showInfoMessage"));
+		// gp.add(wtb);
+		// wtb = TUIUtils.getWebToggleButton(actionMap.get("showWarnMessage"));
+		// wtb.registerSettings(new Configuration<ButtonState>("Console.showWarnMessage"));
+		// gp.add(wtb);
 
-		toolbar.add(gp, TUIUtils.getWebButtonForToolBar(actionMap.get("cleanConsole")));
+		toolbar.add(comboBox, TUIUtils.getWebButtonForToolBar(actionMap.get("cleanConsole")));
 
 		editorPane.setSize(Short.MAX_VALUE, 150);
 		editorPane.setText(blanck);
 		JScrollPane jsp = new JScrollPane(editorPane);
 		add(toolbar);
 		add(jsp);
-		setLoggerLever(SettingsManager.get("Loggin.Level", Level.ALL));
-		
+
 		Dimension prefd = editorPane.getPreferredSize();
 		jsp.getViewport().setPreferredSize(new Dimension(prefd.width, 150));
 		jsp.getViewport().setMinimumSize(new Dimension(prefd.width, 150));
-//		editorPane.setText("");
+		// editorPane.setText("");
 
 	}
 
@@ -93,29 +105,9 @@ public class ConsolePanel extends WebPanel {
 		cleanConsole();
 	}
 
-	@Action
-	public void showAllMessage(ActionEvent event) {
-		setLoggerLever(Level.ALL);
-	}
-	@Action
-	public void showFinerMessage(ActionEvent event) {
-		setLoggerLever(Level.FINER);
-	}
-
-	@Action
-	public void showInfoMessage(ActionEvent event) {
-		setLoggerLever(Level.INFO);
-	}
-
-	@Action
-	public void showWarnMessage(ActionEvent event) {
-		setLoggerLever(Level.WARNING);
-	}
-
 	private void setLoggerLever(Level level) {
 		logger.setLevel(level);
 		handler.setLevel(level);
-		logger.log(level, "Logger level changed to " + level.getName());
-		SettingsManager.set("Loggin.Level", level);
+		logger.log(level, "Loggin level set to " + level);
 	}
 }

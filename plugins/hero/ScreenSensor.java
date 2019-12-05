@@ -5,16 +5,13 @@ import java.awt.image.*;
 import java.io.*;
 import java.util.*;
 import java.util.List;
-import java.util.logging.*;
 
 import javax.imageio.*;
 import javax.swing.*;
 
-import com.alee.extended.collapsible.*;
 import com.alee.utils.*;
 
 import core.*;
-import gui.prueckl.draw.*;
 import net.sourceforge.tess4j.*;
 import net.sourceforge.tess4j.util.*;
 
@@ -178,7 +175,7 @@ public class ScreenSensor extends JPanel {
 				ocr = name;
 			}
 		}
-		Hero.logger.fine("getOCRFromImage: image " + ocr + " found. Diference: " + dif);
+		Hero.logger.finer("getOCRFromImage: image " + ocr + " found. Diference: " + dif);
 		return ocr == null || dif > difThreshold ? null : ocr;
 	}
 	/**
@@ -204,7 +201,7 @@ public class ScreenSensor extends JPanel {
 	public static Hashtable<String, BufferedImage> loadImages(String dir) {
 		File fdir = new File(dir);
 		String[] imgs = fdir.list();
-		Hero.logger.info("Loading images from " + dir);
+		Hero.logger.config("Loading images from " + dir);
 		Hashtable<String, BufferedImage> images = new Hashtable<>();
 		for (String img : imgs) {
 			File f = new File(dir + img);
@@ -228,14 +225,16 @@ public class ScreenSensor extends JPanel {
 	 * will be setted as final OCR of the {@link ScreenSensor} instance
 	 * 
 	 * @param ss - instance of {@link ScreenSensor} to fix the ocr
-	 * 
+	 * @see #replaceWhitNumbers(String)
 	 * @return - new text
 	 */
 	public static String OCRCorrection(ScreenSensor ss) {
 		String ocr = ss.getOCR();
 
 		// for call/rise sensors,set the ocr only of the retrive numerical value
-		if (ss.getName().equals("call") || ss.getName().equals("raise")) {
+		// for villanX.call perform corrections too
+		if (ss.getName().equals("call") || ss.getName().equals("raise")
+				|| (ss.getName().startsWith("villan") && ss.getName().contains(".call"))) {
 			String vals[] = ocr.split("\\n");
 			ocr = "0";
 			if (vals.length > 1) {
@@ -248,11 +247,20 @@ public class ScreenSensor extends JPanel {
 		return ocr;
 	}
 
-	public static String replaceWhitNumbers(String srcs) {
-		String rstr = srcs.replace("z", "2");
+	/**
+	 * Replage the incomming argumento, which is spected to be only number, with the know replacemente due to tesseract
+	 * caracter bad recognition. for example, is know that ocr operation detect 800 as a00 or 80o. this method will
+	 * return 800 for thath incommin value
+	 * 
+	 * @param ocrString - posible nomeric value with leters
+	 * @return string only numeric
+	 */
+	public static String replaceWhitNumbers(String ocrString) {
+		String rstr = ocrString.replace("z", "2");
 		rstr = rstr.replace("Z", "2");
 		rstr = rstr.replace("o", "0");
 		rstr = rstr.replace("O", "0");
+		rstr = rstr.replace("a", "8");
 		rstr = rstr.replace("s", "8");
 		rstr = rstr.replace("S", "8");
 		rstr = rstr.replace("U", "0");
@@ -261,12 +269,18 @@ public class ScreenSensor extends JPanel {
 	}
 
 	/**
-	 * Capture the region of the screen specified by this sensor. this method generate and prepare the image for future
-	 * operations.
+	 * Capture the region of the screen specified by this sensor. this method is executed at diferent levels acording to
+	 * the retrived information from the screen. The <code>doOcr</code> argument idicate the desire for retrive ocr from
+	 * the image. the ocr will retrive if this argument is <code>true</code> and a diference between the las image and
+	 * the actual image has been detected.
+	 * <li>prepare the image
+	 * <li>set the status enabled/disabled for this sensor if the image is considerer enabled. if this sensor is setted
+	 * to disable, no more futher operations will be performed.
+	 * <li>perform de asociated OCR operation according to this area type ONLY IF the image has change.
 	 * 
 	 * @see #getCapturedImage()
-	 * @se {@link #getPreparedImage()}
 	 * 
+	 * @param doOcr - <code>true</code> for perform ocr operation (if is available)
 	 */
 	public void capture(boolean doOcr) {
 		Rectangle bou = shape.bounds;
@@ -282,7 +296,7 @@ public class ScreenSensor extends JPanel {
 			capturedImage = sensorsArray.getRobot().createScreenCapture(bou);
 		}
 
-		Hero.logger.fine(getName() + ": Imgen captured.");
+		Hero.logger.finer(getName() + ": Imgen captured.");
 
 		/*
 		 * color reducction or image treatment before OCR operation or enable/disable action
@@ -296,7 +310,7 @@ public class ScreenSensor extends JPanel {
 		setEnabled(false);
 		// TODO: test performance changin prepared image for captured image because is smaller
 		if (!(whitePercent > shape.enableWhen)) {
-			Hero.logger.fine(getName() + ": is disabled.");
+			Hero.logger.finer(getName() + ": is disabled.");
 			return;
 		}
 		setEnabled(true);
@@ -319,11 +333,12 @@ public class ScreenSensor extends JPanel {
 				+ whitePercent + "<br>maxC: <FONT COLOR=\"#" + ch + "\"><B>" + ch + "</B></FONT>" + "<br>isOCRArea: "
 				+ shape.isOCRArea + "<br>OCR: " + ocrResult + "</html>";
 		setToolTipText(st);
-//		repaint();
+		repaint();
 	}
 
 	/**
-	 * Return the image captureds by this sensor area. The captured image is the exact image without any treatment
+	 * Return the image captureds by this sensor area. The captured image is the exact image retribed from the
+	 * enviorement without any treatment
 	 * 
 	 * @return the captured image
 	 */
@@ -336,8 +351,11 @@ public class ScreenSensor extends JPanel {
 	}
 
 	/**
-	 * Return the int value from this sensor. This method return <code>-1</code> if any error is found during the
-	 * parsing operation.
+	 * Return the int value from this sensor. Some sensor has only numerical information or text/numerical information.
+	 * acording to this, this method will return that numerical information (if is available) or -1 if not. Also, -1 is
+	 * returned if any error is found during the parsing operation.
+	 * 
+	 * @see #OCRCorrection(ScreenSensor)
 	 * 
 	 * @return int value or <code>-1</code>
 	 */
@@ -355,7 +373,7 @@ public class ScreenSensor extends JPanel {
 	}
 
 	/**
-	 * Return the string representation of the {@link #maxColor} variable
+	 * Return the string representation of the {@link #maxColor} variable. the format is RRGGBB
 	 * 
 	 * @return
 	 */
@@ -453,11 +471,11 @@ public class ScreenSensor extends JPanel {
 		// is this an OCR area ?
 		boolean doo = shape.isOCRArea;
 		if (!doo) {
-			Hero.logger.fine(getName() + ": no ocr performed. Porperty shape.isOCRArea=" + doo);
+			Hero.logger.finer(getName() + ": no ocr performed. Porperty shape.isOCRArea=" + doo);
 			return null;
 		}
 
-		Hero.logger.fine(getName() + ": performing OCR...");
+		Hero.logger.finer(getName() + ": performing OCR...");
 		regions = Hero.iTesseract.getSegmentedRegions(preparedImage, pageIteratorLevel);
 		ocrResult = Hero.iTesseract.doOCR(preparedImage);
 		List<Word> wlst = Hero.iTesseract.getWords(preparedImage, pageIteratorLevel);
@@ -485,10 +503,11 @@ public class ScreenSensor extends JPanel {
 		// if the card is the file name is card_facedown, set null for ocr
 		if (ocr != null && ocr.equals("card_facedown")) {
 			ocr = null;
-			Hero.logger.fine(getName() + ": card id face down.");
+			Hero.logger.finer(getName() + ": card id face down.");
 		}
 
-		// at this point, if the ocr=null, the image diference is > difference threshold. that means than some garbage is interfiring
+		// at this point, if the ocr=null, the image diference is > difference threshold. that means than some garbage
+		// is interfiring
 		// whit the screen capture. this card area is marked as empty area.
 
 		return ocr;
