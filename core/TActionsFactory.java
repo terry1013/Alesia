@@ -67,13 +67,12 @@ public class TActionsFactory {
 	 * @return {@link ApplicationAction}
 	 * @since 2.3
 	 */
-	private static ApplicationAction getMe(ActionEvent event) {
+	public static ApplicationAction getMe(ActionEvent event) {
 		Object obj = event.getSource();
 		Preconditions.checkArgument(obj instanceof AbstractButton,
 				"The source of the ActionEvent is not an instance of abstractButton");
 		AbstractButton src = (AbstractButton) obj;
 		return (ApplicationAction) src.getAction();
-
 	}
 
 	@Action

@@ -43,10 +43,8 @@ public class PokerSimulator {
 	private CommunityCards communityCards;
 	private JLabel infoJtextArea;
 	private int currentRound;
-	private HoleCards myHoleCards;
-
+	private HoleCards holeCards;
 	private Exception exception;
-
 	private int tablePosition;
 
 	private MyHandHelper myHandHelper;
@@ -71,10 +69,10 @@ public class PokerSimulator {
 		init();
 	}
 	/**
-	 * this mathod act like a buffer betwen {@link SensorsPanel} and this class to set the cards based on the
-	 * name/value of the {@link ScreenSensor} component while the cards arrive at the game table. For example. at
-	 * starting a game, the firt hole card may arrive while the second one no. Calling this method set the first card
-	 * and wait for the second in order to efectively create the hole card and set the correct game status.
+	 * this mathod act like a buffer betwen {@link SensorsPanel} and this class to set the cards based on the name/value
+	 * of the {@link ScreenSensor} component while the cards arrive at the game table. For example. at starting a game,
+	 * the firt hole card may arrive while the second one no. Calling this method set the first card and wait for the
+	 * second in order to efectively create the hole card and set the correct game status.
 	 * 
 	 * @param cname - {@link ScreenSensor} name
 	 * @param cval - card value
@@ -87,10 +85,6 @@ public class PokerSimulator {
 			if (cname.startsWith("hero.card") && cardsBuffer.containsKey("hero.card1")
 					&& cardsBuffer.containsKey("hero.card2")) {
 				createHoleCards(cardsBuffer.get("hero.card1"), cardsBuffer.get("hero.card2"));
-
-				// TODO: Temporal ??? ensure correct status
-				communityCards = null;
-
 				runSimulation();
 			}
 			// check if flop cards are completes. only fired when component name are in flop
@@ -112,11 +106,13 @@ public class PokerSimulator {
 				runSimulation();
 			}
 		} catch (Exception e) {
-			// in case of any error, change the simulator status
-			exception = e;
-			System.err.println(e.getMessage());
-			System.err.println("hole cards " + ((myHoleCards == null) ? "(null)" : myHoleCards.toString())
-					+ " communityCards " + ((communityCards == null) ? "(null)" : communityCards.toString()));
+			// in case of any error, just notify the bad situation and don nothig. at some points, the sensor array add
+			// the carts in the wrong secuence. so, do nothig until all information are available.
+			Hero.logger
+					.warning(e.getMessage() + "\n\tCurrent round: "+currentRound+"\n\tHole cards: " + holeCards + "\n\tComunity cards: " + communityCards);
+			// Hero.logger.warning(e.getMessage());
+			// System.err.println("hole cards " + ((myHoleCards == null) ? "(null)" : myHoleCards.toString())
+			// + " communityCards " + ((communityCards == null) ? "(null)" : communityCards.toString()));
 		}
 	}
 
@@ -154,7 +150,7 @@ public class PokerSimulator {
 	}
 
 	public HoleCards getMyHoleCards() {
-		return myHoleCards;
+		return holeCards;
 	}
 
 	public int getPotValue() {
@@ -175,7 +171,7 @@ public class PokerSimulator {
 	 */
 	public void init() {
 		this.currentRound = NO_CARDS_DEALT;
-		myHoleCards = null;
+		holeCards = null;
 		communityCards = null;
 		// 190831: ya el sistema se esta moviendo. por lo menos hace fold !!!! :D estoy en el salon de clases del campo
 		// de refujiados en dresden !!!! ya van 2 meses
@@ -185,13 +181,13 @@ public class PokerSimulator {
 
 	private void runSimulation() throws SimulatorException {
 
-		adapter.runMySimulations(myHoleCards, communityCards, numSimPlayers, currentRound);
+		adapter.runMySimulations(holeCards, communityCards, numSimPlayers, currentRound);
 		updateMyOutsHelperInfo();
 		exception = null;
 	}
 
 	private int heroChips = 0;
-	
+
 	public void setCallValue(int callValue) {
 		this.callValue = callValue;
 	}
@@ -286,7 +282,7 @@ public class PokerSimulator {
 	private void createHoleCards(String c1, String c2) {
 		Card ca1 = createCardFromString(c1);
 		Card ca2 = createCardFromString(c2);
-		myHoleCards = new HoleCards(ca1, ca2);
+		holeCards = new HoleCards(ca1, ca2);
 		currentRound = HOLE_CARDS_DEALT;
 	}
 

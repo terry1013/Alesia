@@ -55,7 +55,7 @@ public class SensorsPanel extends TUIPanel {
 
 		this.trooper = trooper;
 		setToolBar(loadAction, Hero.actionMap.get("runTrooper"), Hero.actionMap.get("testTrooper"),
-				Hero.actionMap.get("stopTrooper"), Hero.actionMap.get("takeCardSample"),
+				Hero.actionMap.get("stopTrooper"),Hero.actionMap.get("pauseTrooper"), Hero.actionMap.get("takeCardSample"),
 				Hero.actionMap.get("takeActionSample"));
 
 		mainJPanel.removeAll();

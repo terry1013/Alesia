@@ -12,6 +12,7 @@ package plugins.hero;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.beans.*;
 import java.io.*;
 import java.util.*;
 import java.util.logging.*;
@@ -78,8 +79,17 @@ public class Hero extends TPlugin {
 	public ArrayList<javax.swing.Action> getUI(String type) {
 		ArrayList<Action> alist = new ArrayList<>();
 		alist.add(actionMap.get("screenRegions"));
-		// alist.add(actionMap.get("drawEditor"));
 		return alist;
+	}
+
+	@org.jdesktop.application.Action
+	public void pauseTrooper(ActionEvent event) {
+		Trooper t = Trooper.getInstance();
+		boolean pause = !t.isPaused();
+		AbstractButton ab = (AbstractButton) event.getSource();
+		ab.setSelectedIcon(TResources.getSmallIcon("plugins/hero/resources/ResumeTrooper"));
+		ab.setSelected(pause);
+		t.pause(pause);
 	}
 
 	@org.jdesktop.application.Action
@@ -97,8 +107,8 @@ public class Hero extends TPlugin {
 	public void stopTrooper(ActionEvent event) {
 		actionMap.get("testTrooper").setEnabled(true);
 		actionMap.get("runTrooper").setEnabled(true);
+		actionMap.get("pauseTrooper").setEnabled(true);
 		Trooper.getInstance().cancel(false);
-		WebLookAndFeel.setForceSingleEventsThread(true);
 	}
 
 	@org.jdesktop.application.Action
@@ -118,11 +128,19 @@ public class Hero extends TPlugin {
 
 	private Task start(boolean test) {
 		WebLookAndFeel.setForceSingleEventsThread(false);
-		// Hero.console.cleanConsole();
 		Trooper t = new Trooper(Trooper.getInstance());
+		PropertyChangeListener tl = new PropertyChangeListener() {
+			public void propertyChange(PropertyChangeEvent evt) {
+				if (Trooper.PROP_DONE.equals(evt.getPropertyName())) {
+					WebLookAndFeel.setForceSingleEventsThread(true);
+				}
+			}
+		};
+		t.addPropertyChangeListener(tl);
 		t.setTestMode(test);
 		actionMap.get("testTrooper").setEnabled(false);
 		actionMap.get("runTrooper").setEnabled(false);
+		actionMap.get("pauseTrooper").setEnabled(true);
 		return t;
 	}
 }

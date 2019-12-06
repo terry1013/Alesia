@@ -60,10 +60,10 @@ public class GamePlayer {
 		BufferedImage imagea = nameSensor.getCapturedImage();
 		String ocr = ScreenSensor.getOCRFromImage(imagea, GameRecorder.actionsTable);
 		actions.append(ocr == null ? unkData : ocr.substring(0, 1));
-Hero.logger.severe(name+": "+actions);
 		// values. the unknow or error spetial value -1 is appended too
 		int val = array.getScreenSensor(prefix + ".call").getIntOCR();
 		values.append(val + ",");
+		Hero.logger.severe(toString());
 	}
 	@Override
 	public String toString() {

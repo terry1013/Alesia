@@ -67,7 +67,6 @@ public class ConsolePanel extends WebPanel {
 		WebComboBox comboBox = new WebComboBox(lvl);
 		comboBox.addActionListener(evt -> setLoggerLever((Level) comboBox.getSelectedItem()));
 		comboBox.registerSettings(new Configuration<ComboBoxState>("logging.level"));
-		setLoggerLever((Level) comboBox.getSelectedItem());
 		// GroupPane gp = new GroupPane();
 		// WebToggleButton wtb = TUIUtils.getWebToggleButton(actionMap.get("showAllMessage"));
 		// wtb.registerSettings(new Configuration<ButtonState>("Console.showAllMessage"));

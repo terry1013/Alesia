@@ -37,7 +37,7 @@ public class RobotActuator {
 			if (fig != null) {
 				Point p = fig.getRandomPoint();
 				mouseMove(p.x, p.y);
-				Hero.logger.info(action + ": " + p.toString());
+				Hero.logger.finer(action + ": " + p.toString());
 
 				// TODO: remove. temporal to emulate all in in th
 				if (action.contains("allin")) {
@@ -49,7 +49,7 @@ public class RobotActuator {
 				doClick();
 				Hero.logger.info("Action " + action + " performed.");
 			} else {
-				Hero.logger.fine("From RobotActuator.perform: Action " + action
+				Hero.logger.severe("From RobotActuator.perform: Action " + action
 						+ " not performed. no button was found with that name");
 			}
 		}

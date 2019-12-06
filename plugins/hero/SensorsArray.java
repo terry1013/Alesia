@@ -76,18 +76,35 @@ public class SensorsArray {
 	 * @see #getActivePlayers()
 	 * @return numers of villans active seats
 	 */
-	public boolean isActiveSeats(int villanId) {
+	public boolean isSeatActive(int villanId) {
 		ScreenSensor vname = getScreenSensor("villan" + villanId + ".name");
 		ScreenSensor vchip = getScreenSensor("villan" + villanId + ".chips");
 		return vname.isEnabled() && vchip.isEnabled();
 	}
+
 	/**
-	 * Return the number of current active players (me plus active villans). a villan is active if he has dealed cards.
-	 * if a player fold his card. this method will not count that player. from this method point of view. the player is
-	 * in tha game, but in this particular moment are not active.
+	 * Return the number of current villans active seats.
+	 * 
+	 * @see #isSeatActive(int)
+	 * @return - num of active villans + me
+	 */
+	public int getActiveSeats() {
+		int av = 0;
+		for (int i = 1; i <= getVillans(); i++) {
+			av += isSeatActive(i) ? 1 : 0;
+		}
+		// at this point at least must be 1 villan active set
+		if (av == 0)
+			Hero.logger.severe("Fail to detect active seats");
+		return av;
+	}
+	/**
+	 * Return the number of current active players (me plus active villans). A VILLAN IS ACTIVE IF HE HAS CARDS IN THIS
+	 * HANDS. if a player fold his card. this method will not count that player. from this method point of view. the
+	 * player is in tha game, but in this particular moment are not active.
 	 * 
 	 * @see #getActiveSeats()
-	 * @return - num of active villans + me
+	 * @return - num of active villans + hero
 	 */
 	public int getActivePlayers() {
 		int av = 1;
@@ -193,17 +210,24 @@ public class SensorsArray {
 
 	/**
 	 * Update the table position. the Hero´s table position is determinated detecting the dealer button and counting
-	 * clockwise. the position 1 is th small blind, 2 big blind, 3 under the gun, and so on. The dealer position is the
-	 * highest value
+	 * clockwise. For examples, in a 4 villans table:
+	 * <li>If hero has the dealer button, this method return 5;
+	 * <li>if villan4 is the dealer, this method return 1. Hero is small blind
+	 * <li>if villan1 is the dealer, this method return 4. Hero is in middle table position.
 	 */
 	private void updateTablePosition() {
 		int vil = getVillans();
-		int dp = -1;
+		int bp = -1;
+		String sscol = getScreenSensor("hero.button").getMaxColor();
+		bp = sscol.equals(DEALER_BUTTON_COLOR) ? 0 : -1;
 		for (int i = 1; i <= vil; i++) {
-			String sscol = getScreenSensor("villan" + i + ".button").getMaxColor();
-			dp = (sscol.equals(DEALER_BUTTON_COLOR)) ? i : dp;
+			sscol = getScreenSensor("villan" + i + ".button").getMaxColor();
+			bp = (sscol.equals(DEALER_BUTTON_COLOR)) ? i : bp;
 		}
-		int tp = dp == -1 ? vil + 1 : vil + 1 - dp;
+		if (bp == -1) {
+			Hero.logger.severe("Fail to detect table position.");
+		}
+		int tp = Math.abs(bp - (getActiveSeats() + 1));
 		pokerSimulator.setTablePosition(tp);
 	}
 	DescriptiveStatistics tesseractTime = new DescriptiveStatistics(10);

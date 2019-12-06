@@ -28,11 +28,14 @@ import core.*;
  */
 public class Trooper extends Task {
 
+	public static String WAITING = "waiting";
+	public static String ACTIVE = "active";
 	private static Trooper instance;
+
 	private PokerSimulator pokerSimulator;
 	private RobotActuator robotActuator;
 	private SensorsArray sensorsArray;
-
+	private String trooperStatus;
 	private boolean isTestMode;
 	private Vector<String> availableActions;
 	private int countdown = 5;
@@ -48,7 +51,8 @@ public class Trooper extends Task {
 		this.robotActuator = new RobotActuator();
 		this.availableActions = new Vector();
 		this.outGameStats = new DescriptiveStatistics(10);
-
+		this.trooperStatus = ACTIVE;
+		
 		this.sensorsArray = new SensorsArray();
 		this.pokerSimulator = sensorsArray.getPokerSimulator();
 		instance = this;
@@ -326,18 +330,38 @@ public class Trooper extends Task {
 				gameRecorder.takeSnapShot(ha);
 			}
 			robotActuator.perform(ha);
+			// if my last act was fold
+			if (ha.equals("fold")) {
+				setTrooperStatus(WAITING);
+			}
 		}
 	}
 
+	public void setTrooperStatus(String trooperStatus) {
+		this.trooperStatus = trooperStatus;
+	}
+
+	private boolean paused = false;
+
+	public void pause(boolean pause) {
+		this.paused = pause;
+		Hero.logger.info(paused ? "Game paused..." : "Game resumed");
+	}
+
+	public boolean isPaused() {
+		return paused;
+	}
 	@Override
 	protected Object doInBackground() throws Exception {
 
 		while (!isCancelled()) {
-
+			if (paused) {
+				Thread.sleep(1000);
+				continue;
+			}
 			// countdown before start
 			if (countdown > 0) {
 				countdown--;
-
 				Hero.logger.info("Seconds to start: " + countdown);
 				Thread.sleep(1000);
 				continue;
@@ -354,19 +378,25 @@ public class Trooper extends Task {
 				gameRecorder = new GameRecorder(sensorsArray);
 				robotActuator.perform("continue");
 				clearEnviorement();
+				setTrooperStatus(ACTIVE);
+				continue;
+			}
+
+			// i have nothig to do expect wait to the game round complete and press the continue button because i folded
+			// the cards
+			if (trooperStatus.equals(WAITING)) {
+				Thread.sleep(100);
 				continue;
 			}
 
 			// look the standar actions buttons. this standar button indicate that the game is waiting for my play
-			// sensorsArray.lookTable("fold", "call", "raise");
 			if (isMyTurnToPlay()) {
-				// Hero.logger.info("Deciding ...");
 				decide();
-				// Hero.logger.info("Acting ...");
 				act();
 			}
-			// Hero.logger.info("Thinkin ...");
+
 			think();
+
 			// check simulator status: in case of any error, try to clean the simulator and wait for the next cycle
 			if (pokerSimulator.getException() != null) {
 				// clearEnviorement();
@@ -374,6 +404,7 @@ public class Trooper extends Task {
 				// continue;
 			}
 		}
+		// Trooper.instance = null;
 		return null;
 	}
 
