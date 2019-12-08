@@ -89,7 +89,7 @@ public class Trooper extends Task {
 	 * @return expected pot odd
 	 */
 	public double getPotOdds(int val, String name) {
-		int pot = pokerSimulator.getPotValue() + getVillansCall();
+		int pot = pokerSimulator.getPotValue();
 
 		/*
 		 * rule: i came here to win money, and for win money i need to stay in the game. for that i choose the hihgest
@@ -168,10 +168,11 @@ public class Trooper extends Task {
 	 * 
 	 */
 	private void addPotOddActions() {
+		sensorsArray.read("villan1.call", "villan2.call", "villan3.call", "villan4.call");
 		sensorsArray.read("pot", "call", "raise", "hero.chips");
 		int call = pokerSimulator.getCallValue();
 		int raise = pokerSimulator.getRaiseValue();
-		int pot = pokerSimulator.getPotValue() + getVillansCall();
+		int pot = pokerSimulator.getPotValue();
 		int chips = pokerSimulator.getHeroChips();
 
 		if (getPotOdds(call, "call") >= 0) {
@@ -199,30 +200,6 @@ public class Trooper extends Task {
 			addAction("fold");
 			addPotOddActions();
 		}
-	}
-	/**
-	 * TODO: Temporal: return the sum of all villans call. used to retrive the exact amount of pot
-	 * 
-	 * @return
-	 */
-	private int getVillansCall() {
-		sensorsArray.read("villan1.call", "villan2.call", "villan3.call", "villan4.call");
-		int villanscall = 0;
-		String val = "";
-		try {
-			val = sensorsArray.getScreenSensor("villan1.call").getOCR();
-			villanscall += Integer.parseInt(val == null ? "0" : val);
-			val = sensorsArray.getScreenSensor("villan2.call").getOCR();
-			villanscall += Integer.parseInt(val == null ? "0" : val);
-			val = sensorsArray.getScreenSensor("villan3.call").getOCR();
-			villanscall += Integer.parseInt(val == null ? "0" : val);
-			val = sensorsArray.getScreenSensor("villan4.call").getOCR();
-			villanscall += Integer.parseInt(val == null ? "0" : val);
-		} catch (Exception e) {
-			System.err.println("Error setting villans call values.");
-		}
-
-		return villanscall;
 	}
 	/**
 	 * return <code>true</code> if the herro cards are inside of the predefinde hand distributions for pre-flop

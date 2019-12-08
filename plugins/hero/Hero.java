@@ -43,12 +43,12 @@ public class Hero extends TPlugin {
 		actionMap = Alesia.getInstance().getContext().getActionMap(this);
 		logger = Logger.getLogger("Hero");
 		consolePanel = new ConsolePanel(logger);
+		new Trooper();
 	}
 	public static Action getLoadAction() {
 		Action load = TActionsFactory.getAction("fileChooserOpen");
 		load.addPropertyChangeListener(evt -> {
 			if (evt.getPropertyName().equals(TActionsFactory.DATA_LOADED)) {
-				new Trooper();
 				Trooper.getInstance().setEnviorement((File) load.getValue(TActionsFactory.DATA_LOADED));
 			}
 		});
@@ -68,11 +68,6 @@ public class Hero extends TPlugin {
 			e.printStackTrace();
 		}
 		return r;
-	}
-
-	public static void logPerformance(String txt, long t1) {
-		String sp = TStringUtils.formatSpeed(System.currentTimeMillis() - t1);
-		logger.finest(txt + ": " + sp);
 	}
 
 	@Override
@@ -101,6 +96,9 @@ public class Hero extends TPlugin {
 	public void screenRegions(ActionEvent event) {
 		sensorsPanel = new SensorsPanel();
 		Alesia.getMainPanel().setContentPanel(sensorsPanel);
+		
+//		temporal
+		Trooper.getInstance().setEnviorement(new File("plugins/hero/resources/th table new.ppt"));
 	}
 
 	@org.jdesktop.application.Action

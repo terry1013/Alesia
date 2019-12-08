@@ -3,8 +3,6 @@ package plugins.hero;
 import java.awt.image.*;
 import java.util.*;
 
-import com.alee.extended.collapsible.*;
-
 /**
  * encapsulate all player information.
  * <p>
@@ -24,7 +22,6 @@ public class GamePlayer {
 
 	private String prefix;
 	public GamePlayer(int playerId) {
-		// this.prefix = playerId == 0 ? "hero" : "villan" + playerId;
 		this.prefix = "villan" + playerId;
 		this.name = prefix;
 	}
@@ -63,12 +60,11 @@ public class GamePlayer {
 		// values. the unknow or error spetial value -1 is appended too
 		int val = array.getScreenSensor(prefix + ".call").getIntOCR();
 		values.append(val + ",");
-		Hero.logger.severe(toString());
 	}
 	@Override
 	public String toString() {
 		// String rval = values.length() > 0 ? values.substring(0, values.length() - 1) : "-1";
 //		return name + "," + card1 + card2 + "," + actions + "," + rval;
-		return name + "," + card1 + card2 +","+ actions;
+		return name + "," + card1 + ","+card2 +","+ actions;
 	}
 }

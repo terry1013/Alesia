@@ -4,10 +4,15 @@ import java.util.*;
 
 import javax.swing.*;
 
+import com.alee.laf.combobox.*;
+import com.alee.managers.settings.*;
 import com.javaflair.pokerprophesier.api.adapter.*;
 import com.javaflair.pokerprophesier.api.card.*;
 import com.javaflair.pokerprophesier.api.exception.*;
 import com.javaflair.pokerprophesier.api.helper.*;
+
+import core.*;
+import gui.*;
 
 /**
  * 
@@ -41,12 +46,13 @@ public class PokerSimulator {
 	private PokerProphesierAdapter adapter;
 	private int callValue, raiseValue, potValue;
 	private CommunityCards communityCards;
-	private JLabel infoJtextArea;
+	private JLabel infoJtextLabel;
+	private TUIPanel infoPanel;
 	private int currentRound;
 	private HoleCards holeCards;
 	private Exception exception;
 	private int tablePosition;
-
+	private WebComboBox helperFilterComboBox;
 	private MyHandHelper myHandHelper;
 	private MyHandStatsHelper myHandStatsHelper;
 	private MyGameStatsHelper myGameStatsHelper;
@@ -65,7 +71,22 @@ public class PokerSimulator {
 		adapter.setNumSimulations(numSimulations);
 
 		// information components
-		this.infoJtextArea = new JLabel();
+		helperFilterComboBox = new WebComboBox();
+		helperFilterComboBox.addItem(new TEntry("MyHandHelper", "My hand"));
+		helperFilterComboBox.addItem(new TEntry("MyHandStatsHelper", "My hand statistics"));
+		helperFilterComboBox.addItem(new TEntry("MyOutsHelper", "My outs"));
+		helperFilterComboBox.addItem(new TEntry("OppHandStatsHelper", "Oponent Hand"));
+		helperFilterComboBox.addItem(new TEntry("MyGameStatsHelper", "Game statistic"));
+		// helperFilterComboBox.addActionListener(evt -> filterSensors());
+		helperFilterComboBox.registerSettings(new Configuration<ComboBoxState>("PokerSimulator.HelperFilter"));
+
+		this.infoPanel = new TUIPanel();
+		infoPanel.showAditionalInformation(false);
+		infoPanel.getToolBarPanel().add(helperFilterComboBox);
+		this.infoJtextLabel = new JLabel();
+		infoJtextLabel.setVerticalAlignment(JLabel.TOP);
+		infoPanel.setBodyComponent(new JScrollPane(infoJtextLabel));
+
 		init();
 	}
 	/**
@@ -74,33 +95,41 @@ public class PokerSimulator {
 	 * the firt hole card may arrive while the second one no. Calling this method set the first card and wait for the
 	 * second in order to efectively create the hole card and set the correct game status.
 	 * 
-	 * @param cname - {@link ScreenSensor} name
-	 * @param cval - card value
+	 * @param sName - {@link ScreenSensor} name
+	 * @param card - card value
 	 */
-	public void addCard(String cname, String cval) {
+	public void addCard(String sName, String card) {
 		try {
-			cardsBuffer.put(cname, cval);
+			// if the card already exist in the buffer return without do nothing. this is because the enviorement is
+			// reading again the enviorement. This ensure than this class dont run a simulation again and avoid bad
+			// simulation exception throw by runSimulation method due to a createHolecard & runsimulation during a re
+			// reading
+			String val = cardsBuffer.get(sName);
+			if (val != null && card.equals(val)) {
+				return;
+			}
+			cardsBuffer.put(sName, card);
 
 			// check if hole cards are completes. only fired when component name are my cards
-			if (cname.startsWith("hero.card") && cardsBuffer.containsKey("hero.card1")
+			if (sName.startsWith("hero.card") && cardsBuffer.containsKey("hero.card1")
 					&& cardsBuffer.containsKey("hero.card2")) {
 				createHoleCards(cardsBuffer.get("hero.card1"), cardsBuffer.get("hero.card2"));
 				runSimulation();
 			}
 			// check if flop cards are completes. only fired when component name are in flop
-			if (cname.startsWith("flop") && cardsBuffer.containsKey("flop1") && cardsBuffer.containsKey("flop2")
+			if (sName.startsWith("flop") && cardsBuffer.containsKey("flop1") && cardsBuffer.containsKey("flop2")
 					&& cardsBuffer.containsKey("flop3")) {
 				createComunityCards(cardsBuffer.get("flop1"), cardsBuffer.get("flop2"), cardsBuffer.get("flop3"));
 				runSimulation();
 			}
 			// check turn. only on turn
-			if (cname.equals("turn")) {
+			if (sName.equals("turn")) {
 				createComunityCards(cardsBuffer.get("flop1"), cardsBuffer.get("flop2"), cardsBuffer.get("flop3"),
 						cardsBuffer.get("turn"));
 				runSimulation();
 			}
 			// check river. only on river
-			if (cname.equals("river")) {
+			if (sName.equals("river")) {
 				createComunityCards(cardsBuffer.get("flop1"), cardsBuffer.get("flop2"), cardsBuffer.get("flop3"),
 						cardsBuffer.get("turn"), cardsBuffer.get("river"));
 				runSimulation();
@@ -108,8 +137,8 @@ public class PokerSimulator {
 		} catch (Exception e) {
 			// in case of any error, just notify the bad situation and don nothig. at some points, the sensor array add
 			// the carts in the wrong secuence. so, do nothig until all information are available.
-			Hero.logger
-					.warning(e.getMessage() + "\n\tCurrent round: "+currentRound+"\n\tHole cards: " + holeCards + "\n\tComunity cards: " + communityCards);
+			Hero.logger.warning(e.getMessage() + "\n\tCurrent round: " + currentRound + "\n\tHole cards: " + holeCards
+					+ "\n\tComunity cards: " + communityCards);
 			// Hero.logger.warning(e.getMessage());
 			// System.err.println("hole cards " + ((myHoleCards == null) ? "(null)" : myHoleCards.toString())
 			// + " communityCards " + ((communityCards == null) ? "(null)" : communityCards.toString()));
@@ -139,7 +168,7 @@ public class PokerSimulator {
 	 * @return information component
 	 */
 	public JComponent getInfoJTextArea() {
-		return new JScrollPane(infoJtextArea);
+		return infoPanel;
 	}
 	public MyHandHelper getMyHandHelper() {
 		return myHandHelper;
@@ -182,7 +211,7 @@ public class PokerSimulator {
 	private void runSimulation() throws SimulatorException {
 
 		adapter.runMySimulations(holeCards, communityCards, numSimPlayers, currentRound);
-		updateMyOutsHelperInfo();
+		updateReport();
 		exception = null;
 	}
 
@@ -198,9 +227,11 @@ public class PokerSimulator {
 
 	public void setPotValue(int potValue) {
 		this.potValue = potValue;
+
 	}
 	public void setRaiseValue(int raiseValue) {
 		this.raiseValue = raiseValue;
+
 	}
 	public void setTablePosition(int tp) {
 		this.tablePosition = tp;
@@ -263,8 +294,6 @@ public class PokerSimulator {
 		for (int i = 0; i < ccars.length; i++) {
 			ccars[i] = createCardFromString(cards[i]);
 		}
-		// this.communityCards = new CommunityCards(new Card[]{new Card(Card.TEN, Card.CLUBS),
-		// new Card(Card.JACK, Card.CLUBS), new Card(Card.KING, Card.CLUBS), new Card(Card.NINE, Card.HEARTS)});
 		communityCards = new CommunityCards(ccars);
 
 		// set current round
@@ -286,36 +315,52 @@ public class PokerSimulator {
 		currentRound = HOLE_CARDS_DEALT;
 	}
 
-	private String getFormateTable(String hstring) {
-		String[] hslines = hstring.split("\n");
+	/**
+	 * return a HTML table based on the <code>helperString</code> argument. the <code>only</code> paratemeter indicate a
+	 * filter of elemenst. If any line form helperstring argument star with a word form this list, the line is include
+	 * in the result. an empty list for this parametr means all elemenst
+	 * 
+	 * @param helperString - string come form any {@link PokerProphesierAdapter} helper class
+	 * @param only - list of filter words or empty list
+	 * 
+	 * @return HTML table
+	 */
+	private String getFormateTable(String helperString, String... only) {
+		String[] hslines = helperString.split("\n");
 		String res = "";
+		List<String> onlys = Arrays.asList(only);
 		for (String lin : hslines) {
-			lin = "<TR><TD>" + lin + "</TD></TR>";
-			res += lin.replaceAll(": ", "</TD><TD>");
+			final String lin1 = lin;
+			long c = onlys.size() == 0 ? 1 : onlys.stream().filter(onl -> lin1.startsWith(onl)).count();
+			if (c > 0) {
+				lin = "<TR><TD>" + lin + "</TD></TR>";
+				res += lin.replaceAll(": ", "</TD><TD>");
+			}
 		}
 		return "<TABLE>" + res + "</TABLE>";
 	}
-	private void updateMyOutsHelperInfo() {
+	public void updateReport() {
+		long t1 = System.currentTimeMillis();
+		String selectedHelper = ((TEntry) helperFilterComboBox.getSelectedItem()).getKey().toString();
 		String text = "<HTML>";
 		myHandHelper = adapter.getMyHandHelper();
-		if (myHandHelper != null) {
-			text += "<h3>My hand:" + getFormateTable(myHandHelper.toString());
-		}
-
-		MyOutsHelper myOutsHelper = adapter.getMyOutsHelper();
-		if (myOutsHelper != null) {
-			text += "<h3>My Outs:" + getFormateTable(myOutsHelper.toString());
+		if (myHandHelper != null && selectedHelper.equals("MyHandHelper")) {
+			text += "<h3>My hand:" + getFormateTable(myHandHelper.toString(), "hand=", "communityCards=");
 		}
 		myHandStatsHelper = adapter.getMyHandStatsHelper();
-		if (myHandStatsHelper != null) {
+		if (myHandStatsHelper != null && selectedHelper.equals("MyHandStatsHelper")) {
 			text += "<h3>My hand Statatistis:" + getFormateTable(myHandStatsHelper.toString());
 		}
+		MyOutsHelper myOutsHelper = adapter.getMyOutsHelper();
+		if (myOutsHelper != null && selectedHelper.equals("MyOutsHelper")) {
+			text += "<h3>My Outs:" + getFormateTable(myOutsHelper.toString());
+		}
 		OppHandStatsHelper oppHandStatsHelper = adapter.getOppHandStatsHelper();
-		if (oppHandStatsHelper != null) {
+		if (oppHandStatsHelper != null && selectedHelper.equals("OppHandStatsHelper")) {
 			text += "<h3>Oponents hands:" + getFormateTable(oppHandStatsHelper.toString());
 		}
 		myGameStatsHelper = adapter.getMyGameStatsHelper();
-		if (myGameStatsHelper != null) {
+		if (myGameStatsHelper != null && selectedHelper.equals("MyGameStatsHelper")) {
 			String addinfo = "\nTable Position: " + getTablePosition() + "\n";
 			addinfo += "Call amount: " + getCallValue() + "\n";
 			addinfo += "Pot: " + getPotValue() + "\n";
@@ -323,7 +368,9 @@ public class PokerSimulator {
 			text += "<h3>Game Statistics:" + allinfo;
 		}
 
-		infoJtextArea.setText(text);
+		infoJtextLabel.setText(text);
+		infoJtextLabel.repaint();
+		Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
 	}
 	public int getHeroChips() {
 		return heroChips;

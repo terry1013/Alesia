@@ -54,11 +54,15 @@ public class TUIPanel extends JPanel {
 	private JPopupMenu popupMenu;
 	private Action doblecClickAction;
 	private WebPanel toolBarPanel;
-	
+
 	public WebPanel getToolBarPanel() {
 		return toolBarPanel;
 	}
-	
+
+	public TUIPanel(boolean showAI) {
+		this();
+		showAditionalInformation(showAI);
+	}
 	public TUIPanel() {
 		super(new BorderLayout());
 		this.actions = new Vector<>();
@@ -67,16 +71,16 @@ public class TUIPanel extends JPanel {
 		actionMap = Alesia.getInstance().getContext().getActionMap((TUIPanel) this);
 		this.treeDotButton = getTreeDotButton();
 
-//	temporal 
+		// temporal
 		this.toolBarPanel = new WebPanel(StyleId.panelTransparent);
 		toolBarPanel.setLayout(new LineLayout(LineLayout.HORIZONTAL, 0));
-		
+
 		// tilte label + 3dot button
 		this.titlePanel = new WebPanel(StyleId.panelTransparent);
 		titlePanel.setLayout(new BorderLayout());
-//		titlePanel.add(titleLabel, BorderLayout.CENTER);
+		// titlePanel.add(titleLabel, BorderLayout.CENTER);
 		titlePanel.add(toolBarPanel, BorderLayout.CENTER);
-		titlePanel.add(treeDotButton, BorderLayout.EAST);
+//		titlePanel.add(treeDotButton, BorderLayout.EAST);
 
 		this.additionalInfo = createReadOnlyEditorPane(null, null);
 		additionalInfo.setPreferredSize(new Dimension(0, 48));
@@ -168,7 +172,7 @@ public class TUIPanel extends JPanel {
 
 	}
 
-	public void setAditionalInformationVisible(boolean aFlag) {
+	public void showAditionalInformation(boolean aFlag) {
 		this.additionalInfo.setVisible(aFlag);
 	}
 
@@ -229,11 +233,11 @@ public class TUIPanel extends JPanel {
 	public void setTitleVisible(boolean aFlag) {
 		this.titlePanel.setVisible(aFlag);
 	}
-	
-	public void setToolBar(Action...actions) {
+
+	public void setToolBar(Action... actions) {
 		setToolBar(Arrays.asList(actions));
 	}
-	
+
 	/**
 	 * set the toolbar for this component. This toolbar will replace the title label of this component. Use thid method
 	 * when you need a full toolbar available for component that requirer many actions (like editors). other whise, use
@@ -263,8 +267,8 @@ public class TUIPanel extends JPanel {
 		}
 
 		// 171231: append some standar actions for list sublcases
-//		toolBarPanel.add(TUIUtils.getWebButtonForToolBar(actionMap.get("filterList")), LineLayout.END);
-//		toolBarPanel.add(TUIUtils.getWebButtonForToolBar(actionMap.get("refreshList")), LineLayout.END);
+		// toolBarPanel.add(TUIUtils.getWebButtonForToolBar(actionMap.get("filterList")), LineLayout.END);
+		// toolBarPanel.add(TUIUtils.getWebButtonForToolBar(actionMap.get("refreshList")), LineLayout.END);
 	}
 
 	@org.jdesktop.application.Action

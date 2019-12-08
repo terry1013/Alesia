@@ -255,21 +255,6 @@ public class TStringUtils {
 	}
 
 	/**
-	 * Este metodo retorna <code>true</code> si <code>mid</code> se encuentra entre las dos fechas <code>d1 y d2</code>
-	 * es decir <code>d1 > mid < d2</code>
-	 * 
-	 * @param d1 - fecha menor
-	 * @param mid - fecha a evaluar
-	 * @param d2 - fecha mayor
-	 * @return true is se verifica <code>d1 > mid < d2</code>
-	 */
-	public static boolean between(Date d1, Date mid, Date d2, String f) {
-		int i1 = compare(d1, mid, f);
-		int i2 = compare(mid, d2, f);
-		return i1 < 0 && i2 < 0;
-	}
-
-	/**
 	 * retorna un indentificador unico en formato estandar xx-xxx-xxx
 	 * 
 	 * @return <code>String</code> con identificador unico
@@ -439,233 +424,95 @@ public class TStringUtils {
 		return null;
 	}
 
-	private static String UNIDADES[][] = new String[5][];
-	static {
-
-		UNIDADES[0] = new String[]{"cero ", "un ", "dos ", "tres ", "cuatro ", "cinco ", "seis ", "siete ", "ocho ",
-				"nueve ", "diez ", "once ", "doce ", "trece ", "catorce ", "quince ", "dieciséis ", "Diecisiete ",
-				"Dieciocho ", "Diecinueve "};
-		UNIDADES[1] = new String[]{"veinte ", "treinta ", "cuarenta ", "cincuenta ", "sesenta ", "setenta ", "ochenta ",
-				"noventa "};
-		UNIDADES[2] = new String[]{"cien ", "ciento ", "doscientos ", "trescientos ", "cuatrocientos ", "quinientos ",
-				"seiscientos ", "setecientos ", "ochocientos ", "novecientos "};
-		UNIDADES[3] = new String[]{"mil ", "millon ", "billon "};
-	}
-
 	/**
-	 * convierte el numero pasado como argumento a texto. Ej: 1234.23 retorna mil docientos treinta y 4 con 23
+	 * Given a text and a wildcard pattern, implement wildcard pattern matching algorithm that finds if wildcard pattern
+	 * is matched with text. The matching should cover the entire text (not partial text).
+	 * <p>
+	 * The wildcard pattern can include the characters ‘?’ and ‘*’
+	 * <li>‘?’ – matches any single character
+	 * <li>‘*’ – Matches any sequence of characters (including the empty sequence)
+	 * <p>
+	 * examples
 	 * 
-	 * @param d - Numero a convertir
-	 * @return texto
-	 */
-	public static String converToText(Double dnum) {
-		String strVal = String.valueOf(dnum.intValue());
-		int intVal = Integer.valueOf(strVal);
-		String rtnStr = "";
-
-		// unidades
-		if (intVal < 19) {
-			rtnStr = UNIDADES[0][intVal];
-		}
-		// decenas
-		if (intVal >= 20 && intVal < 99) {
-			int d = intVal / 10;
-			int u = intVal % 10;
-			rtnStr = UNIDADES[1][d] + ((u == 0) ? "" : UNIDADES[0][u]);
-		}
-		// centenas
-		if (intVal >= 100 && intVal < 999) {
-			int c = (int) (intVal % 100);
-			rtnStr = UNIDADES[2][c] + (c == 0 ? "" : converToText((double) intVal));
-
-		}
-		// miles
-		return rtnStr;
-	}
-	/**
-	 * Monto escrito
+	 * <br>
+	 * String pattern = "ba*****ab"; <br>
+	 * String pattern = "ba*ab"; <br>
+	 * String pattern = "a*ab"; <br>
+	 * String pattern = "a*****ab"; <br>
+	 * String pattern = "*a*****ab"; <br>
+	 * String pattern = "ba*ab****"; <br>
+	 * String pattern = "****"; <br>
+	 * String pattern = "*"; <br>
+	 * String pattern = "aa?ab"; <br>
+	 * String pattern = "b*b"; <br>
+	 * String pattern = "a*a"; <br>
+	 * String pattern = "baaabab"; <br>
+	 * String pattern = "?baaabab"; <br>
+	 * String pattern = "*baaaba*";
 	 * 
-	 * @param amount - valor o monto
-	 * @return secuencia de caracteres del valor o monto pasado como argumento
+	 * @param string - string to compare
+	 * @param pattern - pattern with wildcard caracters
+	 * @since 2.3
+	 * @return <code>true</code> if the string pass the pattern
 	 */
-	public static String amountWritten(double amount) {
-		HashMap millions = new HashMap();
+	public static boolean wildCardMacher(String string, String pattern) {
 
-		millions.put(Integer.valueOf(1), "");
-		millions.put(Integer.valueOf(2), "MILLONES");
-		millions.put(Integer.valueOf(3), "BILLONES");
-		millions.put(Integer.valueOf(4), "TRILLONES");
-		millions.put(Integer.valueOf(5), "CUATRILLONES");
-		millions.put(Integer.valueOf(6), "QUINTILLONES");
-		millions.put(Integer.valueOf(7), "SEXTILLONES");
-		millions.put(Integer.valueOf(8), "SEPTILLONES");
-		millions.put(Integer.valueOf(9), "OCTILLONES");
-		millions.put(Integer.valueOf(10), "NONILLONES");
-		millions.put(Integer.valueOf(11), "DECILLONES");
-		millions.put(Integer.valueOf(12), "UNDECILLONES");
-		millions.put(Integer.valueOf(13), "DUODECILONES");
-		millions.put(Integer.valueOf(14), "TRIDECILLONES");
-		millions.put(Integer.valueOf(15), "CUATURODECILLONES");
-		millions.put(Integer.valueOf(16), "QUINDECILLONES");
-		millions.put(Integer.valueOf(17), "SEXDECILLONES");
-		millions.put(Integer.valueOf(18), "SEPTENDECILLONES");
-		millions.put(Integer.valueOf(19), "OCTODECILLONES");
-		millions.put(Integer.valueOf(20), "NOVENDECILLONES");
-		millions.put(Integer.valueOf(21), "VIGENTILLONES");
-		String millionWord = "";
+		// static boolean wlidCardFilter(String str, String pattern, int n, int m) {
+		// terry: get m and n from the length of the strings
+		String str = string == null ? "" : string;
+		String patt = pattern == null ? "" : pattern;
 
-		BigDecimal bdMount = new BigDecimal(String.valueOf(amount));
-		bdMount.setScale(2, 2);
-		BigInteger iPart = bdMount.toBigInteger();
-		BigInteger iDecPart = bdMount.multiply(new BigDecimal(100.0D)).toBigInteger();
-		long intPart = iPart.longValue();
-		long decPart = iDecPart.longValue() - iPart.longValue() * 100L;
-		String written = "";
-		long quotient = intPart / 1000000L;
-		long remainder = intPart % 1000000L;
-		int groupQ = 1;
-		// int groupR = 0;
-		// long remQuo = intPart;
-		while (quotient > 0L) {
-			groupQ++;
-			if (remainder == 0L) {
-				// groupR++;
-				// remQuo = quotient;
-			}
+		int n = str.length();
+		int m = patt.length();
 
-			quotient /= 1000000L;
-			remainder = quotient % 1000000L;
-		}
+		// empty pattern can only match with
+		// empty string
+		if (m == 0)
+			return (n == 0);
 
-		if (amount == 0.0D) {
-			written = "CERO";
-		} else {
-			quotient = intPart;
-			for (int i = 1; i <= groupQ; i++) {
-				remainder = quotient % 1000000L;
-				quotient /= 1000000L;
-				millionWord = (String) millions.get(Integer.valueOf(i));
-				if (remainder == 1L) {
-					millionWord = millionWord.substring(0, millionWord.indexOf("ES"));
-				}
-				if ((remainder == 0L) && (quotient > 0L))
-					millionWord = "";
-				written = amountWritten(remainder, 0) + millionWord + " " + written;
+		// lookup table for storing results of
+		// subproblems
+		boolean[][] lookup = new boolean[n + 1][m + 1];
+
+		// initailze lookup table to false
+		for (int i = 0; i < n + 1; i++)
+			Arrays.fill(lookup[i], false);
+
+		// empty pattern can match with empty string
+		lookup[0][0] = true;
+
+		// Only '*' can match with empty string
+		for (int j = 1; j <= m; j++)
+			if (patt.charAt(j - 1) == '*')
+				lookup[0][j] = lookup[0][j - 1];
+
+		// fill the table in bottom-up fashion
+		for (int i = 1; i <= n; i++) {
+			for (int j = 1; j <= m; j++) {
+				// Two cases if we see a '*'
+				// a) We ignore '*'' character and move
+				// to next character in the pattern,
+				// i.e., '*' indicates an empty sequence.
+				// b) '*' character matches with ith
+				// character in input
+				if (patt.charAt(j - 1) == '*')
+					lookup[i][j] = lookup[i][j - 1] || lookup[i - 1][j];
+
+				// Current characters are considered as
+				// matching in two cases
+				// (a) current character of pattern is '?'
+				// (b) characters actually match
+				else if (patt.charAt(j - 1) == '?' || str.charAt(i - 1) == patt.charAt(j - 1))
+					lookup[i][j] = lookup[i - 1][j - 1];
+
+				// If characters don't match
+				else
+					lookup[i][j] = false;
 			}
 		}
-		// return written.trim() + " con " + lpad(String.valueOf(decPart), '0', 2) + "/100";
-		String lp = "0" + decPart;
-		int l = lp.length();
-		return written.trim() + " con " + lp.substring(l - 2, l) + "/100";
-		// return written.trim() + " con " + lpad(String.valueOf(decPart), '0', 2) + "/100";
+
+		return lookup[n][m];
 	}
-
-	/**
-	 * utilitario para <code>amountWritten(double)</code>
-	 * 
-	 * @param amount
-	 * @param unit
-	 * @return
-	 */
-	private static String ordinalToWord(long amount, int unit) {
-		HashMap hundreds = new HashMap();
-		hundreds.put(Integer.valueOf(1), "UN");
-		hundreds.put(Integer.valueOf(2), "DOS");
-		hundreds.put(Integer.valueOf(3), "TRES");
-		hundreds.put(Integer.valueOf(4), "CUATRO");
-		hundreds.put(Integer.valueOf(5), "CINCO");
-		hundreds.put(Integer.valueOf(6), "SEIS");
-		hundreds.put(Integer.valueOf(7), "SIETE");
-		hundreds.put(Integer.valueOf(8), "OCHO");
-		hundreds.put(Integer.valueOf(9), "NUEVE");
-		hundreds.put(Integer.valueOf(10), "DIEZ");
-		hundreds.put(Integer.valueOf(11), "ONCE");
-		hundreds.put(Integer.valueOf(12), "DOCE");
-		hundreds.put(Integer.valueOf(13), "TRECE");
-		hundreds.put(Integer.valueOf(14), "CATORCE");
-		hundreds.put(Integer.valueOf(15), "QUINCE");
-		hundreds.put(Integer.valueOf(16), "DIECISEIS");
-		hundreds.put(Integer.valueOf(17), "DIECISIETE");
-		hundreds.put(Integer.valueOf(18), "DIECIOCHO");
-		hundreds.put(Integer.valueOf(19), "DIECINUEVE");
-		hundreds.put(Integer.valueOf(20), "VEINTE");
-		hundreds.put(Integer.valueOf(21), "VEINTIUN");
-		hundreds.put(Integer.valueOf(22), "VEINTIDOS");
-		hundreds.put(Integer.valueOf(23), "VEINTITRES");
-		hundreds.put(Integer.valueOf(24), "VEINTICUATRO");
-		hundreds.put(Integer.valueOf(25), "VEINTICINCO");
-		hundreds.put(Integer.valueOf(26), "VEINTISEIS");
-		hundreds.put(Integer.valueOf(27), "VEINTISIETE");
-		hundreds.put(Integer.valueOf(28), "VEINTIOCHO");
-		hundreds.put(Integer.valueOf(29), "VEINTINUEVE");
-		hundreds.put(Integer.valueOf(30), "TREINTA");
-		hundreds.put(Integer.valueOf(40), "CUARENTA");
-		hundreds.put(Integer.valueOf(50), "CINCUENTA");
-		hundreds.put(Integer.valueOf(60), "SESENTA");
-		hundreds.put(Integer.valueOf(70), "SETENTA");
-		hundreds.put(Integer.valueOf(80), "OCHENTA");
-		hundreds.put(Integer.valueOf(90), "NOVENTA");
-		hundreds.put(Integer.valueOf(100), "CIENTO");
-		hundreds.put(Integer.valueOf(200), "DOSCIENTOS");
-		hundreds.put(Integer.valueOf(300), "TRESCIENTOS");
-		hundreds.put(Integer.valueOf(400), "CUATROCIENTOS");
-		hundreds.put(Integer.valueOf(500), "QUINIENTOS");
-		hundreds.put(Integer.valueOf(600), "SEISCIENTOS");
-		hundreds.put(Integer.valueOf(700), "SETECIENTOS");
-		hundreds.put(Integer.valueOf(800), "OCHOCIENTOS");
-		hundreds.put(Integer.valueOf(900), "NOVECIENTOS");
-		String nWord = "";
-		String millionWord = "";
-
-		if (amount != 0L) {
-			int hundred = (int) amount / 100;
-			int tens = (int) amount % 100;
-			if (hundred != 0) {
-				nWord = (String) hundreds.get(Integer.valueOf(hundred * 100));
-				if ((hundred == 1) && (tens == 0)) {
-					nWord = "CIEN";
-				}
-			}
-			if (tens != 0) {
-				if (tens <= 29) {
-					nWord = nWord + " " + (String) hundreds.get(Integer.valueOf(tens));
-				} else {
-					int ones = tens % 10;
-					tens /= 10;
-					nWord = nWord + " " + (String) hundreds.get(Integer.valueOf(tens * 10));
-					if (ones != 0) {
-						nWord = nWord + " Y " + (String) hundreds.get(Integer.valueOf(ones));
-					}
-				}
-			}
-		}
-		if ((unit != 0) && (unit % 2 != 0) && (amount != 0L)) {
-			millionWord = "MIL ";
-		}
-
-		return nWord + " " + millionWord;
-	}
-
-	/**
-	 * utilitario para <code>amountWritten(double)</code>
-	 * 
-	 * @param amount
-	 * @param unit
-	 * @return
-	 */
-	private static String amountWritten(long amount, int unit) {
-		String written = "";
-		long intPart = amount;
-		if (intPart != 0L) {
-			long quotient = intPart / 1000L;
-			long remainder = intPart % 1000L;
-			if (quotient != 0L)
-				written = ordinalToWord(quotient, 1);
-			written = written + ordinalToWord(remainder, 0);
-		}
-		return written + " ";
-	}
-
 	/**
 	 * replace the given variables in patt with the corresponding field value content in <code>rcd</code>.
 	 * 

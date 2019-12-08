@@ -11,6 +11,8 @@ import javax.swing.*;
 import org.apache.commons.math3.stat.descriptive.*;
 import org.apache.poi.hslf.usermodel.*;
 
+import core.*;
+
 /**
  * this class represent the sensors configured using power point. This class read the powerpoint file and extract all
  * the necesari information about the game sensor disposition.
@@ -33,14 +35,13 @@ public class ScreenAreas {
 	}
 
 	private boolean isCardArea(String name) {
-		return name.startsWith("hero.card") || name.startsWith("flop") || name.equals("turn") || name.equals("river")
-				|| (name.startsWith("villan") && name.contains("card"));
+		return name.contains(".card") || name.startsWith("flop") || name.equals("turn") || name.equals("river");
 	}
 
 	private boolean isOCRArea(String name) {
-		return name.contains(".chips") || name.equals("pot") || name.equals("call") || name.equals("raise")
-				|| (name.startsWith("villan") && name.contains("name"))
-				|| (name.startsWith("villan") && name.contains("call"));
+		return name.equals("pot") || name.equals("call") || name.equals("raise")
+				|| TStringUtils.wildCardMacher(name, "*.call") || TStringUtils.wildCardMacher(name, "*.name")
+				|| TStringUtils.wildCardMacher(name, "*.chips");
 	}
 
 	public void read() {
@@ -81,8 +82,8 @@ public class ScreenAreas {
 						anchor.setRect(anchor.getX() * 1.3333, anchor.getY() * 1.3333, anchor.getWidth() * 1.3333,
 								anchor.getHeight() * 1.3333);
 						Shape sha = new Shape(anchor.getBounds());
-						Hero.logger.finer("shape found " + name + " Bounds" + "[x=" + sha.bounds.x + ",y=" + sha.bounds.y
-								+ ",width=" + sha.bounds.width + ",height=" + sha.bounds.height + "]");
+						Hero.logger.finer("shape found " + name + " Bounds" + "[x=" + sha.bounds.x + ",y="
+								+ sha.bounds.y + ",width=" + sha.bounds.width + ",height=" + sha.bounds.height + "]");
 						// marck action areas
 						if (name.startsWith("action.")) {
 							sha.isActionArea = true;

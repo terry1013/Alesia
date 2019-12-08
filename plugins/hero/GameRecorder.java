@@ -28,7 +28,7 @@ public class GameRecorder {
 	public static String IMAGE_ACTIONS = "plugins/hero/image_actions/";
 	public static Hashtable<String, BufferedImage> actionsTable = ScreenSensor.loadImages(IMAGE_ACTIONS);
 
-	private int currentRound = PokerSimulator.NO_CARDS_DEALT;
+	private int currentRound = PokerSimulator.HOLE_CARDS_DEALT;
 	private SensorsArray sensorsArray;
 	private Vector<GamePlayer> villans;
 	private GamePlayer trooper;
@@ -64,7 +64,10 @@ public class GameRecorder {
 	/**
 	 * Take a snapshot of the game status. at this point all elements are available for be processed by this method
 	 * because most of the screensensor are up to date. This method is invoked one moment before the trooper perform the
-	 * action. if action = <code>null</code> indicate the last recording action previous to {@link #flush()} operation.
+	 * action.
+	 * <p>
+	 * If action = <code>null</code> this method is called from {@link #flush()} method to record the las piece of
+	 * information previous a new game.
 	 * 
 	 * @param action - the trooper desition before be performed by {@link RobotActuator}
 	 */
