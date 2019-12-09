@@ -78,6 +78,10 @@ public class Shape {
 		return new Point(sx, sy);
 	}
 
+	public Point getCenter() {
+		return center;
+	}
+	
 	private NormalDistribution distributionX;
 	private NormalDistribution distributionY;
 	

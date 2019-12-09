@@ -1,0 +1,15 @@
+TODO:
+
+add new actions to allog hero more options for actions. this actions need to be click conunted based on the sb value. 
+for examples, in PS:
+
+call:		Normal call action where the amount is write in the action area
+raise:		Normal raise area where the amount is write in the action area
+
+min: 		????
+1/2			????
+
+call pot: 	bet the amount of the pot:	(hero need to read the pot value to correct assestment)
+max:		All in
+slider:		allow hero fine selecction of the amount to raise. the tick value is the sb value. the initial value is the current pot value. so, 1 click means hero will bet pot+bb, 2 clieck: pot+(2bb) adn so on
+ 

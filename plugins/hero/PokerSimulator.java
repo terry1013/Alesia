@@ -221,6 +221,9 @@ public class PokerSimulator {
 		this.callValue = callValue;
 	}
 
+	public int getNumSimPlayers() {
+		return numSimPlayers;
+	}
 	public void setNunOfPlayers(int p) {
 		this.numSimPlayers = p;
 	}
@@ -340,7 +343,7 @@ public class PokerSimulator {
 		return "<TABLE>" + res + "</TABLE>";
 	}
 	public void updateReport() {
-		long t1 = System.currentTimeMillis();
+//		long t1 = System.currentTimeMillis();
 		String selectedHelper = ((TEntry) helperFilterComboBox.getSelectedItem()).getKey().toString();
 		String text = "<HTML>";
 		myHandHelper = adapter.getMyHandHelper();
@@ -369,8 +372,8 @@ public class PokerSimulator {
 		}
 
 		infoJtextLabel.setText(text);
-		infoJtextLabel.repaint();
-		Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
+//		infoJtextLabel.repaint();
+//		Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
 	}
 	public int getHeroChips() {
 		return heroChips;

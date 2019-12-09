@@ -3,8 +3,18 @@ package plugins.hero;
 import java.awt.*;
 import java.awt.event.*;
 
+import com.jgoodies.common.base.*;
+
 /**
- * Base class to send programaticily events throw the mouse or th keyboard.
+ * Base class to send programaticily events throw the mouse or the keyboard. each action recived by this class is the
+ * name of the sensor to perform the action.
+ * <p>
+ * a secuence of 1 o more action separeted by ; whit the following format:
+ * <p>
+ * <code>action_name;action_name:c=#;action_name:k=text</code>
+ * <li>action name alone - perform 1 click using the mouse over the action area.
+ * <li>action_name,c=# - Perform the number # of click over the action area
+ * <li>action_name,k=text - move the mouse over the action area, perform one click and write the text text.
  * 
  * @author terry
  *
@@ -24,42 +34,52 @@ public class RobotActuator {
 	}
 
 	/**
-	 * this method perform an action name <code>aName</code>. The action must be any standar action inside the
-	 * enviorement. e.g. if perform("fold") is called, this method look for the <code>fold</code> action name, locate
-	 * the coordenates and perform {@link #doClick()} mouse action.
+	 * Perform the secuence of command passsed as argument. The command structure is in the class documentation. This
+	 * method dont dont verify the command format. it will try of fullfill the action. check the logger entry to verify
+	 * if the secuence was complete.
+	 * <p>
+	 * TODO: write operation not tested.
+	 * <p>
+	 * TODO: check if the 2clik operation select the text inside of text component. if not, thek=text command must be
+	 * transformed in anoter secuence of actions
 	 * 
-	 * @param aName - the action name to perform
+	 * @param commands - the commands to perform
 	 */
-	public void perform(String aName) {
-		String[] actions = aName.split(";");
-		for (String action : actions) {
+	public void perform(String commands) {
+		String[] commandss = commands.split(";");
+		for (String cmd : commandss) {
+			int clicks = 1;
+			String text = "";
+			String temp[] = cmd.split("[,]");
+			String action = temp[0];
+			String actValue = temp.length > 1 ? temp[1] : "";
+
 			Shape fig = sensorDisposition.getShapes().get(action);
-			if (fig != null) {
-				Point p = fig.getRandomPoint();
-				mouseMove(p.x, p.y);
-				Hero.logger.finer(action + ": " + p.toString());
-
-				// TODO: remove. temporal to emulate all in in th
-				if (action.contains("allin")) {
-					doClick();
-					doClick();
-					doClick();
-				}
-
-				doClick();
-				Hero.logger.info("Action " + action + " performed.");
-			} else {
-				Hero.logger.severe("From RobotActuator.perform: Action " + action
-						+ " not performed. no button was found with that name");
+			if (fig == null) {
+				Hero.logger.severe("RobotActuator: Action " + action + " not found.");
+				continue;
 			}
+
+			// the action has click number or keyboard text
+			if (!actValue.equals("")) {
+				clicks = actValue.startsWith("c=") ? Integer.parseInt(actValue.substring(2)) : 1;
+				text = actValue.startsWith("k=") ? actValue.substring(2) : "";
+			}
+
+			// perform clicks
+			Point p = fig.getRandomPoint();
+			mouseMove(p.x, p.y);
+			for (int c = 0; c < clicks; c++) {
+				doClick();
+			}
+
+			// write the text
+			if (!text.equals("")) {
+				type(text);
+			}
+			Hero.logger.info("Action " + action + " Click= " + clicks + " Text= " + text + " performed.");
 		}
 	}
-	/**
-	 * Set the enviorement for this instance. this method extract all areas setted as <code>area.type=action</code> in
-	 * the figure property inside of the {@link DrawingPanel} pass as argument
-	 * 
-	 * @param dpanel - the panel
-	 */
 	public void setEnviorement(ScreenAreas sDisp) {
 		this.sensorDisposition = sDisp;
 	}

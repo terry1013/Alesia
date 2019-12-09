@@ -6,6 +6,7 @@ import java.util.*;
 import org.apache.commons.math3.stat.descriptive.*;
 import org.jdesktop.application.*;
 
+import com.alee.utils.*;
 import com.javaflair.pokerprophesier.api.card.*;
 import com.javaflair.pokerprophesier.api.helper.*;
 
@@ -21,6 +22,13 @@ import core.*;
  * 
  * *
  * <li>{@link SensorsArray} - perform visual operation of the enviorement
+ * 
+ * <p>
+ * RULES:
+ * <ol>
+ * <li>I came here to win money, and for win money i need to stay in the game. for that i choose the hihgest available
+ * probability. it can be from inprove probability or from the global winning probability
+ * 
  * 
  * 
  * @author terry
@@ -52,7 +60,7 @@ public class Trooper extends Task {
 		this.availableActions = new Vector();
 		this.outGameStats = new DescriptiveStatistics(10);
 		this.trooperStatus = ACTIVE;
-		
+
 		this.sensorsArray = new SensorsArray();
 		this.pokerSimulator = sensorsArray.getPokerSimulator();
 		instance = this;
@@ -73,6 +81,37 @@ public class Trooper extends Task {
 		Hero.logger.fine("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
 	}
 
+	private double preflopProb = 0.20;
+	private long lastGetProbabilityLog;
+
+	/**
+	 * consult the {@link PokerSimulator} and retrive the hihest probability between gobal win probability or inprove
+	 * probability. This is a direct application of Rule 1. This method also override the probability acording to
+	 * diferent game round.
+	 * <p>
+	 * in preflop actions, this method sum {@link #preflopProb} to the selected probability to allow potodd room to
+	 * manouber
+	 * 
+	 * @return the hights probability: win or inmprove hand
+	 */
+	private double getProbability() {
+		MyHandStatsHelper myhsh = pokerSimulator.getMyHandStatsHelper();
+		float inprove = myhsh == null ? 0 : myhsh.getTotalProb();
+		float actual = pokerSimulator.getMyGameStatsHelper().getWinProb();
+		float totp = inprove > actual ? inprove : actual;
+		String pnam = inprove > actual ? "Improve" : "Win";
+
+		// int villns = pokerSimulator.getNumSimPlayers() - 1;
+		if (pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
+			totp += preflopProb;
+			pnam = pnam + " + preflop increase " + preflopProb;
+		}
+		if (System.currentTimeMillis() - lastGetProbabilityLog > 1000) {
+			Hero.logger.info(pnam + " probabiliyt=" + totp);
+			lastGetProbabilityLog = System.currentTimeMillis();
+		}
+		return totp;
+	}
 	/**
 	 * Return the expectation of the pot odd against the <code>val</code> argument. This method cosider:
 	 * <ul>
@@ -80,26 +119,18 @@ public class Trooper extends Task {
 	 * action
 	 * <li>for pot value = 0 (initial bet) this method return 0 expectative
 	 * <li>for val = 0 (check) this method return 0 expectative
+	 * <li>for val < 0 (posible error) this method return negative expectative
 	 * </ul>
 	 * <h5>MoP page 54</h5>
 	 * 
-	 * @param pot - current pot amount
-	 * @param val - cost of call/bet
+	 * @param val - cost of call/bet/raise/...
+	 * @param name - name os the action. Only for logging
 	 * 
 	 * @return expected pot odd
 	 */
 	public double getPotOdds(int val, String name) {
 		int pot = pokerSimulator.getPotValue();
-
-		/*
-		 * rule: i came here to win money, and for win money i need to stay in the game. for that i choose the hihgest
-		 * available probability. it can be from inprove probability or from the global winning probability
-		 */
-		MyHandStatsHelper myhsh = pokerSimulator.getMyHandStatsHelper();
-		float inprove = myhsh == null ? 0 : myhsh.getTotalProb();
-		float actual = pokerSimulator.getMyGameStatsHelper().getWinProb();
-		float totp = inprove > actual ? inprove : actual;
-		String pnam = inprove > actual ? "improve" : "win";
+		double totp = getProbability();
 
 		// MoP page 54
 		double poto = totp * pot - val;
@@ -109,7 +140,10 @@ public class Trooper extends Task {
 		poto = (val == 0) ? 0 : poto;
 		// for val=-1 (posible error) return -1 expectaive
 		poto = (val < 0) ? -1 : poto;
-		Hero.logger.info(pnam + " prob=" + totp + " pot=" + pot + " value=" + val + " potodd for " + name + "=" + poto);
+
+		// only log 0 or positive expectative
+		if (poto >= 0)
+			Hero.logger.info("Pot odd for " + totp + " pot=" + pot + " " + name + "(" + val + ")=" + poto);
 		return poto;
 	}
 
@@ -181,11 +215,24 @@ public class Trooper extends Task {
 		if (getPotOdds(raise, "raise") >= 0) {
 			addAction("raise");
 		}
-		if (getPotOdds(pot, "pot") >= 0) {
-			addAction("raise.pot;raise");
+
+		// TODO: temporal removed for TH because the raise.slider is in the same area
+		// if (getPotOdds(pot, "pot") >= 0) {
+		// addAction("raise.pot;raise");
+		// }
+
+		int ival = call;
+		// TODO: the bb value must be retrived from the big blind button call value. the player how is to the right of
+		// the dealler button, is the small blind, and then, the big blid
+		int bb = 100;
+		for (int c = 1; c < 11; c++) {
+			if (getPotOdds(ival + (bb * c), "raise.slider" + c) >= 0) {
+				addAction("raise.slider,c=" + c + ";raise");
+			}
 		}
+		// TODO: temporal for TH: simulate allin
 		if (getPotOdds(chips, "hero chips") >= 0) {
-			addAction("raise.allin;raise");
+			addAction("raise.allin,c=10;raise");
 		}
 	}
 
@@ -195,12 +242,15 @@ public class Trooper extends Task {
 	 * {@link #addAction(String)} method
 	 */
 	private void decide() {
+		Hero.logger.info("--- Deciding... --------------------");
 		sensorsArray.read("hero.card1", "hero.card2", "flop1", "flop2", "flop3", "turn", "river");
-		if (pokerSimulator.getCurrentRound() > PokerSimulator.NO_CARDS_DEALT) {
+		int currentRound = pokerSimulator.getCurrentRound();
+		if (currentRound > PokerSimulator.NO_CARDS_DEALT) {
 			addAction("fold");
 			addPotOddActions();
 		}
 	}
+
 	/**
 	 * return <code>true</code> if the herro cards are inside of the predefinde hand distributions for pre-flop
 	 * 
