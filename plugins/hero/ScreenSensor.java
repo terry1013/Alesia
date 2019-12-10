@@ -12,7 +12,6 @@ import javax.swing.*;
 import com.alee.utils.*;
 
 import core.*;
-import gui.console.*;
 import gui.jgoodies.*;
 import net.sourceforge.tess4j.*;
 import net.sourceforge.tess4j.util.*;
@@ -277,8 +276,11 @@ public class ScreenSensor extends JPanel {
 		dataLabel.setText(text);
 	}
 
-	public boolean isOCRArea() {
-		return shape.isOCRArea;
+	public boolean isTextArea() {
+		return shape.isOCRTextArea;
+	}
+	public boolean isNumericArea() {
+		return shape.isOCRNumericArea;
 	}
 	/**
 	 * Capture the region of the screen specified by this sensor. this method is executed at diferent levels acording to
@@ -423,6 +425,8 @@ public class ScreenSensor extends JPanel {
 		ocrResult = null;
 		preparedImage = null;
 		capturedImage = null;
+//		TODO: put somethin to difierentiate the init status form others status
+		imageLabel.setIcon(null);
 		setToolTipText("");
 		setEnabled(false);
 		repaint();
@@ -533,7 +537,7 @@ public class ScreenSensor extends JPanel {
 		// if the card is the file name is card_facedown, set null for ocr
 		if (ocr != null && ocr.equals("card_facedown")) {
 			ocr = null;
-//			Hero.logger.finest(getName() + ": card id face down.");
+			// Hero.logger.finest(getName() + ": card id face down.");
 		}
 
 		// at this point, if the ocr=null, the image diference is > difference threshold. that means than some garbage
@@ -565,7 +569,7 @@ public class ScreenSensor extends JPanel {
 		}
 
 		// all ocr areas need scaled instance
-		if (isOCRArea()) {
+		if (isTextArea() || isNumericArea()) {
 			bufimg = ImageHelper.getScaledInstance(capturedImage, scaledWidth, scaledHeight);
 			// bufimg = ImageHelper.convertImageToGrayscale(bufimg);
 		}

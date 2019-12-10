@@ -56,9 +56,10 @@ public class PokerSimulator {
 	private MyHandHelper myHandHelper;
 	private MyHandStatsHelper myHandStatsHelper;
 	private MyGameStatsHelper myGameStatsHelper;
-	public MyGameStatsHelper getMyGameStatsHelper() {
-		return myGameStatsHelper;
-	}
+	private int heroChips = 0;
+	private int smallBlind;
+	private int bigBlind;
+
 	public PokerSimulator() {
 		this.cardsBuffer = new Hashtable<String, String>();
 		// Create an adapter to communicate with the simulator
@@ -89,6 +90,7 @@ public class PokerSimulator {
 
 		init();
 	}
+
 	/**
 	 * this mathod act like a buffer betwen {@link SensorsPanel} and this class to set the cards based on the name/value
 	 * of the {@link ScreenSensor} component while the cards arrive at the game table. For example. at starting a game,
@@ -144,24 +146,31 @@ public class PokerSimulator {
 			// + " communityCards " + ((communityCards == null) ? "(null)" : communityCards.toString()));
 		}
 	}
-
 	public PokerProphesierAdapter getAdapter() {
 		return adapter;
 	}
 
+	public int getBigBlind() {
+		return bigBlind;
+	}
 	public int getCallValue() {
 		return callValue;
 	}
 	public CommunityCards getCommunityCards() {
 		return communityCards;
 	}
-
 	public int getCurrentRound() {
 		return currentRound;
 	}
+
 	public Exception getException() {
 		return exception;
 	}
+
+	public int getHeroChips() {
+		return heroChips;
+	}
+
 	/**
 	 * Return the information component whit all values computesd form simulations and game status
 	 * 
@@ -170,6 +179,11 @@ public class PokerSimulator {
 	public JComponent getInfoJTextArea() {
 		return infoPanel;
 	}
+
+	public MyGameStatsHelper getMyGameStatsHelper() {
+		return myGameStatsHelper;
+	}
+
 	public MyHandHelper getMyHandHelper() {
 		return myHandHelper;
 	}
@@ -182,6 +196,10 @@ public class PokerSimulator {
 		return holeCards;
 	}
 
+	public int getNumSimPlayers() {
+		return numSimPlayers;
+	}
+
 	public int getPotValue() {
 		return potValue;
 	}
@@ -189,11 +207,13 @@ public class PokerSimulator {
 	public int getRaiseValue() {
 		return raiseValue;
 	}
+	public int getSmallBlind() {
+		return smallBlind;
+	}
 
 	public int getTablePosition() {
 		return tablePosition;
 	}
-
 	/**
 	 * Init the simulation eviorement. Use this metod to clear al component in case of error or start/stop event
 	 * 
@@ -207,27 +227,19 @@ public class PokerSimulator {
 		exception = null;
 		cardsBuffer.clear();;
 	}
-
-	private void runSimulation() throws SimulatorException {
-
-		adapter.runMySimulations(holeCards, communityCards, numSimPlayers, currentRound);
-		updateReport();
-		exception = null;
+	public void setBlinds(int sb, int bb) {
+	this.smallBlind = sb;
+	this.bigBlind = bb;
 	}
-
-	private int heroChips = 0;
-
 	public void setCallValue(int callValue) {
 		this.callValue = callValue;
 	}
-
-	public int getNumSimPlayers() {
-		return numSimPlayers;
+	public void setHeroChips(int heroChips) {
+		this.heroChips = heroChips;
 	}
 	public void setNunOfPlayers(int p) {
 		this.numSimPlayers = p;
 	}
-
 	public void setPotValue(int potValue) {
 		this.potValue = potValue;
 
@@ -239,6 +251,42 @@ public class PokerSimulator {
 	public void setTablePosition(int tp) {
 		this.tablePosition = tp;
 	}
+	public void updateReport() {
+//		long t1 = System.currentTimeMillis();
+		String selectedHelper = ((TEntry) helperFilterComboBox.getSelectedItem()).getKey().toString();
+		String text = "<HTML>";
+		myHandHelper = adapter.getMyHandHelper();
+		if (myHandHelper != null && selectedHelper.equals("MyHandHelper")) {
+			text += "<h3>My hand:" + getFormateTable(myHandHelper.toString(), "hand=", "communityCards=");
+		}
+		myHandStatsHelper = adapter.getMyHandStatsHelper();
+		if (myHandStatsHelper != null && selectedHelper.equals("MyHandStatsHelper")) {
+			text += "<h3>My hand Statatistis:" + getFormateTable(myHandStatsHelper.toString());
+		}
+		MyOutsHelper myOutsHelper = adapter.getMyOutsHelper();
+		if (myOutsHelper != null && selectedHelper.equals("MyOutsHelper")) {
+			text += "<h3>My Outs:" + getFormateTable(myOutsHelper.toString());
+		}
+		OppHandStatsHelper oppHandStatsHelper = adapter.getOppHandStatsHelper();
+		if (oppHandStatsHelper != null && selectedHelper.equals("OppHandStatsHelper")) {
+			text += "<h3>Oponents hands:" + getFormateTable(oppHandStatsHelper.toString());
+		}
+		myGameStatsHelper = adapter.getMyGameStatsHelper();
+		if (myGameStatsHelper != null && selectedHelper.equals("MyGameStatsHelper")) {
+			String addinfo = "\nTable Position: " + getTablePosition() + "\n";
+			addinfo += "Call amount: " + getCallValue() + "\n";
+			addinfo += "Pot: " + getPotValue() + "\n";
+			addinfo += "Small blind: " + getSmallBlind() + "\n";
+			addinfo += "Big blind: " + getBigBlind() + "\n";
+			String allinfo = getFormateTable(myGameStatsHelper.toString() + addinfo);
+			text += "<h3>Game Statistics:" + allinfo;
+		}
+
+		infoJtextLabel.setText(text);
+//		infoJtextLabel.repaint();
+//		Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
+	}
+
 	/**
 	 * Create and return an {@link Card} based on the string representation. this method return <code>null</code> if the
 	 * string representation is not correct.
@@ -282,6 +330,7 @@ public class PokerSimulator {
 		}
 		return car;
 	}
+
 	/**
 	 * create the comunity cards. This method also set the currnet round of the game based on length of the
 	 * <code>cards</code> parameter.
@@ -304,7 +353,6 @@ public class PokerSimulator {
 		currentRound = cards.length == 4 ? TURN_CARD_DEALT : currentRound;
 		currentRound = cards.length == 5 ? RIVER_CARD_DEALT : currentRound;
 	}
-
 	/**
 	 * Create my cards
 	 * 
@@ -317,7 +365,6 @@ public class PokerSimulator {
 		holeCards = new HoleCards(ca1, ca2);
 		currentRound = HOLE_CARDS_DEALT;
 	}
-
 	/**
 	 * return a HTML table based on the <code>helperString</code> argument. the <code>only</code> paratemeter indicate a
 	 * filter of elemenst. If any line form helperstring argument star with a word form this list, the line is include
@@ -342,43 +389,10 @@ public class PokerSimulator {
 		}
 		return "<TABLE>" + res + "</TABLE>";
 	}
-	public void updateReport() {
-//		long t1 = System.currentTimeMillis();
-		String selectedHelper = ((TEntry) helperFilterComboBox.getSelectedItem()).getKey().toString();
-		String text = "<HTML>";
-		myHandHelper = adapter.getMyHandHelper();
-		if (myHandHelper != null && selectedHelper.equals("MyHandHelper")) {
-			text += "<h3>My hand:" + getFormateTable(myHandHelper.toString(), "hand=", "communityCards=");
-		}
-		myHandStatsHelper = adapter.getMyHandStatsHelper();
-		if (myHandStatsHelper != null && selectedHelper.equals("MyHandStatsHelper")) {
-			text += "<h3>My hand Statatistis:" + getFormateTable(myHandStatsHelper.toString());
-		}
-		MyOutsHelper myOutsHelper = adapter.getMyOutsHelper();
-		if (myOutsHelper != null && selectedHelper.equals("MyOutsHelper")) {
-			text += "<h3>My Outs:" + getFormateTable(myOutsHelper.toString());
-		}
-		OppHandStatsHelper oppHandStatsHelper = adapter.getOppHandStatsHelper();
-		if (oppHandStatsHelper != null && selectedHelper.equals("OppHandStatsHelper")) {
-			text += "<h3>Oponents hands:" + getFormateTable(oppHandStatsHelper.toString());
-		}
-		myGameStatsHelper = adapter.getMyGameStatsHelper();
-		if (myGameStatsHelper != null && selectedHelper.equals("MyGameStatsHelper")) {
-			String addinfo = "\nTable Position: " + getTablePosition() + "\n";
-			addinfo += "Call amount: " + getCallValue() + "\n";
-			addinfo += "Pot: " + getPotValue() + "\n";
-			String allinfo = getFormateTable(myGameStatsHelper.toString() + addinfo);
-			text += "<h3>Game Statistics:" + allinfo;
-		}
+	private void runSimulation() throws SimulatorException {
 
-		infoJtextLabel.setText(text);
-//		infoJtextLabel.repaint();
-//		Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
-	}
-	public int getHeroChips() {
-		return heroChips;
-	}
-	public void setHeroChips(int heroChips) {
-		this.heroChips = heroChips;
+		adapter.runMySimulations(holeCards, communityCards, numSimPlayers, currentRound);
+		updateReport();
+		exception = null;
 	}
 }

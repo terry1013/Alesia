@@ -38,10 +38,13 @@ public class ScreenAreas {
 		return name.contains(".card") || name.startsWith("flop") || name.equals("turn") || name.equals("river");
 	}
 
-	private boolean isOCRArea(String name) {
+	private boolean isOCRNumericArea(String name) {
 		return name.equals("pot") || name.equals("call") || name.equals("raise")
-				|| TStringUtils.wildCardMacher(name, "*.call") || TStringUtils.wildCardMacher(name, "*.name")
-				|| TStringUtils.wildCardMacher(name, "*.chips");
+				|| TStringUtils.wildCardMacher(name, "*.call") || TStringUtils.wildCardMacher(name, "*.chips");
+	}
+
+	private boolean isOCRTextArea(String name) {
+		return TStringUtils.wildCardMacher(name, "*.name");
 	}
 
 	public void read() {
@@ -91,7 +94,8 @@ public class ScreenAreas {
 						}
 						sha.name = name;
 						sha.isCardArea = isCardArea(name);
-						sha.isOCRArea = isOCRArea(name);
+						sha.isOCRTextArea = isOCRTextArea(name);
+						sha.isOCRNumericArea = isOCRNumericArea(name);
 						sha.isButtonArea = name.contains(".button");
 
 						shapes.put(name, sha);

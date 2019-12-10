@@ -6,7 +6,6 @@ import java.util.*;
 import org.apache.commons.math3.stat.descriptive.*;
 import org.jdesktop.application.*;
 
-import com.alee.utils.*;
 import com.javaflair.pokerprophesier.api.card.*;
 import com.javaflair.pokerprophesier.api.helper.*;
 
@@ -36,8 +35,8 @@ import core.*;
  */
 public class Trooper extends Task {
 
-	public static String WAITING = "waiting";
-	public static String ACTIVE = "active";
+//	public static String WAITING = "waiting";
+//	public static String ACTIVE = "active";
 	private static Trooper instance;
 
 	private PokerSimulator pokerSimulator;
@@ -50,17 +49,26 @@ public class Trooper extends Task {
 	private File enviorement;
 	private long time1;
 	private DescriptiveStatistics outGameStats;
+	private DescriptiveStatistics blinds;
+	private boolean paused = false;
+	private double preflopProb = 0.20;
+	private long lastGetProbabilityLog;
+	/**
+	 * the game recorder is created only after the continue action. this avoid record incomplete sesion
+	 */
+	private GameRecorder gameRecorder;
 
 	public Trooper() {
 		this(null);
 	}
+
 	public Trooper(Trooper clone) {
 		super(Alesia.getInstance());
 		this.robotActuator = new RobotActuator();
 		this.availableActions = new Vector();
 		this.outGameStats = new DescriptiveStatistics(10);
-		this.trooperStatus = ACTIVE;
-
+//		this.trooperStatus = ACTIVE;
+		this.blinds = new DescriptiveStatistics(10);
 		this.sensorsArray = new SensorsArray();
 		this.pokerSimulator = sensorsArray.getPokerSimulator();
 		instance = this;
@@ -72,46 +80,6 @@ public class Trooper extends Task {
 		return instance;
 	}
 
-	private void clearEnviorement() {
-		sensorsArray.init();
-		// at first time execution, a standar time of 10 second is used
-		long tt = time1 == 0 ? 10000 : System.currentTimeMillis() - time1;
-		outGameStats.addValue(tt);
-		time1 = System.currentTimeMillis();
-		Hero.logger.fine("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
-	}
-
-	private double preflopProb = 0.20;
-	private long lastGetProbabilityLog;
-
-	/**
-	 * consult the {@link PokerSimulator} and retrive the hihest probability between gobal win probability or inprove
-	 * probability. This is a direct application of Rule 1. This method also override the probability acording to
-	 * diferent game round.
-	 * <p>
-	 * in preflop actions, this method sum {@link #preflopProb} to the selected probability to allow potodd room to
-	 * manouber
-	 * 
-	 * @return the hights probability: win or inmprove hand
-	 */
-	private double getProbability() {
-		MyHandStatsHelper myhsh = pokerSimulator.getMyHandStatsHelper();
-		float inprove = myhsh == null ? 0 : myhsh.getTotalProb();
-		float actual = pokerSimulator.getMyGameStatsHelper().getWinProb();
-		float totp = inprove > actual ? inprove : actual;
-		String pnam = inprove > actual ? "Improve" : "Win";
-
-		// int villns = pokerSimulator.getNumSimPlayers() - 1;
-		if (pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
-			totp += preflopProb;
-			pnam = pnam + " + preflop increase " + preflopProb;
-		}
-		if (System.currentTimeMillis() - lastGetProbabilityLog > 1000) {
-			Hero.logger.info(pnam + " probabiliyt=" + totp);
-			lastGetProbabilityLog = System.currentTimeMillis();
-		}
-		return totp;
-	}
 	/**
 	 * Return the expectation of the pot odd against the <code>val</code> argument. This method cosider:
 	 * <ul>
@@ -159,6 +127,10 @@ public class Trooper extends Task {
 		return sensorsArray.getScreenSensor("call").isEnabled();
 	}
 
+	public boolean isPaused() {
+		return paused;
+	}
+
 	public boolean isRaiseDownEnabled() {
 		return sensorsArray.getScreenSensor("raise.down").isEnabled();
 	}
@@ -175,10 +147,32 @@ public class Trooper extends Task {
 		return isTestMode;
 	}
 
+	public void pause(boolean pause) {
+		this.paused = pause;
+		Hero.logger.info(paused ? "Game paused..." : "Game resumed");
+	}
+
+	/**
+	 * set the enviorement. this method create a new enviorement discarting all previous created objects
+	 * 
+	 */
+	public void setEnviorement(File file) {
+		ScreenAreas sDisp = new ScreenAreas(file);
+		sDisp.read();
+		this.enviorement = file;
+		sensorsArray.createSensorsArray(sDisp);
+		robotActuator.setEnviorement(sDisp);
+		// gameRecorder = new GameRecorder(sensorsArray);
+		Hero.sensorsPanel.setEnviorement(this);
+		blinds.clear();
+	}
+
 	public void setTestMode(boolean isTestMode) {
 		this.isTestMode = isTestMode;
 	}
-
+	public void setTrooperStatus(String trooperStatus) {
+		this.trooperStatus = trooperStatus;
+	}
 	/**
 	 * add the action to the list of available actions. This metodh ensure:
 	 * <ul>
@@ -195,15 +189,13 @@ public class Trooper extends Task {
 		availableActions.remove(act);
 		availableActions.add(act);
 	}
-
 	/**
 	 * Compute the actions available according to {@link #getPotOdds(int)} evaluations. The resulting computation will
 	 * be reflected in a single (fold) or multiples (check/call, raise, ...) actions available to be randomy perform.
 	 * 
 	 */
 	private void addPotOddActions() {
-		sensorsArray.read("villan1.call", "villan2.call", "villan3.call", "villan4.call");
-		sensorsArray.read("pot", "call", "raise", "hero.chips");
+		sensorsArray.read(SensorsArray.TYPE_NUMBERS);
 		int call = pokerSimulator.getCallValue();
 		int raise = pokerSimulator.getRaiseValue();
 		int pot = pokerSimulator.getPotValue();
@@ -221,12 +213,11 @@ public class Trooper extends Task {
 		// addAction("raise.pot;raise");
 		// }
 
-		int ival = call;
-		// TODO: the bb value must be retrived from the big blind button call value. the player how is to the right of
-		// the dealler button, is the small blind, and then, the big blid
-		int bb = 100;
+		int bb = (int) blinds.getMax();
+		int sb = (int) blinds.getMin();
+		Hero.logger.info("Small blind = " + sb + " Big blind = " + bb);
 		for (int c = 1; c < 11; c++) {
-			if (getPotOdds(ival + (bb * c), "raise.slider" + c) >= 0) {
+			if (getPotOdds(call + (bb * c), "raise.slider" + c) >= 0) {
 				addAction("raise.slider,c=" + c + ";raise");
 			}
 		}
@@ -235,7 +226,15 @@ public class Trooper extends Task {
 			addAction("raise.allin,c=10;raise");
 		}
 	}
-
+	private void clearEnviorement() {
+		sensorsArray.init();
+		blinds.clear();
+		// at first time execution, a standar time of 10 second is used
+		long tt = time1 == 0 ? 10000 : System.currentTimeMillis() - time1;
+		outGameStats.addValue(tt);
+		time1 = System.currentTimeMillis();
+		Hero.logger.fine("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
+	}
 	/**
 	 * decide de action(s) to perform. This method is called when the {@link Trooper} detect that is my turn to play. At
 	 * this point, the game enviorement is waiting for an accion. This method must report all posible actions using the
@@ -243,12 +242,64 @@ public class Trooper extends Task {
 	 */
 	private void decide() {
 		Hero.logger.info("--- Deciding... --------------------");
-		sensorsArray.read("hero.card1", "hero.card2", "flop1", "flop2", "flop3", "turn", "river");
+		sensorsArray.read(SensorsArray.TYPE_CARDS);
 		int currentRound = pokerSimulator.getCurrentRound();
 		if (currentRound > PokerSimulator.NO_CARDS_DEALT) {
 			addAction("fold");
 			addPotOddActions();
 		}
+	}
+
+	/**
+	 * consult the {@link PokerSimulator} and retrive the hihest probability between gobal win probability or inprove
+	 * probability. This is a direct application of Rule 1. This method also override the probability acording to
+	 * diferent game round.
+	 * <p>
+	 * in preflop actions, this method sum {@link #preflopProb} to the selected probability to allow potodd room to
+	 * manouber
+	 * 
+	 * @return the hights probability: win or inmprove hand
+	 */
+	private double getProbability() {
+		MyHandStatsHelper myhsh = pokerSimulator.getMyHandStatsHelper();
+		float inprove = myhsh == null ? 0 : myhsh.getTotalProb();
+		float actual = pokerSimulator.getMyGameStatsHelper().getWinProb();
+		float totp = inprove > actual ? inprove : actual;
+		String pnam = inprove > actual ? "Improve" : "Win";
+
+		// int villns = pokerSimulator.getNumSimPlayers() - 1;
+		if (pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
+			totp += preflopProb;
+			pnam = pnam + " + preflop increase " + preflopProb;
+		}
+		if (System.currentTimeMillis() - lastGetProbabilityLog > 1000) {
+			Hero.logger.info(pnam + " probabiliyt=" + totp);
+			lastGetProbabilityLog = System.currentTimeMillis();
+		}
+		return totp;
+	}
+
+	/**
+	 * Action have agresiveness. fold has 0 agresiveness, check 1, call 2 and so on, this allow a numeric value for the
+	 * agresion. Some methods use this agresion to press the charge agains the oter players
+	 */
+	/**
+	 * this method increase the probability of chose an agresive action. This method take into accoun the diference
+	 * between the numbers of villans current active.
+	 * <p>
+	 * For all active villans (at the battle start) the probability of random select an action is uniform to all. At the
+	 * Head usp, the probaility of chose the mosts agresive options icrease
+	 * 
+	 * @param options
+	 * @return
+	 */
+	private String getRandomSelection() {
+		// int vills = sensorsArray.getVillans();
+		// int av = sensorsArray.getActivePlayers() - 1;
+		//
+		// double fact = Math.abs((av / vills) - 1) + 1;
+		// EnumeratedIntegerDistribution eid = new EnumeratedIntegerDistribution(data)
+		return null;
 	}
 
 	/**
@@ -288,50 +339,12 @@ public class Trooper extends Task {
 
 		return ok;
 	}
+
 	private boolean isMyTurnToPlay() {
 		return sensorsArray.getScreenSensor("fold").isEnabled() || sensorsArray.getScreenSensor("call").isEnabled()
 				|| sensorsArray.getScreenSensor("raise").isEnabled();
 	}
-	/**
-	 * set the enviorement. this method create a new enviorement discarting all previous created objects
-	 * 
-	 */
-	public void setEnviorement(File file) {
-		ScreenAreas sDisp = new ScreenAreas(file);
-		sDisp.read();
-		this.enviorement = file;
-		sensorsArray.createSensorsArray(sDisp);
-		robotActuator.setEnviorement(sDisp);
-		// gameRecorder = new GameRecorder(sensorsArray);
-		Hero.sensorsPanel.setEnviorement(this);
 
-	}
-	/**
-	 * the game recorder is created only after the continue action. this avoid record incomplete sesion
-	 */
-	private GameRecorder gameRecorder;
-	/**
-	 * Action have agresiveness. fold has 0 agresiveness, check 1, call 2 and so on, this allow a numeric value for the
-	 * agresion. Some methods use this agresion to press the charge agains the oter players
-	 */
-	/**
-	 * this method increase the probability of chose an agresive action. This method take into accoun the diference
-	 * between the numbers of villans current active.
-	 * <p>
-	 * For all active villans (at the battle start) the probability of random select an action is uniform to all. At the
-	 * Head usp, the probaility of chose the mosts agresive options icrease
-	 * 
-	 * @param options
-	 * @return
-	 */
-	private String getRandomSelection() {
-		// int vills = sensorsArray.getVillans();
-		// int av = sensorsArray.getActivePlayers() - 1;
-		//
-		// double fact = Math.abs((av / vills) - 1) + 1;
-		// EnumeratedIntegerDistribution eid = new EnumeratedIntegerDistribution(data)
-		return null;
-	}
 	/**
 	 * use de actions stored in {@link #availableActions} list. At this point, the game table is waiting for the herro
 	 * action.
@@ -359,24 +372,9 @@ public class Trooper extends Task {
 			robotActuator.perform(ha);
 			// if my last act was fold
 			if (ha.equals("fold")) {
-				setTrooperStatus(WAITING);
+//				setTrooperStatus(WAITING);
 			}
 		}
-	}
-
-	public void setTrooperStatus(String trooperStatus) {
-		this.trooperStatus = trooperStatus;
-	}
-
-	private boolean paused = false;
-
-	public void pause(boolean pause) {
-		this.paused = pause;
-		Hero.logger.info(paused ? "Game paused..." : "Game resumed");
-	}
-
-	public boolean isPaused() {
-		return paused;
 	}
 	@Override
 	protected Object doInBackground() throws Exception {
@@ -396,6 +394,9 @@ public class Trooper extends Task {
 
 			sensorsArray.lookTable();
 
+			// retribe small blidn and big blidn
+			Hero.logger.info("---");
+
 			// look the continue button and perform the action if available.
 			ScreenSensor ss = sensorsArray.getScreenSensor("continue");
 			if (ss.isEnabled()) {
@@ -405,33 +406,25 @@ public class Trooper extends Task {
 				gameRecorder = new GameRecorder(sensorsArray);
 				robotActuator.perform("continue");
 				clearEnviorement();
-				setTrooperStatus(ACTIVE);
+//				setTrooperStatus(ACTIVE);
 				continue;
 			}
 
-			// i have nothig to do expect wait to the game round complete and press the continue button because i folded
-			// the cards
-			if (trooperStatus.equals(WAITING)) {
-				Thread.sleep(100);
-				continue;
-			}
+			// // i have nothig to do expect wait to the game round complete and press the continue button because i
+			// folded
+			// // the cards
+			// if (trooperStatus.equals(WAITING)) {
+			// Thread.sleep(100);
+			// continue;
+			// }
 
 			// look the standar actions buttons. this standar button indicate that the game is waiting for my play
 			if (isMyTurnToPlay()) {
 				decide();
 				act();
 			}
-
 			think();
-
-			// check simulator status: in case of any error, try to clean the simulator and wait for the next cycle
-			if (pokerSimulator.getException() != null) {
-				// clearEnviorement();
-				// pokerSimulator.init();
-				// continue;
-			}
 		}
-		// Trooper.instance = null;
 		return null;
 	}
 

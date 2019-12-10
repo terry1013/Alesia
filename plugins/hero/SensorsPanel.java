@@ -71,10 +71,12 @@ public class SensorsPanel extends TUIPanel {
 				ScreenSensor ss = (ScreenSensor) component;
 				ss.setVisible(false);
 				ss.showCapturedImage(sCapture);
-				// spetial name or wildcard string (the structure type: xxx has noting in spetial, just a name) 
+				// spetial name or wildcard string (the structure type: xxx has noting in spetial, just a name)
 				if (filter.startsWith("type:")) {
-					if (filter.equals("type: ocrareas"))
-						ss.setVisible(ss.isOCRArea());
+					if (filter.equals("type: textareas"))
+						ss.setVisible(ss.isTextArea());
+					if (filter.equals("type: numareas"))
+						ss.setVisible(ss.isNumericArea());
 					if (filter.equals("type: cardareas"))
 						ss.setVisible(ss.isCardArea());
 				} else {
@@ -107,7 +109,8 @@ public class SensorsPanel extends TUIPanel {
 		}
 		// sensorTypeComboBox.addItem(new TEntry("*.card?", "Only card areas"));
 		sensorTypeComboBox.addItem(new TEntry("*.call", "Only Call areas"));
-		sensorTypeComboBox.addItem(new TEntry("type: ocrareas", "Only OCR areas"));
+		sensorTypeComboBox.addItem(new TEntry("type: textareas", "Only OCR text areas"));
+		sensorTypeComboBox.addItem(new TEntry("type: numareas", "Only OCR numeric areas"));
 		sensorTypeComboBox.addItem(new TEntry("type: cardareas", "Only cards areas"));
 		sensorTypeComboBox.addActionListener(evt -> filterSensors());
 

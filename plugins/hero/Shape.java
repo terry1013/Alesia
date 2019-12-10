@@ -55,15 +55,21 @@ public class Shape {
 	 */
 	public boolean isButtonArea = false;
 	/**
-	 * mark if this shape is required to be readed by tesserac. this property is hardcoded in a method nside of
-	 * {@link ScreenAreas}
+	 * mark if this shape is required to be readed by tesserac and is a text area. this area can contain any string.
+	 * this property is hardcoded in a method nside of {@link ScreenAreas}
 	 */
-	public boolean isOCRArea = false;
+	public boolean isOCRTextArea = false;
+
+	/**
+	 * mark if this shape is required to be readed by tesserac and is a numeric area. a numeric area MUST ontain ONLY
+	 * numbers. this property is hardcoded in a method inside of {@link ScreenAreas}
+	 */
+	public boolean isOCRNumericArea = false;
 
 	/**
 	 * indicate how menay clicks require this area to be completed. this attribute must be named <code>clicks</code> in
-	 * the shape name. by default, an action area nedds only a mouse/keyboard click to complete. this parameter is used by 
-	 * {@link RobotActuator}
+	 * the shape name. by default, an action area nedds only a mouse/keyboard click to complete. this parameter is used
+	 * by {@link RobotActuator}
 	 */
 	public int clicks = 1;
 
@@ -81,10 +87,10 @@ public class Shape {
 	public Point getCenter() {
 		return center;
 	}
-	
+
 	private NormalDistribution distributionX;
 	private NormalDistribution distributionY;
-	
+
 	public Shape(Rectangle rec) {
 		this.bounds = rec;
 		int cx = rec.width / 2;

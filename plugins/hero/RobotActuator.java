@@ -3,8 +3,6 @@ package plugins.hero;
 import java.awt.*;
 import java.awt.event.*;
 
-import com.jgoodies.common.base.*;
-
 /**
  * Base class to send programaticily events throw the mouse or the keyboard. each action recived by this class is the
  * name of the sensor to perform the action.

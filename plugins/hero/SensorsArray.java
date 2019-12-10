@@ -4,12 +4,16 @@ import java.awt.*;
 import java.awt.image.*;
 import java.io.*;
 import java.util.*;
+import java.util.List;
+import java.util.stream.*;
 
 import javax.imageio.*;
 import javax.swing.*;
 import javax.swing.border.*;
 
 import org.apache.commons.math3.stat.descriptive.*;
+
+import com.jgoodies.common.base.*;
 
 /**
  * This class control the array of sensor inside of the screen. This class is responsable for reading all the sensor
@@ -29,16 +33,35 @@ public class SensorsArray {
 	 * is uded by {@link #updateTablePosition()} to calculate the Hero.s position in the table
 	 */
 	public static String DEALER_BUTTON_COLOR = "008080";
-	private Vector<ScreenSensor> screenSensors;
+	/**
+	 * Read/see only numeric sensors. Numeric sensors are chips, pot, calls Etc
+	 */
+	public final static String TYPE_NUMBERS = "Numbers";
+	/**
+	 * Read/see only text sensors, names of the villans mainly
+	 */
+	public final static String TYPE_TEXT = "Text";
+	/**
+	 * Read/see only cards areas
+	 */
+	public final static String TYPE_CARDS = "Cards";
+	/**
+	 * Read/see only actions areas (call button, raise, continue)
+	 */
+	public final static String TYPE_ACTIONS = "Actions";
+	private Hashtable<String, ScreenSensor> screenSensors;
+
 	private Robot robot;
 	private Border readingBorder, lookingBorder, standByBorder;
+
 	private PokerSimulator pokerSimulator;
+
 	private ScreenAreas screenAreas;
-
-	private Vector<String> attentionAreas;
-
 	DescriptiveStatistics tesseractTime = new DescriptiveStatistics(10);
+
 	DescriptiveStatistics imageDiffereceTime = new DescriptiveStatistics(10);
+
+	private Hashtable<String, Integer> blinds;
 
 	public SensorsArray() {
 		this.pokerSimulator = new PokerSimulator();
@@ -46,6 +69,8 @@ public class SensorsArray {
 		this.readingBorder = new LineBorder(Color.BLUE, 2);
 		this.lookingBorder = new LineBorder(Color.GREEN, 2);
 		this.standByBorder = new LineBorder(new JPanel().getBackground(), 2);
+		this.blinds = new Hashtable<>();
+		this.screenSensors = new Hashtable<>();
 	}
 
 	/**
@@ -56,31 +81,12 @@ public class SensorsArray {
 	 */
 	public Vector<ScreenSensor> getActionAreas() {
 		Vector<ScreenSensor> vec = new Vector<>();
-		for (ScreenSensor sensor : screenSensors) {
+		for (ScreenSensor sensor : screenSensors.values()) {
 			if (sensor.isActionArea()) {
 				vec.add(sensor);
 			}
 		}
 		return vec;
-	}
-	/**
-	 * Return the number of current active villans. A VILLAN IS ACTIVE IF HE HAS CARDS IN THIS
-	 * HANDS. if a player fold his card. this method will not count that player. from this method point of view. the
-	 * player is in tha game, but in this particular moment are not active.
-	 * 
-	 * @see #getActiveSeats()
-	 * @return - num of active villans + hero
-	 */
-	public int getActiveVillans() {
-		int av = 0;
-		for (int i = 1; i <= getVillans(); i++) {
-			ScreenSensor vc1 = getScreenSensor("villan" + i + ".card1");
-			ScreenSensor vc2 = getScreenSensor("villan" + i + ".card2");
-			if (vc1.isEnabled() && vc2.isEnabled()) {
-				av++;
-			}
-		}
-		return av;
 	}
 
 	/**
@@ -100,6 +106,46 @@ public class SensorsArray {
 		return av;
 	}
 
+	/**
+	 * Return the number of current active villans. A VILLAN IS ACTIVE IF HE HAS CARDS IN THIS HANDS. if a player fold
+	 * his card. this method will not count that player. from this method point of view. the player is in tha game, but
+	 * in this particular moment are not active.
+	 * 
+	 * @see #getActiveSeats()
+	 * @return - num of active villans + hero
+	 */
+	public int getActiveVillans() {
+		int av = 0;
+		for (int i = 1; i <= getVillans(); i++) {
+			ScreenSensor vc1 = getScreenSensor("villan" + i + ".card1");
+			ScreenSensor vc2 = getScreenSensor("villan" + i + ".card2");
+			if (vc1.isEnabled() && vc2.isEnabled()) {
+				av++;
+			}
+		}
+		return av;
+	}
+
+	/**
+	 * return where in the table, the dealer button are. If hero has the button, this method return 0.
+	 * 
+	 * @return where the dealer button are or -1 for a fail in thable position detection
+	 */
+	public int getDealerButtonPosition() {
+		int vil = getVillans();
+		int bp = -1;
+		String sscol = getScreenSensor("hero.button").getMaxColor();
+		bp = sscol.equals(DEALER_BUTTON_COLOR) ? 0 : -1;
+		for (int i = 1; i <= vil; i++) {
+			sscol = getScreenSensor("villan" + i + ".button").getMaxColor();
+			bp = (sscol.equals(DEALER_BUTTON_COLOR)) ? i : bp;
+		}
+		if (bp == -1) {
+			Hero.logger.severe("Fail to detect table position.");
+		}
+		return bp;
+	}
+
 	public PokerSimulator getPokerSimulator() {
 		return pokerSimulator;
 	}
@@ -116,22 +162,27 @@ public class SensorsArray {
 	 * @return the screen sensor instance or <code>null</code> if no sensor is found.
 	 */
 	public ScreenSensor getScreenSensor(String sensorName) {
-		ScreenSensor ss = null;
-		for (ScreenSensor sensor : screenSensors) {
-			if (sensor.getName().equals(sensorName)) {
-				ss = sensor;
-			}
-		}
-		if (ss == null) {
-			Hero.logger.severe("No sensor name " + sensorName + " was found.");
-		}
+		ScreenSensor ss = screenSensors.get(sensorName);
+		Preconditions.checkNotNull(ss, "No sensor name " + sensorName + " was found.");
 		return ss;
 	}
 
 	public ScreenAreas getSensorDisposition() {
 		return screenAreas;
 	}
-
+	/**
+	 * retriva an array of sensor.s names acording to the type argument. For example, to retrive all "call" sensors,
+	 * pass to thid method ".call" will return sensor hero.call, villan1.call etc.
+	 * 
+	 * @param type - type of sensor
+	 * 
+	 * @return list of sensors full name
+	 */
+	public List<ScreenSensor> getSensors(String type) {
+		List<ScreenSensor> list = screenSensors.values().stream().filter(ss -> ss.getName().contains(type))
+				.collect(Collectors.toList());
+		return list;
+	}
 	/**
 	 * Return the number of villans configurated in this table.
 	 * 
@@ -140,17 +191,16 @@ public class SensorsArray {
 	 * @return total villans
 	 */
 	public int getVillans() {
-		return (int) screenSensors.stream()
-				.filter(ss -> ss.getName().startsWith("villan") && ss.getName().contains("name")).count();
+		return (int) screenSensors.keySet().stream().filter(sn -> sn.startsWith("villan") && sn.contains("name"))
+				.count();
 	}
-
 	/**
 	 * initialize this sensor array. clearing all sensor and all variables
 	 */
 	public void init() {
-		screenSensors.stream().forEach((ss) -> ss.init());
+		screenSensors.values().forEach((ss) -> ss.init());
 		pokerSimulator.init();
-		setAttentionOn();
+		blinds.clear();
 	}
 
 	/**
@@ -169,91 +219,69 @@ public class SensorsArray {
 		ScreenSensor vchip = getScreenSensor("villan" + villanId + ".chips");
 		return vname.isEnabled() && vchip.isEnabled();
 	}
-
-	/**
-	 * return <code>true</code> if there are attentions areas to perform ocr operations <b>but not all of them</b>. If
-	 * the method {@link #setAttentionOn(String...)} was called with <code>null</code> argument, this method return
-	 * <code>false</code> but if some areas are setted to be read ({@link #setAttentionOn(String...)} called with some
-	 * areas names) this methos return <code>true</code>
-	 * 
-	 * @return <code>true</code> or <code>false</code>
-	 */
-	public boolean isSpetialAttentionSetted() {
-		return screenSensors.size() > attentionAreas.size();
-	}
 	/**
 	 * this metho campture all screeen´s areas without do any ocr operation. Use this mothod to retrive all sensor areas
 	 * and set the enable status for fast comparation.
 	 */
 	public void lookTable() {
-		seeSensors(false);
+		ArrayList<ScreenSensor> list = new ArrayList<>(screenSensors.values());
+		seeSensors(false, list);
 	}
 
 	/**
-	 * Perform read operation on the {@link ScreenSensor} passed as argument. This method perform the OCR operation on
-	 * the selected areas and update the {@link PokerSimulator} for numerical values.
-	 * <p>
-	 * if in the sensors argument, ther are a card area, this method update the pocker simulator and this may fire a new
-	 * simulation.
+	 * Perform read operation on the {@link ScreenSensor} acoording to the type of the sensor. The type can be any of
+	 * TYPE_ global constatn passed as argument. This method perform the OCR operation on the selected areas and update
+	 * the {@link PokerSimulator} if it.s necesary.
 	 * <p>
 	 * After this method execution, the simulator reflect the actual game status
 	 * 
-	 * @param sensors - the list of sensors to read
+	 * @param sensors - type of sensor to read
 	 */
-	public void read(String... sensors) {
-		seeSensors(true, sensors);
+	public void read(String type) {
+		Collection<ScreenSensor> allSensors = screenSensors.values();
 
-		// update simulator
-		pokerSimulator.setNunOfPlayers(getActiveVillans()+1);
-		updateTablePosition();
-
-		// TODO: Temporal for th: if i read the pot, i want read also the villans call to retrive the calls. this is
-		// because the pot has only the previous round value. the current round value is the previous pot value plus all
-		// villans call.
-		// ENSURE READ VILLNAS SENSORS FIRST
-		int potInt = getScreenSensor("pot").getIntOCR();
-		long c = Arrays.asList(sensors).stream().filter(s->s.equals("pot")).count();
-		if(c > 0) {
-			for (int i = 1; i <= getActiveVillans(); i++) {
-				potInt += getScreenSensor("villan"+i+".call").getIntOCR();
-			}
+		// ation areas
+		if (TYPE_ACTIONS.equals(type)) {
+			List<ScreenSensor> slist = allSensors.stream().filter(ss -> ss.isActionArea())
+					.collect(Collectors.toList());
+			seeSensors(true, slist);
 		}
 
-		pokerSimulator.setPotValue(potInt);
-		pokerSimulator.setCallValue(getScreenSensor("call").getIntOCR());
-		pokerSimulator.setHeroChips(getScreenSensor("hero.chips").getIntOCR());
-		pokerSimulator.setRaiseValue(getScreenSensor("raise").getIntOCR());
-		
-		pokerSimulator.updateReport();
+		// numeric types retrive all numers and update poker simulator
+		if (TYPE_NUMBERS.equals(type)) {
+			List<ScreenSensor> slist = allSensors.stream().filter(ss -> ss.isNumericArea())
+					.collect(Collectors.toList());
+			seeSensors(true, slist);
+			updateTablePosition();
+			updateBlinds();
+			// TODO: Temporal for th: the pot is the previous pot value + all calls
+			int potInt = getScreenSensor("pot").getIntOCR();
+			potInt = blinds.values().stream().mapToInt(iv -> iv.intValue()).sum();
+			pokerSimulator.setPotValue(potInt);
+			pokerSimulator.setCallValue(getScreenSensor("call").getIntOCR());
+			pokerSimulator.setHeroChips(getScreenSensor("hero.chips").getIntOCR());
+			pokerSimulator.setRaiseValue(getScreenSensor("raise").getIntOCR());
+			pokerSimulator.setNunOfPlayers(getActiveVillans() + 1);
 
-		// update hero carts and comunity cards (if this method was called for card areas)
-		// REMEMBER ADD METHOD FIRE RUNSIMULATION
-		for (String sn : attentionAreas) {
-			ScreenSensor sss = getScreenSensor(sn);
-			String ocr = sss.getOCR();
-			if ((sss.isHoleCard() || sss.isComunityCard()) && ocr != null) {
-				pokerSimulator.addCard(sss.getName(), ocr);
+			pokerSimulator.updateReport();
+		}
+
+		// cards areas sensor will perform a simulation
+		if (TYPE_CARDS.equals(type)) {
+			List<ScreenSensor> slist = allSensors.stream().filter(ss -> ss.isCardArea()).collect(Collectors.toList());
+			seeSensors(true, slist);
+			for (ScreenSensor ss : slist) {
+				if ((ss.isHoleCard() || ss.isComunityCard())) {
+					String ocr = ss.getOCR();
+					if (ocr != null)
+						// TODO: maybe a setCards method is better option
+						pokerSimulator.addCard(ss.getName(), ocr);
+				}
 			}
 		}
 		Hero.logger.fine("average Tesseract OCR time: " + tesseractTime.getMean());
 		Hero.logger.fine("average ImageDiference OCR time: " + imageDiffereceTime.getMean());
-	}
 
-	/**
-	 * Shorcut method for read the seonsor <code>sensor</code>,perform the OCR operation an retrive the result.
-	 * <p>
-	 * WARNING: use this method with caution. this method will fire an update on the game state and the performance of
-	 * the system will be compromised. to retrive only the desired {@link ScreenSensor} informatation DON.T use this
-	 * method
-	 * 
-	 * @param sensor - name of the sensor
-	 * 
-	 * @return value of the sensor
-	 */
-	public String readAndGetOCR(String sensor) {
-		read(sensor);
-		String ocr = getScreenSensor(sensor).getOCR();
-		return ocr;
 	}
 
 	/**
@@ -264,8 +292,10 @@ public class SensorsArray {
 	 */
 	public void takeActionSample() {
 		try {
-			for (ScreenSensor ss : screenSensors) {
-				if (ss.getName().contains(".name")) {
+			for (String sn : screenSensors.keySet()) {
+				// TODO temporal for TH. the action area is the same as the name area
+				if (sn.contains(".name")) {
+					ScreenSensor ss = screenSensors.get(sn);
 					ss.capture(false);
 					BufferedImage bi = ss.getCapturedImage();
 					String ext = "gif";
@@ -285,7 +315,8 @@ public class SensorsArray {
 	 */
 	public void takeCardSample() {
 		try {
-			for (ScreenSensor ss : screenSensors) {
+			for (String sn : screenSensors.keySet()) {
+				ScreenSensor ss = screenSensors.get(sn);
 				if (ss.isCardArea()) {
 					ss.capture(false);
 					BufferedImage bi = ss.getCapturedImage();
@@ -299,11 +330,19 @@ public class SensorsArray {
 			e.printStackTrace();
 		}
 	}
-	private void seeSensors(boolean read, String... sensors) {
-		setAttentionOn(sensors);
+
+	/**
+	 * Perform the read operation for all {@link ScreenSensor} passed int the list argument.
+	 * 
+	 * @param read - <code>true</code> to perform OCR operation over the selected sensors. <code>false</code> only
+	 *        capture the image
+	 * @param list - list of sensors to capture
+	 * @see ScreenSensor#capture(boolean)
+	 * @since 2.3
+	 */
+	private void seeSensors(boolean read, List<ScreenSensor> list) {
 		setStandByBorder();
-		for (String sn : attentionAreas) {
-			ScreenSensor ss = getScreenSensor(sn);
+		for (ScreenSensor ss : list) {
 			ss.setBorder(read ? readingBorder : lookingBorder);
 			ss.capture(read);
 			if (ss.getOCRPerformanceTime() > 0) {
@@ -317,28 +356,31 @@ public class SensorsArray {
 		setStandByBorder();
 	}
 
-	/**
-	 * Indicate to the array sensor that put attention only in an area (or o grup of them). This {@link SensorsArray}
-	 * will only capture the images for the specific areas ignoring the rest of the sensors.
-	 * 
-	 * @param anames - name or names of the areas to pay attention.
-	 */
-	private void setAttentionOn(String... anames) {
-		attentionAreas.clear();
-		// no input argument? fill attention areas with all the sensors
-		if (anames.length == 0) {
-			screenSensors.stream().forEach(ss -> attentionAreas.add(ss.getName()));
-		} else {
-			Collections.addAll(attentionAreas, anames);
-		}
-	}
-
 	private void setStandByBorder() {
-		for (ScreenSensor ss : screenSensors) {
-			ss.setBorder(standByBorder);
-		}
+		screenSensors.values().stream().forEach(ss->ss.setBorder(standByBorder));
 	}
 
+	/**
+	 * this methos update the small and big blind values. Those values are retrived scanning all call sensors. if a
+	 * sensor has a value and the internal table for that sensor is empty, this method update the value. in this way,
+	 * for all call sensors, this methhod update the value ONLY ONCE. The small blind is determinated by the smaller
+	 * value in the list, and the big blind is the nex one
+	 */
+	private void updateBlinds() {
+		List<ScreenSensor> calls = getSensors(".call");
+		for (ScreenSensor ss : calls) {
+			if (!blinds.contains(ss.getName())) {
+				int intocr = ss.getIntOCR();
+				blinds.put(ss.getName(), intocr);
+			}
+		}
+		List<Integer> vals = new ArrayList<Integer>(blinds.values());
+		Collections.sort(vals);
+		int i = vals.size();
+		int sb = i > 0 ? vals.get(0) : -1;
+		int bb = i > 1 ? vals.get(1) : -1;
+		pokerSimulator.setBlinds(sb, bb);
+	}
 	/**
 	 * Update the table position. the Hero´s table position is determinated detecting the dealer button and counting
 	 * clockwise. For examples, in a 4 villans table:
@@ -347,39 +389,25 @@ public class SensorsArray {
 	 * <li>if villan1 is the dealer, this method return 4. Hero is in middle table position.
 	 */
 	private void updateTablePosition() {
-		int vil = getVillans();
-		int bp = -1;
-		String sscol = getScreenSensor("hero.button").getMaxColor();
-		bp = sscol.equals(DEALER_BUTTON_COLOR) ? 0 : -1;
-		for (int i = 1; i <= vil; i++) {
-			sscol = getScreenSensor("villan" + i + ".button").getMaxColor();
-			bp = (sscol.equals(DEALER_BUTTON_COLOR)) ? i : bp;
-		}
-		if (bp == -1) {
-			Hero.logger.severe("Fail to detect table position.");
-		}
-		int tp = Math.abs(bp - (getActiveSeats() + 1));
+		int dbp = getDealerButtonPosition();
+		int tp = Math.abs(dbp - (getActiveSeats() + 1));
 		pokerSimulator.setTablePosition(tp);
 	}
 	/**
-	 * Create the sensors setted in the {@link DrawingPanel}. This method only take care of the
-	 * <code>area.type=sensor</code> area types.
+	 * Create the array of sensors setted in the {@link ScreenAreas}. 
 	 * <p>
 	 * dont use this method directly. use {@link Trooper#setEnviorement(DrawingPanel)}
 	 * 
-	 * @param dpanel - the enviorement
+	 * @param areas - the enviorement
 	 */
 	protected void createSensorsArray(ScreenAreas areas) {
 		this.screenAreas = areas;
-		this.screenSensors = new Vector<ScreenSensor>();
-		this.attentionAreas = new Vector<>();
-
-		Vector<Shape> figs = new Vector<>(screenAreas.getShapes().values());
-		for (Shape shape : figs) {
+		this.screenSensors.clear();
+		this.blinds.clear();
+		for (Shape shape : screenAreas.getShapes().values()) {
 			ScreenSensor ss = new ScreenSensor(this, shape);
-			screenSensors.addElement(ss);
+			screenSensors.put(ss.getName(), ss);
 		}
-		setAttentionOn();
 		setStandByBorder();
 		pokerSimulator.init();
 	}
