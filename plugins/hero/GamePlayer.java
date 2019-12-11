@@ -45,11 +45,11 @@ public class GamePlayer {
 			name = name == null ? prefix : name;
 		}
 		if (card1.equals(unkData)) {
-			String ct = array.readAndGetOCR(prefix + ".card1");
+			String ct = array.getScreenSensor(prefix + ".card1").getOCR();
 			card1 = ct == null ? unkData : ct;
 		}
 		if (card2.equals(unkData)) {
-			String ct = array.readAndGetOCR(prefix + ".card2");
+			String ct = array.getScreenSensor(prefix + ".card2").getOCR();
 			card2 = ct == null ? unkData : ct;
 		}
 

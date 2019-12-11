@@ -8,7 +8,6 @@ import com.alee.laf.combobox.*;
 import com.alee.managers.settings.*;
 import com.javaflair.pokerprophesier.api.adapter.*;
 import com.javaflair.pokerprophesier.api.card.*;
-import com.javaflair.pokerprophesier.api.exception.*;
 import com.javaflair.pokerprophesier.api.helper.*;
 
 import core.*;
@@ -50,7 +49,6 @@ public class PokerSimulator {
 	private TUIPanel infoPanel;
 	private int currentRound;
 	private HoleCards holeCards;
-	private Exception exception;
 	private int tablePosition;
 	private WebComboBox helperFilterComboBox;
 	private MyHandHelper myHandHelper;
@@ -64,11 +62,6 @@ public class PokerSimulator {
 		this.cardsBuffer = new Hashtable<String, String>();
 		// Create an adapter to communicate with the simulator
 		this.adapter = new PokerProphesierAdapter();
-
-		// Set the simulator parameters
-		adapter.setMyOutsHoleCardSensitive(true);
-		adapter.setOppHoleCardsRealistic(true);
-		adapter.setOppProbMyHandSensitive(true);
 		adapter.setNumSimulations(numSimulations);
 
 		// information components
@@ -92,59 +85,17 @@ public class PokerSimulator {
 	}
 
 	/**
-	 * this mathod act like a buffer betwen {@link SensorsPanel} and this class to set the cards based on the name/value
-	 * of the {@link ScreenSensor} component while the cards arrive at the game table. For example. at starting a game,
-	 * the firt hole card may arrive while the second one no. Calling this method set the first card and wait for the
-	 * second in order to efectively create the hole card and set the correct game status.
+	 * this mathod act like a buffer betwen {@link SensorsArray} and this class to set the cards based on the name/value
+	 * of the {@link ScreenSensor} component while the cards arrive at the game table. For example durin a reading
+	 * operation the card are retrived without order. this method store the incomming cards and the run simulation
+	 * method will create the correct game status based on the card stored
 	 * 
-	 * @param sName - {@link ScreenSensor} name
-	 * @param card - card value
+	 * @param sName - name of the {@link ScreenSensor}
+	 * @param card - ocr retrived from the sensor.
 	 */
 	public void addCard(String sName, String card) {
-		try {
-			// if the card already exist in the buffer return without do nothing. this is because the enviorement is
-			// reading again the enviorement. This ensure than this class dont run a simulation again and avoid bad
-			// simulation exception throw by runSimulation method due to a createHolecard & runsimulation during a re
-			// reading
-			String val = cardsBuffer.get(sName);
-			if (val != null && card.equals(val)) {
-				return;
-			}
-			cardsBuffer.put(sName, card);
-
-			// check if hole cards are completes. only fired when component name are my cards
-			if (sName.startsWith("hero.card") && cardsBuffer.containsKey("hero.card1")
-					&& cardsBuffer.containsKey("hero.card2")) {
-				createHoleCards(cardsBuffer.get("hero.card1"), cardsBuffer.get("hero.card2"));
-				runSimulation();
-			}
-			// check if flop cards are completes. only fired when component name are in flop
-			if (sName.startsWith("flop") && cardsBuffer.containsKey("flop1") && cardsBuffer.containsKey("flop2")
-					&& cardsBuffer.containsKey("flop3")) {
-				createComunityCards(cardsBuffer.get("flop1"), cardsBuffer.get("flop2"), cardsBuffer.get("flop3"));
-				runSimulation();
-			}
-			// check turn. only on turn
-			if (sName.equals("turn")) {
-				createComunityCards(cardsBuffer.get("flop1"), cardsBuffer.get("flop2"), cardsBuffer.get("flop3"),
-						cardsBuffer.get("turn"));
-				runSimulation();
-			}
-			// check river. only on river
-			if (sName.equals("river")) {
-				createComunityCards(cardsBuffer.get("flop1"), cardsBuffer.get("flop2"), cardsBuffer.get("flop3"),
-						cardsBuffer.get("turn"), cardsBuffer.get("river"));
-				runSimulation();
-			}
-		} catch (Exception e) {
-			// in case of any error, just notify the bad situation and don nothig. at some points, the sensor array add
-			// the carts in the wrong secuence. so, do nothig until all information are available.
-			Hero.logger.warning(e.getMessage() + "\n\tCurrent round: " + currentRound + "\n\tHole cards: " + holeCards
-					+ "\n\tComunity cards: " + communityCards);
-			// Hero.logger.warning(e.getMessage());
-			// System.err.println("hole cards " + ((myHoleCards == null) ? "(null)" : myHoleCards.toString())
-			// + " communityCards " + ((communityCards == null) ? "(null)" : communityCards.toString()));
-		}
+		cardsBuffer.put(sName, card);
+//		System.out.println(sName + " " + card);
 	}
 	public PokerProphesierAdapter getAdapter() {
 		return adapter;
@@ -161,10 +112,6 @@ public class PokerSimulator {
 	}
 	public int getCurrentRound() {
 		return currentRound;
-	}
-
-	public Exception getException() {
-		return exception;
 	}
 
 	public int getHeroChips() {
@@ -224,35 +171,48 @@ public class PokerSimulator {
 		communityCards = null;
 		// 190831: ya el sistema se esta moviendo. por lo menos hace fold !!!! :D estoy en el salon de clases del campo
 		// de refujiados en dresden !!!! ya van 2 meses
-		exception = null;
-		cardsBuffer.clear();;
+		cardsBuffer.clear();
+		
+//		clear report and values like pot and other
+		adapter.
+		
+
 	}
 	public void setBlinds(int sb, int bb) {
-	this.smallBlind = sb;
-	this.bigBlind = bb;
+		this.smallBlind = sb;
+		this.bigBlind = bb;
+		updateReport();
+
 	}
 	public void setCallValue(int callValue) {
 		this.callValue = callValue;
+		updateReport();
+
 	}
 	public void setHeroChips(int heroChips) {
 		this.heroChips = heroChips;
+		updateReport();
+
 	}
 	public void setNunOfPlayers(int p) {
 		this.numSimPlayers = p;
+		updateReport();
+
 	}
 	public void setPotValue(int potValue) {
 		this.potValue = potValue;
-
+		updateReport();
 	}
 	public void setRaiseValue(int raiseValue) {
 		this.raiseValue = raiseValue;
-
+		updateReport();
 	}
 	public void setTablePosition(int tp) {
 		this.tablePosition = tp;
+		updateReport();
 	}
 	public void updateReport() {
-//		long t1 = System.currentTimeMillis();
+		// long t1 = System.currentTimeMillis();
 		String selectedHelper = ((TEntry) helperFilterComboBox.getSelectedItem()).getKey().toString();
 		String text = "<HTML>";
 		myHandHelper = adapter.getMyHandHelper();
@@ -274,6 +234,7 @@ public class PokerSimulator {
 		myGameStatsHelper = adapter.getMyGameStatsHelper();
 		if (myGameStatsHelper != null && selectedHelper.equals("MyGameStatsHelper")) {
 			String addinfo = "\nTable Position: " + getTablePosition() + "\n";
+			addinfo += "Current round: " + getCurrentRound() + "\n";
 			addinfo += "Call amount: " + getCallValue() + "\n";
 			addinfo += "Pot: " + getPotValue() + "\n";
 			addinfo += "Small blind: " + getSmallBlind() + "\n";
@@ -283,8 +244,8 @@ public class PokerSimulator {
 		}
 
 		infoJtextLabel.setText(text);
-//		infoJtextLabel.repaint();
-//		Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
+		infoJtextLabel.repaint();
+		// Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
 	}
 
 	/**
@@ -294,10 +255,11 @@ public class PokerSimulator {
 	 * @param scard - Standar string representation of a card
 	 * @return Card
 	 */
-	private Card createCardFromString(String scard) {
+	private Card createCardFromString(String card) {
 		Card car = null;
 		int suit = -1;
 		int rank = -1;
+		String scard = new String(card);
 
 		String srank = scard.substring(0, 1).toUpperCase();
 		rank = srank.equals("A") ? Card.ACE : rank;
@@ -325,9 +287,10 @@ public class PokerSimulator {
 		suit = scard.startsWith("d") ? Card.DIAMONDS : suit;
 		suit = scard.startsWith("h") ? Card.HEARTS : suit;
 
-		if (rank > 0 && suit > 0) {
+		if (rank > 0 && suit > 0)
 			car = new Card(rank, suit);
-		}
+		else
+			Hero.logger.warning("String " + card + " for card representation incorrect. Card not created");
 		return car;
 	}
 
@@ -340,18 +303,30 @@ public class PokerSimulator {
 	 * <li>5 for {@link PokerSimulator#RIVER}
 	 * </ul>
 	 */
-	private void createComunityCards(String... cards) {
-		// Create the community cards
-		Card[] ccars = new Card[cards.length];
+	private void createComunityCards() {
+		ArrayList<String> list = new ArrayList<>();
+		if (cardsBuffer.containsKey("flop1"))
+			list.add(cardsBuffer.get("flop1"));
+		if (cardsBuffer.containsKey("flop2"))
+			list.add(cardsBuffer.get("flop2"));
+		if (cardsBuffer.containsKey("flop3"))
+			list.add(cardsBuffer.get("flop3"));
+		if (cardsBuffer.containsKey("turn"))
+			list.add(cardsBuffer.get("turn"));
+		if (cardsBuffer.containsKey("river"))
+			list.add(cardsBuffer.get("river"));
+
+		Card[] ccars = new Card[list.size()];
 		for (int i = 0; i < ccars.length; i++) {
-			ccars[i] = createCardFromString(cards[i]);
+			ccars[i] = createCardFromString(list.get(i));
 		}
 		communityCards = new CommunityCards(ccars);
 
 		// set current round
-		currentRound = cards.length == 3 ? FLOP_CARDS_DEALT : currentRound;
-		currentRound = cards.length == 4 ? TURN_CARD_DEALT : currentRound;
-		currentRound = cards.length == 5 ? RIVER_CARD_DEALT : currentRound;
+		currentRound = ccars.length == 3 ? FLOP_CARDS_DEALT : currentRound;
+		currentRound = ccars.length == 4 ? TURN_CARD_DEALT : currentRound;
+		currentRound = ccars.length == 5 ? RIVER_CARD_DEALT : currentRound;
+		System.out.println(ccars.length +" "+currentRound);
 	}
 	/**
 	 * Create my cards
@@ -359,7 +334,9 @@ public class PokerSimulator {
 	 * @param c1 - String representation of card 1
 	 * @param c2 - String representation of card 2
 	 */
-	private void createHoleCards(String c1, String c2) {
+	private void createHoleCards() {
+		String c1 = cardsBuffer.get("hero.card1");
+		String c2 = cardsBuffer.get("hero.card2");
 		Card ca1 = createCardFromString(c1);
 		Card ca2 = createCardFromString(c2);
 		holeCards = new HoleCards(ca1, ca2);
@@ -389,10 +366,39 @@ public class PokerSimulator {
 		}
 		return "<TABLE>" + res + "</TABLE>";
 	}
-	private void runSimulation() throws SimulatorException {
 
-		adapter.runMySimulations(holeCards, communityCards, numSimPlayers, currentRound);
-		updateReport();
-		exception = null;
+	/**
+	 * perform the PokerProphesier simulation. Call this method when all the cards on the table has been setted using
+	 * {@link #addCard(String, String)} this method will create the {@link HoleCards} and the {@link CommunityCards} (if
+	 * is available). After the simulation, the adapters are updated and can be consulted and the report are up to date
+	 * 
+	 */
+	public void runSimulation() {
+		try {
+
+			// Set the simulator parameters
+
+			// TODO: check this parameters. maybe is better set off or change it during the game play because not all
+			// the
+			// time are true. for example, in a 6 villans pre flop game, i can.t assume set opp hole card realiytic is
+			// false, but in th turn, if a villan still in the battle, is set to true because maybe he got something
+			//
+			// or use this info comparing with the gameplayer history !!!!!!!!!!!!!
+			adapter.setMyOutsHoleCardSensitive(true);
+			adapter.setOppHoleCardsRealistic(true);
+			adapter.setOppProbMyHandSensitive(true);
+
+			createHoleCards();
+			createComunityCards();
+
+			adapter.runMySimulations(holeCards, communityCards, numSimPlayers, currentRound);
+			updateReport();
+		} catch (Exception e) {
+			Hero.logger.warning(e.getMessage() + "\n\tCurrent round: " + currentRound + "\n\tHole cards: " + holeCards
+					+ "\n\tComunity cards: " + communityCards);
+			// Hero.logger.warning(e.getMessage());
+			// System.err.println("hole cards " + ((myHoleCards == null) ? "(null)" : myHoleCards.toString())
+			// + " communityCards " + ((communityCards == null) ? "(null)" : communityCards.toString()));
+		}
 	}
 }

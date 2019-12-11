@@ -242,8 +242,7 @@ public class SensorsArray {
 
 		// ation areas
 		if (TYPE_ACTIONS.equals(type)) {
-			List<ScreenSensor> slist = allSensors.stream().filter(ss -> ss.isActionArea())
-					.collect(Collectors.toList());
+			List<ScreenSensor> slist = allSensors.stream().filter(ss -> ss.isActionArea()).collect(Collectors.toList());
 			seeSensors(true, slist);
 		}
 
@@ -274,10 +273,10 @@ public class SensorsArray {
 				if ((ss.isHoleCard() || ss.isComunityCard())) {
 					String ocr = ss.getOCR();
 					if (ocr != null)
-						// TODO: maybe a setCards method is better option
 						pokerSimulator.addCard(ss.getName(), ocr);
 				}
 			}
+			pokerSimulator.runSimulation();
 		}
 		Hero.logger.fine("average Tesseract OCR time: " + tesseractTime.getMean());
 		Hero.logger.fine("average ImageDiference OCR time: " + imageDiffereceTime.getMean());
@@ -357,7 +356,7 @@ public class SensorsArray {
 	}
 
 	private void setStandByBorder() {
-		screenSensors.values().stream().forEach(ss->ss.setBorder(standByBorder));
+		screenSensors.values().stream().forEach(ss -> ss.setBorder(standByBorder));
 	}
 
 	/**
@@ -371,14 +370,16 @@ public class SensorsArray {
 		for (ScreenSensor ss : calls) {
 			if (!blinds.contains(ss.getName())) {
 				int intocr = ss.getIntOCR();
-				blinds.put(ss.getName(), intocr);
+				// ignore errors or not available information
+				if (intocr > 0)
+					blinds.put(ss.getName(), intocr);
 			}
 		}
 		List<Integer> vals = new ArrayList<Integer>(blinds.values());
 		Collections.sort(vals);
 		int i = vals.size();
 		int sb = i > 0 ? vals.get(0) : -1;
-		int bb = i > 1 ? vals.get(1) : -1;
+		int bb = vals.stream().filter(ii -> ii>sb).mapToInt(ii->ii.intValue()).min().orElse(-1);
 		pokerSimulator.setBlinds(sb, bb);
 	}
 	/**
@@ -394,7 +395,7 @@ public class SensorsArray {
 		pokerSimulator.setTablePosition(tp);
 	}
 	/**
-	 * Create the array of sensors setted in the {@link ScreenAreas}. 
+	 * Create the array of sensors setted in the {@link ScreenAreas}.
 	 * <p>
 	 * dont use this method directly. use {@link Trooper#setEnviorement(DrawingPanel)}
 	 * 

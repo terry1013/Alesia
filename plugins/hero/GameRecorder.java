@@ -50,12 +50,13 @@ public class GameRecorder {
 		// header info
 		int tp = sensorsArray.getPokerSimulator().getTablePosition();
 		int vil = sensorsArray.getActiveSeats();
+		int sb = sensorsArray.getPokerSimulator().getSmallBlind();
 
 		// maybe the action finish in pre flop stage. the community card are null
 		CommunityCards cc = sensorsArray.getPokerSimulator().getCommunityCards();
 		String scc = cc == null ? "?" : cc.toString();
 
-		String row = vil + "|" + tp + "|<sv>|" + scc + "|";
+		String row = vil + "|" + tp + "|" + sb + "|" + scc + "|";
 		row += trooper.toString() + "|";
 		row += villans.stream().map(GamePlayer::toString).collect(Collectors.joining("|"));
 		Hero.logger.severe(row);
@@ -94,8 +95,8 @@ public class GameRecorder {
 		}
 
 		// trooper
-		trooper.card1 = sensorsArray.readAndGetOCR("hero.card1");
-		trooper.card2 = sensorsArray.readAndGetOCR("hero.card2");
+		trooper.card1 = sensorsArray.getScreenSensor("hero.card1").getOCR();
+		trooper.card2 = sensorsArray.getScreenSensor("hero.card2").getOCR();
 		if (action != null) {
 			trooper.actions.append(action.substring(0, 1));
 		}

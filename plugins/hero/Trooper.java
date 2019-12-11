@@ -35,8 +35,8 @@ import core.*;
  */
 public class Trooper extends Task {
 
-//	public static String WAITING = "waiting";
-//	public static String ACTIVE = "active";
+	// public static String WAITING = "waiting";
+	// public static String ACTIVE = "active";
 	private static Trooper instance;
 
 	private PokerSimulator pokerSimulator;
@@ -49,7 +49,6 @@ public class Trooper extends Task {
 	private File enviorement;
 	private long time1;
 	private DescriptiveStatistics outGameStats;
-	private DescriptiveStatistics blinds;
 	private boolean paused = false;
 	private double preflopProb = 0.20;
 	private long lastGetProbabilityLog;
@@ -67,8 +66,7 @@ public class Trooper extends Task {
 		this.robotActuator = new RobotActuator();
 		this.availableActions = new Vector();
 		this.outGameStats = new DescriptiveStatistics(10);
-//		this.trooperStatus = ACTIVE;
-		this.blinds = new DescriptiveStatistics(10);
+		// this.trooperStatus = ACTIVE;
 		this.sensorsArray = new SensorsArray();
 		this.pokerSimulator = sensorsArray.getPokerSimulator();
 		instance = this;
@@ -111,7 +109,7 @@ public class Trooper extends Task {
 
 		// only log 0 or positive expectative
 		if (poto >= 0)
-			Hero.logger.info("Pot odd for " + totp + " pot=" + pot + " " + name + "(" + val + ")=" + poto);
+			Hero.logger.info("Pot odd pot=" + pot + " " + name + "(" + val + ")=" + poto);
 		return poto;
 	}
 
@@ -164,7 +162,6 @@ public class Trooper extends Task {
 		robotActuator.setEnviorement(sDisp);
 		// gameRecorder = new GameRecorder(sensorsArray);
 		Hero.sensorsPanel.setEnviorement(this);
-		blinds.clear();
 	}
 
 	public void setTestMode(boolean isTestMode) {
@@ -213,22 +210,30 @@ public class Trooper extends Task {
 		// addAction("raise.pot;raise");
 		// }
 
-		int bb = (int) blinds.getMax();
-		int sb = (int) blinds.getMin();
-		Hero.logger.info("Small blind = " + sb + " Big blind = " + bb);
-		for (int c = 1; c < 11; c++) {
-			if (getPotOdds(call + (bb * c), "raise.slider" + c) >= 0) {
-				addAction("raise.slider,c=" + c + ";raise");
-			}
-		}
 		// TODO: temporal for TH: simulate allin
 		if (getPotOdds(chips, "hero chips") >= 0) {
 			addAction("raise.allin,c=10;raise");
 		}
+
+		// TODO: until now i.m goin to implement the slider performing click over the right side of the compoent.
+		// TODO: complete implementation of writhe the ammount for Poker star
+		int sb = pokerSimulator.getSmallBlind();
+		int bb = pokerSimulator.getBigBlind();
+
+		// check the variable. if the house rule is for call variable (remember call has -1 for invalid, 0 for check and
+		// positive for call) check the slider only for positive value
+		if (call > 0) {
+			for (int c = 1; c < 11; c++) {
+				// TODO: temporal for TH. every up button increament the call value
+				// TODO: move to house rules
+				if (getPotOdds(call + (call * c), "raise.slider" + c) >= 0) {
+					addAction("raise.slider,c=" + c + ";raise");
+				}
+			}
+		}
 	}
 	private void clearEnviorement() {
 		sensorsArray.init();
-		blinds.clear();
 		// at first time execution, a standar time of 10 second is used
 		long tt = time1 == 0 ? 10000 : System.currentTimeMillis() - time1;
 		outGameStats.addValue(tt);
@@ -356,7 +361,7 @@ public class Trooper extends Task {
 		if (isMyTurnToPlay() && availableActions.size() > 0) {
 			final StringBuffer actl = new StringBuffer();
 			availableActions.stream().forEach((act) -> actl.append(act + ", "));
-			Hero.logger.info("Available actions to perform: " + actl.substring(0, actl.length() - 2));
+			Hero.logger.fine("Available actions to perform: " + actl.substring(0, actl.length() - 2));
 			Hero.logger.info("Current hand: " + pokerSimulator.getMyHandHelper().getHand().toString());
 			String ha = "";
 			if (availableActions.size() == 1) {
@@ -372,7 +377,7 @@ public class Trooper extends Task {
 			robotActuator.perform(ha);
 			// if my last act was fold
 			if (ha.equals("fold")) {
-//				setTrooperStatus(WAITING);
+				// setTrooperStatus(WAITING);
 			}
 		}
 	}
@@ -393,8 +398,6 @@ public class Trooper extends Task {
 			}
 
 			sensorsArray.lookTable();
-
-			// retribe small blidn and big blidn
 			Hero.logger.info("---");
 
 			// look the continue button and perform the action if available.
@@ -406,7 +409,7 @@ public class Trooper extends Task {
 				gameRecorder = new GameRecorder(sensorsArray);
 				robotActuator.perform("continue");
 				clearEnviorement();
-//				setTrooperStatus(ACTIVE);
+				// setTrooperStatus(ACTIVE);
 				continue;
 			}
 
