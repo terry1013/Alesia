@@ -25,6 +25,7 @@ import org.jdesktop.application.*;
 import com.alee.laf.*;
 
 import core.*;
+import core.datasource.model.*;
 import gui.console.*;
 import net.sourceforge.tess4j.*;
 
@@ -44,6 +45,11 @@ public class Hero extends TPlugin {
 		logger = Logger.getLogger("Hero");
 		consolePanel = new ConsolePanel(logger);
 		new Trooper();
+
+		// TODO: warm the activelitte enviorement for futer use by the trooper. i dont know way i need to do this but
+		// works.
+		new GamesHistory();
+
 	}
 	public static Action getLoadAction() {
 		Action load = TActionsFactory.getAction("fileChooserOpen");
@@ -96,8 +102,8 @@ public class Hero extends TPlugin {
 	public void screenRegions(ActionEvent event) {
 		sensorsPanel = new SensorsPanel();
 		Alesia.getMainPanel().setContentPanel(sensorsPanel);
-		
-//		temporal
+
+		// temporal
 		Trooper.getInstance().setEnviorement(new File("plugins/hero/resources/th table new.ppt"));
 	}
 

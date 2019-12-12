@@ -17,7 +17,6 @@ import java.awt.event.*;
 import java.io.*;
 import java.sql.*;
 import java.util.*;
-import java.util.List;
 import java.util.logging.*;
 
 import javax.swing.*;
@@ -33,6 +32,7 @@ import org.apache.shiro.session.mgt.*;
 import org.apache.shiro.subject.*;
 import org.apache.shiro.util.*;
 import org.javalite.activejdbc.*;
+import org.javalite.activejdbc.connection_config.*;
 import org.jdesktop.application.*;
 
 import com.alee.extended.image.*;
@@ -56,6 +56,7 @@ import core.tasks.*;
 import gui.*;
 import gui.docking.*;
 import gui.wlaf.*;
+import plugins.hero.*;
 
 /**
  * Entrada aplicacion
@@ -63,7 +64,6 @@ import gui.wlaf.*;
  * @author Terry
  */
 public class Alesia extends Application {
-
 
 	public static TWebFrame mainFrame;
 	public static Logger logger;
@@ -100,9 +100,7 @@ public class Alesia extends Application {
 	public static void main(String[] args) {
 		Locale.setDefault(Locale.US);
 
-		// CoreSwingUtils.enableEventQueueLogging();
-
-		// Loggin configuration:
+		// Loggin configuration. this step is performed here for conbenence
 		// TODO: For slf4j: the bridge betwen slf4j is set using the slf4j-jdk14-1.7.25 jar lib
 		// for Apache: Set the system property
 		// For Alesia. look on the configuration file. if the file exist, i use it
@@ -119,6 +117,19 @@ public class Alesia extends Application {
 			}
 		}
 		logger.info("Wellcome to Alesia.");
+
+		// update alesia.propertyes to eviorement variables. this step is performed here for convenience
+		try {
+			Properties prp = new Properties();
+			prp.load(new FileInputStream(new File("Alesia.properties")));
+			Properties sysprp = System.getProperties();
+			prp.keySet().forEach(key -> sysprp.put(key, prp.get(key)));
+		} catch (Exception e) {
+			logger.log(Level.SEVERE, "Exception found loading propertys from file system.", e);
+			// ExceptionDialog.showDialog(e);
+			System.exit(-1);
+		}
+
 		Application.launch(Alesia.class, args);
 	}
 
@@ -229,7 +240,7 @@ public class Alesia extends Application {
 		// menu.add(new Exit());
 		// final PathSelector pcs = new PathSelector();
 	}
-
+	private static DB alesiaDB;
 	/**
 	 * try to connect to local database. this method determine if an instance of this app is already running. in this
 	 * case, send {@link TPreferences#REQUEST_MAXIMIZE} message throwout internal comunication file (_.properties file)
@@ -241,7 +252,23 @@ public class Alesia extends Application {
 		// System.getProperties().put("socketTimeout", 10 * 1000);
 		try {
 			logger.info("Connecting to local database ...");
-			ConnectionManager.connect();
+
+			// active jdbc properties
+			Properties activeprp = new Properties();
+			// TODO: convert to urls
+			File fp = new File(System.getProperty("Alesia.database.file.name"));
+			activeprp.load(new FileInputStream(fp));
+			// sysprp.put("activejdbc.url", activeprp.getProperty("AlesiaDatabase.url"));
+			// sysprp.put("activejdbc.user", activeprp.getProperty("AlesiaDatabase.username"));
+			// sysprp.put("activejdbc.password", activeprp.getProperty("AlesiaDatabase.password"));
+			// sysprp.put("activejdbc.driver", activeprp.getProperty("AlesiaDatabase.driver"));
+
+			ConnectionJdbcSpec spec = new ConnectionJdbcSpec(activeprp.getProperty("AlesiaDatabase.driver"),
+					activeprp.getProperty("AlesiaDatabase.url"), activeprp.getProperty("AlesiaDatabase.username"),
+					activeprp.getProperty("AlesiaDatabase.password"));
+			alesiaDB = new DB("AlesiaDatabase");
+			alesiaDB.open(spec);
+			System.setProperty("ACTIVE_ENV", "AlesiaDatabase");
 		} catch (Exception e) {
 			if (e instanceof InitException) {
 				SQLException se = (SQLException) e.getCause();
@@ -391,12 +418,12 @@ public class Alesia extends Application {
 		// Properties prp = System.getProperties();
 
 		TResources.init();
-		
-//		local storage configuration 
-//		File lf = new File("LocalStorage.txt").getParentFile();
-//		getContext().getLocalStorage().setDirectory(lf.getParentFile());
-//		
-//		getContext().getLocalStorage().se
+
+		// local storage configuration
+		// File lf = new File("LocalStorage.txt").getParentFile();
+		// getContext().getLocalStorage().setDirectory(lf.getParentFile());
+		//
+		// getContext().getLocalStorage().se
 
 		Font fo;
 		try {
@@ -416,6 +443,7 @@ public class Alesia extends Application {
 		new TActionsFactory();
 
 		connectToLocalDB();
+
 		newMsg = Applet.newAudioClip(TResources.getURL("newMsg.wav"));
 		errMsg = Applet.newAudioClip(TResources.getURL("errMsg.wav"));
 
@@ -462,7 +490,7 @@ public class Alesia extends Application {
 	protected void shutdown() {
 		logger.info("Preapering to leave the application ...");
 		SettingsManager.set(IS_RUNNING, false);
-		ConnectionManager.shutdown();
+		alesiaDB.close();
 		logger.info("Bye !!!");
 	}
 

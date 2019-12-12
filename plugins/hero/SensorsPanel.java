@@ -96,7 +96,7 @@ public class SensorsPanel extends TUIPanel {
 		this.trooper = trooper;
 
 		simulationDataPanel.removeAll();
-		simulationDataPanel.add(trooper.getSensorsArray().getPokerSimulator().getInfoJTextArea(), BorderLayout.CENTER);
+		simulationDataPanel.add(trooper.getSensorsArray().getPokerSimulator().getReportPanel(), BorderLayout.CENTER);
 		setSensorPanel();
 
 		// list of options to filter sensors

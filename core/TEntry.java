@@ -13,9 +13,19 @@ package core;
 import java.util.*;
 import java.util.Map.*;
 
+import javax.swing.*;
+
 /**
- * this class is a copy of {@link AbstractMap.SimpleEntry} class whit some modifications:
- * <li> {@link #toString()} method only return the string of the value object
+ * This class is a copy of {@link AbstractMap.SimpleEntry} with 2 main purposes
+ * <ul>
+ * <li>Simple convenience for easy acees from Alesia framework
+ * <li>{@link #toString()} method only return the string of the value object. This class is intented for simple list
+ * usage and for some UI component. Some times a key value pair is need for display the value and use the key. for
+ * examples, model for {@link JComboBox}.
+ * </ul>
+ * <p>
+ * TERRY DON.T MODIFY THIS CLASS. if you fell the necesity of modify this class is because you need a new aproach to
+ * solve the problem.
  *
  * @since 2.3
  */
@@ -100,9 +110,9 @@ public class TEntry<K, V> implements Entry<K, V>, java.io.Serializable {
 		return eq(key, e.getKey()) && eq(value, e.getValue());
 	}
 
-    private static boolean eq(Object o1, Object o2) {
-        return o1 == null ? o2 == null : o1.equals(o2);
-    }
+	private static boolean eq(Object o1, Object o2) {
+		return o1 == null ? o2 == null : o1.equals(o2);
+	}
 
 	/**
 	 * Returns the hash code value for this map entry. The hash code of a map entry {@code e} is defined to be:

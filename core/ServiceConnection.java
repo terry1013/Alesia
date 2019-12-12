@@ -30,25 +30,7 @@ public class ServiceConnection {
 	 */
 	public static synchronized ServiceResponse sendTransaction(ServiceRequest sr) {
 
-		// System.out.println(sr.getName() + ": " + sr.getTableName());
-		// desvio para datos generados internamente
-		if (sr.getName().equals(ServiceRequest.CLIENT_GENERATED_LIST)) {
-			ServiceResponse res = new ServiceResponse(sr.getData());
-			res.setParameters(sr.getParameters());
-			return res;
-		}
-		ServiceResponse resp = TransactionsUtilities.sendTransaction(sr);
-		Exception excep = (Exception) resp.getParameter(ServiceResponse.EXCEPTION);
-		if (excep != null) {
-			// intercepta y toma accion
-			if (excep instanceof ForeignKeySQLException) {
-				ExceptionDialog.showDialog(ExceptionDialog.WARNING,
-						TStringUtils.getString("action.delete.title"), excep.getMessage(), excep);
-			} else {
-				SystemLog.logException((Exception) resp.getParameter(ServiceResponse.EXCEPTION));
-			}
-		}
-		return resp;
+		return null;
 	}
 
 	/**

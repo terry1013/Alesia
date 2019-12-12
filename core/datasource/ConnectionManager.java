@@ -34,7 +34,7 @@ public class ConnectionManager {
 	private static Hashtable dbAccess = new Hashtable();
 	private static Vector dbTableFK = new Vector();
 
-	private static DB localDB;
+	public static DB localDB;
 
 	// private static AutoConnection autoC;
 

@@ -45,8 +45,8 @@ public class PokerSimulator {
 	private PokerProphesierAdapter adapter;
 	private int callValue, raiseValue, potValue;
 	private CommunityCards communityCards;
-	private JLabel infoJtextLabel;
-	private TUIPanel infoPanel;
+	private JLabel reportJLabel;
+	private TUIPanel reportPanel;
 	private int currentRound;
 	private HoleCards holeCards;
 	private int tablePosition;
@@ -74,12 +74,12 @@ public class PokerSimulator {
 		// helperFilterComboBox.addActionListener(evt -> filterSensors());
 		helperFilterComboBox.registerSettings(new Configuration<ComboBoxState>("PokerSimulator.HelperFilter"));
 
-		this.infoPanel = new TUIPanel();
-		infoPanel.showAditionalInformation(false);
-		infoPanel.getToolBarPanel().add(helperFilterComboBox);
-		this.infoJtextLabel = new JLabel();
-		infoJtextLabel.setVerticalAlignment(JLabel.TOP);
-		infoPanel.setBodyComponent(new JScrollPane(infoJtextLabel));
+		this.reportPanel = new TUIPanel();
+		reportPanel.showAditionalInformation(false);
+		reportPanel.getToolBarPanel().add(helperFilterComboBox);
+		this.reportJLabel = new JLabel();
+		reportJLabel.setVerticalAlignment(JLabel.TOP);
+		reportPanel.setBodyComponent(new JScrollPane(reportJLabel));
 
 		init();
 	}
@@ -123,8 +123,8 @@ public class PokerSimulator {
 	 * 
 	 * @return information component
 	 */
-	public JComponent getInfoJTextArea() {
-		return infoPanel;
+	public JComponent getReportPanel() {
+		return reportPanel;
 	}
 
 	public MyGameStatsHelper getMyGameStatsHelper() {
@@ -172,12 +172,16 @@ public class PokerSimulator {
 		// 190831: ya el sistema se esta moviendo. por lo menos hace fold !!!! :D estoy en el salon de clases del campo
 		// de refujiados en dresden !!!! ya van 2 meses
 		cardsBuffer.clear();
-		
-//		clear report and values like pot and other
-		adapter.
-		
-
+		potValue = -1;
+		tablePosition = -1;
+		smallBlind = -1;
+		bigBlind=-1;
+		callValue = -1;
+		raiseValue=-1;
+		heroChips = -1;
+		reportJLabel.setText("Poker simulator clean.");
 	}
+	
 	public void setBlinds(int sb, int bb) {
 		this.smallBlind = sb;
 		this.bigBlind = bb;
@@ -243,8 +247,8 @@ public class PokerSimulator {
 			text += "<h3>Game Statistics:" + allinfo;
 		}
 
-		infoJtextLabel.setText(text);
-		infoJtextLabel.repaint();
+		reportJLabel.setText(text);
+		reportJLabel.repaint();
 		// Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
 	}
 
@@ -326,7 +330,6 @@ public class PokerSimulator {
 		currentRound = ccars.length == 3 ? FLOP_CARDS_DEALT : currentRound;
 		currentRound = ccars.length == 4 ? TURN_CARD_DEALT : currentRound;
 		currentRound = ccars.length == 5 ? RIVER_CARD_DEALT : currentRound;
-		System.out.println(ccars.length +" "+currentRound);
 	}
 	/**
 	 * Create my cards

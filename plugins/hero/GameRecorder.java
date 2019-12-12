@@ -6,6 +6,9 @@ import java.util.stream.*;
 
 import com.javaflair.pokerprophesier.api.card.*;
 
+import core.*;
+import core.datasource.model.*;
+
 /**
  * This class record the game secuence and store the result in the games db file. instance of this class are dispached
  * when is the trooper turns to fight. all sensor information are stored inside of this class and this class silent
@@ -37,6 +40,7 @@ public class GameRecorder {
 		this.sensorsArray = sensorsArray;
 		this.trooper = new GamePlayer(0);
 		trooper.name = "trooper";
+		GamesHistory gh = new GamesHistory();
 	}
 
 	/**
@@ -51,15 +55,23 @@ public class GameRecorder {
 		int tp = sensorsArray.getPokerSimulator().getTablePosition();
 		int vil = sensorsArray.getActiveSeats();
 		int sb = sensorsArray.getPokerSimulator().getSmallBlind();
-
 		// maybe the action finish in pre flop stage. the community card are null
 		CommunityCards cc = sensorsArray.getPokerSimulator().getCommunityCards();
 		String scc = cc == null ? "?" : cc.toString();
 
-		String row = vil + "|" + tp + "|" + sb + "|" + scc + "|";
-		row += trooper.toString() + "|";
-		row += villans.stream().map(GamePlayer::toString).collect(Collectors.joining("|"));
-		Hero.logger.severe(row);
+		GamesHistory gh = new GamesHistory();
+		// gh.set("DATE", new Timestamp(System.currentTimeMillis()), "VILLANS", vil, "TABLE_POSITION", tp,
+		// "SMALL_BLIND",
+		gh.set("VILLANS", vil, "TABLE_POSITION", tp, "SMALL_BLIND", sb, "COMUNITY_CARDS", scc);
+
+		// String row = vil + "|" + tp + "|" + sb + "|" + scc + "|";
+		// row += trooper.toString() + "|";
+		// row += villans.stream().map(GamePlayer::toString).collect(Collectors.joining("|"));
+
+		gh.set("GAME_FLOW", villans.stream().map(GamePlayer::toString).collect(Collectors.joining("|")));
+		gh.set("WINNINGS", sensorsArray.getPokerSimulator().getPotValue());
+		Hero.logger.severe(gh.toMap().toString());
+
 	}
 
 	/**
