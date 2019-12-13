@@ -32,6 +32,7 @@ import org.apache.shiro.session.mgt.*;
 import org.apache.shiro.subject.*;
 import org.apache.shiro.util.*;
 import org.javalite.activejdbc.*;
+import org.javalite.activejdbc.Configuration;
 import org.javalite.activejdbc.connection_config.*;
 import org.jdesktop.application.*;
 
@@ -52,6 +53,7 @@ import com.alee.utils.*;
 import com.alee.utils.CollectionUtils;
 
 import core.datasource.*;
+import core.datasource.model.*;
 import core.tasks.*;
 import gui.*;
 import gui.docking.*;
@@ -133,6 +135,21 @@ public class Alesia extends Application {
 		Application.launch(Alesia.class, args);
 	}
 
+	/**
+	 * Convenient method to open the alesia local database connection using the system enviorement variables. call this
+	 * method to create or open a new database connection and attach these to {@link Thread} that invoke this method.
+	 * <p>
+	 * this method is intentet for javaLite imeplementation. this method relly in the javaLite internal storage that
+	 * determine if the connection name is aready opened. if is opened, just attach to the invoker thread
+	 */
+	public static void openDB() {
+		if (alesiaDB == null)
+			alesiaDB = new DB("AlesiaDatabase");
+		ConnectionJdbcSpec spec = new ConnectionJdbcSpec(System.getProperty("activejdbc.driver"),
+				System.getProperty("activejdbc.url"), System.getProperty("activejdbc.username"),
+				System.getProperty("activejdbc.password"));
+		alesiaDB.open(spec);
+	}
 	public static Hashtable<String, Object> showDialog(TUIFormPanel content, double withFactor, double heightFactor) {
 
 		// standar behavior: if the title of the tuipanel is visible, this method remove the string and put in as this
@@ -240,7 +257,7 @@ public class Alesia extends Application {
 		// menu.add(new Exit());
 		// final PathSelector pcs = new PathSelector();
 	}
-	private static DB alesiaDB;
+	public static DB alesiaDB;
 	/**
 	 * try to connect to local database. this method determine if an instance of this app is already running. in this
 	 * case, send {@link TPreferences#REQUEST_MAXIMIZE} message throwout internal comunication file (_.properties file)
@@ -253,22 +270,34 @@ public class Alesia extends Application {
 		try {
 			logger.info("Connecting to local database ...");
 
-			// active jdbc properties
+			// active jdbc propertie files pointed form main alesia property file
 			Properties activeprp = new Properties();
-			// TODO: convert to urls
+			// TODO: convert to urls to allow more access support ???
 			File fp = new File(System.getProperty("Alesia.database.file.name"));
 			activeprp.load(new FileInputStream(fp));
-			// sysprp.put("activejdbc.url", activeprp.getProperty("AlesiaDatabase.url"));
-			// sysprp.put("activejdbc.user", activeprp.getProperty("AlesiaDatabase.username"));
-			// sysprp.put("activejdbc.password", activeprp.getProperty("AlesiaDatabase.password"));
-			// sysprp.put("activejdbc.driver", activeprp.getProperty("AlesiaDatabase.driver"));
 
-			ConnectionJdbcSpec spec = new ConnectionJdbcSpec(activeprp.getProperty("AlesiaDatabase.driver"),
-					activeprp.getProperty("AlesiaDatabase.url"), activeprp.getProperty("AlesiaDatabase.username"),
-					activeprp.getProperty("AlesiaDatabase.password"));
-			alesiaDB = new DB("AlesiaDatabase");
-			alesiaDB.open(spec);
-			System.setProperty("ACTIVE_ENV", "AlesiaDatabase");
+			// i will load only active enviorement
+			String ae = activeprp.getProperty("active_env");
+			System.setProperty("active_env", ae);
+			System.setProperty("activejdbc.url", activeprp.getProperty(ae + ".url"));
+			System.setProperty("activejdbc.user", activeprp.getProperty(ae + ".username"));
+			System.setProperty("activejdbc.password", activeprp.getProperty(ae + ".password"));
+			System.setProperty("activejdbc.driver", activeprp.getProperty(ae + ".driver"));
+
+			openDB();
+			// ConnectionJdbcSpec spec = new ConnectionJdbcSpec(activeprp.getProperty("AlesiaDatabase.driver"),
+			// activeprp.getProperty("AlesiaDatabase.url"), activeprp.getProperty("AlesiaDatabase.username"),
+			// activeprp.getProperty("AlesiaDatabase.password"));
+			// alesiaDB = new DB("AlesiaDatabase");
+			// alesiaDB.open(spec);
+			// TODO: warm the activelitte enviorement for futer use by the trooper. i dont know way i need to do this
+			// but
+			// works.
+			// Base.open(activeprp.getProperty("AlesiaDatabase.driver"),
+			// activeprp.getProperty("AlesiaDatabase.url"), activeprp.getProperty("AlesiaDatabase.username"),
+			// activeprp.getProperty("AlesiaDatabase.password"));
+			// String jndi = activeprp.getProperty(ae + ".jndi");
+			// System.setProperty("activejdbc.jndi", jndi);
 		} catch (Exception e) {
 			if (e instanceof InitException) {
 				SQLException se = (SQLException) e.getCause();

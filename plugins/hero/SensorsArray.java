@@ -41,8 +41,18 @@ public class SensorsArray {
 	 * Read/see only text sensors, names of the villans mainly
 	 */
 	public final static String TYPE_TEXT = "Text";
+
 	/**
-	 * Read/see only cards areas
+	 * Read/see TODO: read only villans information (all)
+	 * 
+	 * @see #TYPE_CARDS
+	 */
+	public final static String TYPE_VILLANS = "Villans";
+
+	/**
+	 * Read/see only cards areas. this type is only for hero cards and comunity cards
+	 * 
+	 * @see #TYPE_VILLANS_CARDS
 	 */
 	public final static String TYPE_CARDS = "Cards";
 	/**
@@ -225,7 +235,7 @@ public class SensorsArray {
 	 */
 	public void lookTable() {
 		ArrayList<ScreenSensor> list = new ArrayList<>(screenSensors.values());
-		seeSensors(false, list);
+		readSensors(false, list);
 	}
 
 	/**
@@ -240,17 +250,24 @@ public class SensorsArray {
 	public void read(String type) {
 		Collection<ScreenSensor> allSensors = screenSensors.values();
 
+		// TODO: complete implementation
+		if (TYPE_VILLANS.equals(type)) {
+//			List<ScreenSensor> slist = allSensors.stream().filter(ss -> ss.getName().startsWith("villan"))
+//					.collect(Collectors.toList());
+//			readSensors(true, slist);
+		}
+
 		// ation areas
 		if (TYPE_ACTIONS.equals(type)) {
 			List<ScreenSensor> slist = allSensors.stream().filter(ss -> ss.isActionArea()).collect(Collectors.toList());
-			seeSensors(true, slist);
+			readSensors(true, slist);
 		}
 
 		// numeric types retrive all numers and update poker simulator
 		if (TYPE_NUMBERS.equals(type)) {
 			List<ScreenSensor> slist = allSensors.stream().filter(ss -> ss.isNumericArea())
 					.collect(Collectors.toList());
-			seeSensors(true, slist);
+			readSensors(true, slist);
 			updateTablePosition();
 			updateBlinds();
 			// TODO: Temporal for th: the pot is the previous pot value + all calls
@@ -268,7 +285,7 @@ public class SensorsArray {
 		// cards areas sensor will perform a simulation
 		if (TYPE_CARDS.equals(type)) {
 			List<ScreenSensor> slist = allSensors.stream().filter(ss -> ss.isCardArea()).collect(Collectors.toList());
-			seeSensors(true, slist);
+			readSensors(true, slist);
 			for (ScreenSensor ss : slist) {
 				if ((ss.isHoleCard() || ss.isComunityCard())) {
 					String ocr = ss.getOCR();
@@ -339,7 +356,7 @@ public class SensorsArray {
 	 * @see ScreenSensor#capture(boolean)
 	 * @since 2.3
 	 */
-	private void seeSensors(boolean read, List<ScreenSensor> list) {
+	private void readSensors(boolean read, List<ScreenSensor> list) {
 		setStandByBorder();
 		for (ScreenSensor ss : list) {
 			ss.setBorder(read ? readingBorder : lookingBorder);
@@ -379,7 +396,7 @@ public class SensorsArray {
 		Collections.sort(vals);
 		int i = vals.size();
 		int sb = i > 0 ? vals.get(0) : -1;
-		int bb = vals.stream().filter(ii -> ii>sb).mapToInt(ii->ii.intValue()).min().orElse(-1);
+		int bb = vals.stream().filter(ii -> ii > sb).mapToInt(ii -> ii.intValue()).min().orElse(-1);
 		pokerSimulator.setBlinds(sb, bb);
 	}
 	/**

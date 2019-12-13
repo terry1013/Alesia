@@ -185,38 +185,28 @@ public class PokerSimulator {
 	public void setBlinds(int sb, int bb) {
 		this.smallBlind = sb;
 		this.bigBlind = bb;
-		updateReport();
-
 	}
 	public void setCallValue(int callValue) {
 		this.callValue = callValue;
-		updateReport();
-
 	}
 	public void setHeroChips(int heroChips) {
 		this.heroChips = heroChips;
-		updateReport();
-
 	}
 	public void setNunOfPlayers(int p) {
 		this.numSimPlayers = p;
-		updateReport();
-
 	}
 	public void setPotValue(int potValue) {
 		this.potValue = potValue;
-		updateReport();
 	}
 	public void setRaiseValue(int raiseValue) {
 		this.raiseValue = raiseValue;
-		updateReport();
 	}
 	public void setTablePosition(int tp) {
 		this.tablePosition = tp;
-		updateReport();
 	}
 	public void updateReport() {
-		// long t1 = System.currentTimeMillis();
+		long t1 = System.currentTimeMillis();
+		reportJLabel.setVisible(false);
 		String selectedHelper = ((TEntry) helperFilterComboBox.getSelectedItem()).getKey().toString();
 		String text = "<HTML>";
 		myHandHelper = adapter.getMyHandHelper();
@@ -248,8 +238,9 @@ public class PokerSimulator {
 		}
 
 		reportJLabel.setText(text);
-		reportJLabel.repaint();
-		// Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
+		reportJLabel.setVisible(true);
+//		reportJLabel.repaint();
+Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
 	}
 
 	/**

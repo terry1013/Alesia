@@ -38,7 +38,6 @@ public class GamePlayer {
 		ScreenSensor nameSensor = array.getScreenSensor(prefix + ".name");
 
 		// TODO: temporal for th app. retrive the name only once when the background is black
-
 		if (name.equals(prefix) && nameSensor.getMaxColor().equals("000000")) {
 			nameSensor.capture(true);
 			name = nameSensor.getOCR();

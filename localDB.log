@@ -1,0 +1,19 @@
+/*C4*/SET SCHEMA PUBLIC
+INSERT INTO GAMEHISTORIES VALUES(5,'2019-12-13 10:07:00.130000',4,4,100,'Ah,Qh,2c,8s,5c','ANTONIO,10s,10h,?r:?b:?:?c|ARLYNE,?,?,?f:??:?:??|CARHINE,9s,Kd,?c:bc:b:b?|\ufb01AIl,?,?,cr:??:?:??','7200')
+COMMIT
+INSERT INTO GAMEHISTORIES VALUES(6,'2019-12-13 10:07:57.106000',4,3,100,'Kc,8s,2s,5d,Jh','villan1,10s,7h,?:?:?:??|villan2,?,?,?:?:?:??|villan3,?,?,?:?:?:??|HELEN,?,?,?:?:?:??','300')
+COMMIT
+INSERT INTO GAMEHISTORIES VALUES(7,'2019-12-13 10:08:27.945000',4,2,-1,'','villan1,?,?,ff|villan2,?,?,ff|villan3,?,?,ff|\ufb01AIl,?,?,cf','0')
+COMMIT
+INSERT INTO GAMEHISTORIES VALUES(8,'2019-12-13 10:09:25.064000',4,1,100,'3s,6s,4s','villan1,?,?,?:?bc|villan2,?,?,f:???|villan3,?,?,f:???|HELEN,?,?,c:?ff','2900')
+COMMIT
+INSERT INTO GAMEHISTORIES VALUES(9,'2019-12-13 10:10:20.918000',4,5,100,'Qc,Kh,2d,5s,2h','villan1,?,?,?:?:?:??|villan2,10s,6h,?:b:b:b?|villan3,?,?,f:?:?:??|E\ufb02ln,?,?,f:?:?:??','300')
+COMMIT
+INSERT INTO GAMEHISTORIES VALUES(10,'2019-12-13 10:11:56.392000',4,4,200,'Ts,7c,3h','villan1,7d,7d,?r:?r?|villan2,7d,7d,?r:ba?|villan3,7d,7d,?f:???|HELEN,7d,7d,ff:???','5200')
+COMMIT
+INSERT INTO GAMEHISTORIES VALUES(11,'2019-12-13 10:12:00.615000',4,-1,-1,'?','villan1,?,7d,?|villan2,?,7d,?|villan3,7d,7d,?|villan4,7d,7d,?','-1')
+COMMIT
+INSERT INTO GAMEHISTORIES VALUES(12,'2019-12-13 10:12:28.765000',4,4,-1,'Ts,7c,3h,3s,5d','villan1,9c,Qd,r:r:f|villan2,As,Qs,a:a:a|villan3,?,?,?:?:?|villan4,?,?,?:?:?','0')
+COMMIT
+INSERT INTO GAMEHISTORIES VALUES(13,'2019-12-13 10:12:59.685000',4,3,100,'','villan1,?,?,?f|villan2,?,?,?f|villan3,?,?,?f|villan4,?,?,?a','100')
+COMMIT

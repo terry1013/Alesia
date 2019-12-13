@@ -4,12 +4,14 @@ import java.io.*;
 import java.util.*;
 
 import org.apache.commons.math3.stat.descriptive.*;
+import org.javalite.activejdbc.*;
 import org.jdesktop.application.*;
 
 import com.javaflair.pokerprophesier.api.card.*;
 import com.javaflair.pokerprophesier.api.helper.*;
 
 import core.*;
+import core.datasource.model.*;
 
 /**
  * this class represent the core of al hero plugins. As a core class, this class dependes of anothers classes in order
@@ -383,6 +385,9 @@ public class Trooper extends Task {
 	}
 	@Override
 	protected Object doInBackground() throws Exception {
+
+		// ensure db connection on the current thread.
+		Alesia.openDB();
 
 		while (!isCancelled()) {
 			if (paused) {

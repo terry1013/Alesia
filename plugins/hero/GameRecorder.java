@@ -6,7 +6,6 @@ import java.util.stream.*;
 
 import com.javaflair.pokerprophesier.api.card.*;
 
-import core.*;
 import core.datasource.model.*;
 
 /**
@@ -40,7 +39,6 @@ public class GameRecorder {
 		this.sensorsArray = sensorsArray;
 		this.trooper = new GamePlayer(0);
 		trooper.name = "trooper";
-		GamesHistory gh = new GamesHistory();
 	}
 
 	/**
@@ -49,6 +47,8 @@ public class GameRecorder {
 	 * Call this method before a new enviorement or clean eviorement invocation.
 	 */
 	public void flush() {
+//		take a last look of the cards in case of showdown
+		sensorsArray.read(SensorsArray.TYPE_CARDS);
 		takeSnapShot(null);
 
 		// header info
@@ -60,18 +60,10 @@ public class GameRecorder {
 		String scc = cc == null ? "?" : cc.toString();
 
 		GamesHistory gh = new GamesHistory();
-		// gh.set("DATE", new Timestamp(System.currentTimeMillis()), "VILLANS", vil, "TABLE_POSITION", tp,
-		// "SMALL_BLIND",
 		gh.set("VILLANS", vil, "TABLE_POSITION", tp, "SMALL_BLIND", sb, "COMUNITY_CARDS", scc);
-
-		// String row = vil + "|" + tp + "|" + sb + "|" + scc + "|";
-		// row += trooper.toString() + "|";
-		// row += villans.stream().map(GamePlayer::toString).collect(Collectors.joining("|"));
-
 		gh.set("GAME_FLOW", villans.stream().map(GamePlayer::toString).collect(Collectors.joining("|")));
 		gh.set("WINNINGS", sensorsArray.getPokerSimulator().getPotValue());
-		Hero.logger.severe(gh.toMap().toString());
-
+		gh.save();
 	}
 
 	/**

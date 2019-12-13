@@ -20,6 +20,7 @@ import java.util.logging.*;
 import javax.swing.*;
 import javax.swing.Action;
 
+import org.javalite.activejdbc.*;
 import org.jdesktop.application.*;
 
 import com.alee.laf.*;
@@ -44,12 +45,7 @@ public class Hero extends TPlugin {
 		actionMap = Alesia.getInstance().getContext().getActionMap(this);
 		logger = Logger.getLogger("Hero");
 		consolePanel = new ConsolePanel(logger);
-		new Trooper();
-
-		// TODO: warm the activelitte enviorement for futer use by the trooper. i dont know way i need to do this but
-		// works.
-		new GamesHistory();
-
+		new Trooper();		
 	}
 	public static Action getLoadAction() {
 		Action load = TActionsFactory.getAction("fileChooserOpen");
