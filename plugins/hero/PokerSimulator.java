@@ -1,14 +1,19 @@
 package plugins.hero;
 
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.logging.*;
 
 import javax.swing.*;
 
+import com.alee.api.jdk.*;
 import com.alee.laf.combobox.*;
 import com.alee.managers.settings.*;
 import com.javaflair.pokerprophesier.api.adapter.*;
 import com.javaflair.pokerprophesier.api.card.*;
+import com.javaflair.pokerprophesier.api.exception.*;
 import com.javaflair.pokerprophesier.api.helper.*;
+import com.jgoodies.common.base.*;
 
 import core.*;
 import gui.*;
@@ -95,7 +100,7 @@ public class PokerSimulator {
 	 */
 	public void addCard(String sName, String card) {
 		cardsBuffer.put(sName, card);
-//		System.out.println(sName + " " + card);
+		// System.out.println(sName + " " + card);
 	}
 	public PokerProphesierAdapter getAdapter() {
 		return adapter;
@@ -175,13 +180,13 @@ public class PokerSimulator {
 		potValue = -1;
 		tablePosition = -1;
 		smallBlind = -1;
-		bigBlind=-1;
+		bigBlind = -1;
 		callValue = -1;
-		raiseValue=-1;
+		raiseValue = -1;
 		heroChips = -1;
 		reportJLabel.setText("Poker simulator clean.");
 	}
-	
+
 	public void setBlinds(int sb, int bb) {
 		this.smallBlind = sb;
 		this.bigBlind = bb;
@@ -204,26 +209,36 @@ public class PokerSimulator {
 	public void setTablePosition(int tp) {
 		this.tablePosition = tp;
 	}
+
 	public void updateReport() {
-		long t1 = System.currentTimeMillis();
+		Predicate<String> valgt0 = new Predicate<String>() {
+			@Override
+			public boolean test(String t) {
+				double d = new Double(t);
+				return d > 0;
+			}
+		};
+//		long t1 = System.currentTimeMillis();
 		reportJLabel.setVisible(false);
 		String selectedHelper = ((TEntry) helperFilterComboBox.getSelectedItem()).getKey().toString();
 		String text = "<HTML>";
 		myHandHelper = adapter.getMyHandHelper();
 		if (myHandHelper != null && selectedHelper.equals("MyHandHelper")) {
-			text += "<h3>My hand:" + getFormateTable(myHandHelper.toString(), "hand=", "communityCards=");
+			text += "<h3>My hand:" + getFormateTable(myHandHelper.toString());
 		}
 		myHandStatsHelper = adapter.getMyHandStatsHelper();
 		if (myHandStatsHelper != null && selectedHelper.equals("MyHandStatsHelper")) {
-			text += "<h3>My hand Statatistis:" + getFormateTable(myHandStatsHelper.toString());
+			String tmp = myHandStatsHelper.toString();
+			tmp = tmp.replaceFirst("[=]", ":");
+			text += "<h3>My hand Statatistis:" + getFormateTable(tmp, valgt0);
 		}
 		MyOutsHelper myOutsHelper = adapter.getMyOutsHelper();
 		if (myOutsHelper != null && selectedHelper.equals("MyOutsHelper")) {
-			text += "<h3>My Outs:" + getFormateTable(myOutsHelper.toString());
+			text += "<h3>My Outs:" + getFormateTable(myOutsHelper.toString(), str -> !Strings.isBlank(str));
 		}
 		OppHandStatsHelper oppHandStatsHelper = adapter.getOppHandStatsHelper();
 		if (oppHandStatsHelper != null && selectedHelper.equals("OppHandStatsHelper")) {
-			text += "<h3>Oponents hands:" + getFormateTable(oppHandStatsHelper.toString());
+			text += "<h3>Oponents hands:" + getFormateTable(oppHandStatsHelper.toString(), valgt0);
 		}
 		myGameStatsHelper = adapter.getMyGameStatsHelper();
 		if (myGameStatsHelper != null && selectedHelper.equals("MyGameStatsHelper")) {
@@ -239,8 +254,7 @@ public class PokerSimulator {
 
 		reportJLabel.setText(text);
 		reportJLabel.setVisible(true);
-//		reportJLabel.repaint();
-Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
+//		Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
 	}
 
 	/**
@@ -336,6 +350,7 @@ Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - 
 		holeCards = new HoleCards(ca1, ca2);
 		currentRound = HOLE_CARDS_DEALT;
 	}
+
 	/**
 	 * return a HTML table based on the <code>helperString</code> argument. the <code>only</code> paratemeter indicate a
 	 * filter of elemenst. If any line form helperstring argument star with a word form this list, the line is include
@@ -346,19 +361,20 @@ Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - 
 	 * 
 	 * @return HTML table
 	 */
-	private String getFormateTable(String helperString, String... only) {
+	private String getFormateTable(String helperString, Predicate<String> valueFilter) {
 		String[] hslines = helperString.split("\n");
 		String res = "";
-		List<String> onlys = Arrays.asList(only);
 		for (String lin : hslines) {
-			final String lin1 = lin;
-			long c = onlys.size() == 0 ? 1 : onlys.stream().filter(onl -> lin1.startsWith(onl)).count();
-			if (c > 0) {
+			final String[] k_v = lin.split("[:]");
+			if (valueFilter.test(k_v[1])) {
 				lin = "<TR><TD>" + lin + "</TD></TR>";
 				res += lin.replaceAll(": ", "</TD><TD>");
 			}
 		}
 		return "<TABLE>" + res + "</TABLE>";
+	}
+	private String getFormateTable(String helperString) {
+		return getFormateTable(helperString, s -> true);
 	}
 
 	/**
@@ -387,12 +403,11 @@ Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - 
 
 			adapter.runMySimulations(holeCards, communityCards, numSimPlayers, currentRound);
 			updateReport();
-		} catch (Exception e) {
+		} catch (SimulatorException e) {
 			Hero.logger.warning(e.getMessage() + "\n\tCurrent round: " + currentRound + "\n\tHole cards: " + holeCards
 					+ "\n\tComunity cards: " + communityCards);
-			// Hero.logger.warning(e.getMessage());
-			// System.err.println("hole cards " + ((myHoleCards == null) ? "(null)" : myHoleCards.toString())
-			// + " communityCards " + ((communityCards == null) ? "(null)" : communityCards.toString()));
+		} catch (Exception e) {
+			Hero.logger.log(Level.SEVERE, "", e);
 		}
 	}
 }

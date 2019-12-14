@@ -272,7 +272,7 @@ public class SensorsArray {
 			updateBlinds();
 			// TODO: Temporal for th: the pot is the previous pot value + all calls
 			int potInt = getScreenSensor("pot").getIntOCR();
-			potInt = blinds.values().stream().mapToInt(iv -> iv.intValue()).sum();
+			potInt = potInt + blinds.values().stream().mapToInt(iv -> iv.intValue()).sum();
 			pokerSimulator.setPotValue(potInt);
 			pokerSimulator.setCallValue(getScreenSensor("call").getIntOCR());
 			pokerSimulator.setHeroChips(getScreenSensor("hero.chips").getIntOCR());

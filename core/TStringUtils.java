@@ -34,7 +34,6 @@ public class TStringUtils {
 
 	private static SimpleDateFormat dateFormat = new SimpleDateFormat();
 	private static Random random = new Random();
-	private static NumberFormat formatter;
 
 	/**
 	 * init enviorement
@@ -52,7 +51,6 @@ public class TStringUtils {
 				e.printStackTrace();
 			}
 		}
-		formatter = getDecimalFormat();
 	}
 
 	/**
@@ -145,19 +143,6 @@ public class TStringUtils {
 		TEntry[] lte = (TEntry[]) lst.toArray(new TEntry[lst.size()]);
 		return lte;
 	}
-
-	/**
-	 * retorna instancia de <code>DecimalFormat</code> con valores basicos establecidos
-	 * 
-	 * @return instancia de DecimalFormat
-	 */
-	public static DecimalFormat getDecimalFormat() {
-		DecimalFormat decF = new DecimalFormat("#0.0#;-#0.0#");
-		decF.setMinimumFractionDigits(2);
-		decF.setMaximumFractionDigits(2);
-		return decF;
-	}
-
 	/**
 	 * return a hex representation of digested string that has been cypher by MD5 algorithm.
 	 * 
@@ -368,25 +353,6 @@ public class TStringUtils {
 		} catch (InterruptedException e) {
 		}
 		return Long.toHexString(mill);
-	}
-
-	/**
-	 * retorna una cadna de caracteres que convierte el tama;o en bytes pasado como argumento a Kb o Mb
-	 * 
-	 * @param s - tama;o en bytes
-	 * @return tama;o en Kb o Mb
-	 */
-	public static String formatSize(double s) {
-		double siz = 0;
-		String suf = " Kb";
-		if (s < 1024000) {
-			siz = s / 1024;
-			suf = " Kb";
-		} else {
-			siz = s / 1024000;
-			suf = " Mb";
-		}
-		return formatter.format(siz) + suf;
 	}
 
 	/**

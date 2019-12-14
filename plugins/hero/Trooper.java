@@ -1,17 +1,17 @@
 package plugins.hero;
 
 import java.io.*;
+import java.text.*;
 import java.util.*;
 
+import org.apache.commons.math3.distribution.*;
 import org.apache.commons.math3.stat.descriptive.*;
-import org.javalite.activejdbc.*;
 import org.jdesktop.application.*;
 
 import com.javaflair.pokerprophesier.api.card.*;
 import com.javaflair.pokerprophesier.api.helper.*;
 
 import core.*;
-import core.datasource.model.*;
 
 /**
  * this class represent the core of al hero plugins. As a core class, this class dependes of anothers classes in order
@@ -46,14 +46,13 @@ public class Trooper extends Task {
 	private SensorsArray sensorsArray;
 	private String trooperStatus;
 	private boolean isTestMode;
-	private Vector<String> availableActions;
+	private Hashtable<String, Double> availableActions;
 	private int countdown = 5;
 	private File enviorement;
 	private long time1;
 	private DescriptiveStatistics outGameStats;
 	private boolean paused = false;
-	private double preflopProb = 0.20;
-	private long lastGetProbabilityLog;
+	private double lastProbableValue;
 	/**
 	 * the game recorder is created only after the continue action. this avoid record incomplete sesion
 	 */
@@ -66,7 +65,7 @@ public class Trooper extends Task {
 	public Trooper(Trooper clone) {
 		super(Alesia.getInstance());
 		this.robotActuator = new RobotActuator();
-		this.availableActions = new Vector();
+		availableActions = new Hashtable<>();
 		this.outGameStats = new DescriptiveStatistics(10);
 		// this.trooperStatus = ACTIVE;
 		this.sensorsArray = new SensorsArray();
@@ -81,20 +80,48 @@ public class Trooper extends Task {
 	}
 
 	/**
-	 * Return the expectation of the pot odd against the <code>val</code> argument. This method cosider:
+	 * perform a random selection of the available actions. this method build a probability distribution and select
+	 * randmly a variate of that distribution. this is suboptimal because the objetive function already has the optimal
+	 * action to perfomr. but this behavior make the trooper visible to the villans that can use this informatiion for
+	 * trap or fool the troper.
+	 * <p>
+	 * the available actions and his values must be previous evaluated. The action value express the hihest expected
+	 * return.
+	 * 
+	 * TODO: take into account table position??
+	 * 
+	 * TODO: take into account numbers of active villans ??
+	 * 
+	 */
+	private String getSubOptimalAction() {
+		ArrayList<Double> vals = new ArrayList<>(availableActions.values());
+		int elements = vals.size();
+		double denom = vals.stream().mapToDouble(Double::doubleValue).sum();
+		int[] singletos = new int[elements];
+		double[] probabilities = new double[elements];
+		for (int i = 0; i < elements; i++) {
+			singletos[i] = i;
+			probabilities[i] = vals.get(i) / denom;
+		}
+		EnumeratedIntegerDistribution dist = new EnumeratedIntegerDistribution(singletos, probabilities);
+		ArrayList<String> keys = new ArrayList<>(availableActions.keySet());
+		String selact = keys.get(dist.sample());
+		return selact;
+	}
+	/**
+	 * Return the expectation of the pot odd against the <code>val</code> argument. to comply with rule 1, this method
+	 * perform:
 	 * <ul>
 	 * <li>for negative <code>val</code> argument, this method will return negative expectative in order to ensure fold
-	 * action
-	 * <li>for pot value = 0 (initial bet) this method return 0 expectative
+	 * action. this is a safe insurance agains posible read errors.
 	 * <li>for val = 0 (check) this method return 0 expectative
-	 * <li>for val < 0 (posible error) this method return negative expectative
 	 * </ul>
 	 * <h5>MoP page 54</h5>
 	 * 
 	 * @param val - cost of call/bet/raise/...
 	 * @param name - name os the action. Only for logging
 	 * 
-	 * @return expected pot odd
+	 * @return expected utility for the passed argument
 	 */
 	public double getPotOdds(int val, String name) {
 		int pot = pokerSimulator.getPotValue();
@@ -103,7 +130,7 @@ public class Trooper extends Task {
 		// MoP page 54
 		double poto = totp * pot - val;
 		// for pot=0 (initial bet) return 0 expectaive
-		poto = (pot == 0) ? 0 : poto;
+		// poto = (pot == 0) ? 0 : poto;
 		// for val=0 (check) return 0 expectaive
 		poto = (val == 0) ? 0 : poto;
 		// for val=-1 (posible error) return -1 expectaive
@@ -111,10 +138,10 @@ public class Trooper extends Task {
 
 		// only log 0 or positive expectative
 		if (poto >= 0)
-			Hero.logger.info("Pot odd pot=" + pot + " " + name + "(" + val + ")=" + poto);
+			Hero.logger.info("Pot odd pot=" + pot + " " + name + "(" + val + ")=" + fourDigitFormat.format(poto));
 		return poto;
 	}
-
+	private static DecimalFormat fourDigitFormat = new DecimalFormat("#0.0000");
 	public RobotActuator getRobotActuator() {
 		return robotActuator;
 	}
@@ -180,18 +207,51 @@ public class Trooper extends Task {
 	 * 
 	 * @param act - action
 	 */
-	private void addAction(String act) {
+	private void addAction(String act, double utility) {
 		// if the action is fold or the list already contain a fold action
 		if (act.equals("fold") || availableActions.contains("fold")) {
 			availableActions.clear();
 		}
 		availableActions.remove(act);
-		availableActions.add(act);
+		availableActions.put(act, utility);
 	}
 	/**
-	 * Compute the actions available according to {@link #getPotOdds(int)} evaluations. The resulting computation will
-	 * be reflected in a single (fold) or multiples (check/call, raise, ...) actions available to be randomy perform.
+	 * Compute the actions available according to {@link #getPotOdds(int, String)} evaluations. The resulting
+	 * computation will be reflected in a single (fold) or multiples (check/call, raise, ...) actions available to be
+	 * randomy perform.
+	 * <p>
+	 * for initial bet (pot = 0), the normal potodd equation return negative espectative, in this case, the trooper will
+	 * fold his hand. to avoid this, for initial bet, translate all negatives values to the positive contepart changing
+	 * the sigh and shift the values to reflect the inverse of the retrived value. this allow
+	 * {@link #getSubOptimalAction()} select the action for this espetial case.
 	 * 
+	 * TODO: the extreme values: fold=-1 and allin=x must be agree whit mathematical poker model to allow bluff.
+	 * 
+	 * <p>
+	 * Example: calculating the potodd for pot=0 will return: <code>
+	 * <TABLE>
+	 * <TR>
+	 * <TD>fold=-1</TD>
+	 * <TD>fold=1000</TD>
+	 * </TR>
+	 * <TR>
+	 * <TD>call(100)=-100</TD>
+	 * <TD>call(100)=200</TD>
+	 * </TR>
+	 * <TR>
+	 * <TD>raise(200)=-200</TD>
+	 * <TD>raise(200)=200</TD>
+	 * </TR>
+	 * <TR>
+	 * <TD>...</TD>
+	 * <TD>...</TD>
+	 * </TR>
+	 * <TR>
+	 * <TD>allin(1000)=-1000</TD>
+	 * <TD>allin(1000)=1</TD>
+	 * </TR>
+	 * </TABLE>
+	 * </code>
 	 */
 	private void addPotOddActions() {
 		sensorsArray.read(SensorsArray.TYPE_NUMBERS);
@@ -199,12 +259,15 @@ public class Trooper extends Task {
 		int raise = pokerSimulator.getRaiseValue();
 		int pot = pokerSimulator.getPotValue();
 		int chips = pokerSimulator.getHeroChips();
+		double utility = 0.0;
 
-		if (getPotOdds(call, "call") >= 0) {
-			addAction("call");
+		utility = getPotOdds(call, "call");
+		if (utility >= 0) {
+			addAction("call", utility);
 		}
-		if (getPotOdds(raise, "raise") >= 0) {
-			addAction("raise");
+		utility = getPotOdds(raise, "raise");
+		if (utility >= 0) {
+			addAction("raise", utility);
 		}
 
 		// TODO: temporal removed for TH because the raise.slider is in the same area
@@ -213,8 +276,9 @@ public class Trooper extends Task {
 		// }
 
 		// TODO: temporal for TH: simulate allin
-		if (getPotOdds(chips, "hero chips") >= 0) {
-			addAction("raise.allin,c=10;raise");
+		utility = getPotOdds(chips, "all in");
+		if (utility >= 0) {
+			addAction("raise.allin,c=10;raise", utility);
 		}
 
 		// TODO: until now i.m goin to implement the slider performing click over the right side of the compoent.
@@ -228,11 +292,33 @@ public class Trooper extends Task {
 			for (int c = 1; c < 11; c++) {
 				// TODO: temporal for TH. every up button increament the call value
 				// TODO: move to house rules
-				if (getPotOdds(call + (call * c), "raise.slider" + c) >= 0) {
-					addAction("raise.slider,c=" + c + ";raise");
+				utility = getPotOdds(call + (call * c), "raise.slider" + c);
+				if (utility >= 0) {
+					addAction("raise.slider,c=" + c + ";raise", utility);
 				}
 			}
 		}
+
+		// perform algorith for pot = 0. see method documentation
+		if (pot == 0) {
+			addAction("fold", -1);
+			// check all values must be negative values
+			Collection<Double> orgVals = availableActions.values();
+			long positives = orgVals.stream().mapToDouble(Double::doubleValue).filter(d -> d > 0).count();
+			if (positives > 0)
+				Hero.logger.severe("Positive EV found for pot =0. this is a error !?!?!?!");
+
+			ArrayList<Double> newlst = new ArrayList<>();
+			orgVals.stream().forEach(dv -> newlst.add(new Double(dv.doubleValue() * -1.0)));
+			Collections.rotate(newlst, newlst.size());
+			orgVals.clear();
+			newlst.forEach(dv -> orgVals.add(dv));
+		}
+
+		// if the list of available actions are empty, the only posible action todo now is fold
+		if (availableActions.size() == 0)
+			addAction("fold", -1);
+
 	}
 	private void clearEnviorement() {
 		sensorsArray.init();
@@ -248,22 +334,18 @@ public class Trooper extends Task {
 	 * {@link #addAction(String)} method
 	 */
 	private void decide() {
-		Hero.logger.info("--- Deciding... --------------------");
+		Hero.logger.info("Deciding...");
 		sensorsArray.read(SensorsArray.TYPE_CARDS);
 		int currentRound = pokerSimulator.getCurrentRound();
 		if (currentRound > PokerSimulator.NO_CARDS_DEALT) {
-			addAction("fold");
 			addPotOddActions();
 		}
 	}
 
 	/**
 	 * consult the {@link PokerSimulator} and retrive the hihest probability between gobal win probability or inprove
-	 * probability. This is a direct application of Rule 1. This method also override the probability acording to
-	 * diferent game round.
-	 * <p>
-	 * in preflop actions, this method sum {@link #preflopProb} to the selected probability to allow potodd room to
-	 * manouber
+	 * probability. This is a direct application of Rule 1. This probability is used in {@link #getPotOdds(int, String)}
+	 * function
 	 * 
 	 * @return the hights probability: win or inmprove hand
 	 */
@@ -274,39 +356,11 @@ public class Trooper extends Task {
 		float totp = inprove > actual ? inprove : actual;
 		String pnam = inprove > actual ? "Improve" : "Win";
 
-		// int villns = pokerSimulator.getNumSimPlayers() - 1;
-		if (pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
-			totp += preflopProb;
-			pnam = pnam + " + preflop increase " + preflopProb;
-		}
-		if (System.currentTimeMillis() - lastGetProbabilityLog > 1000) {
+		if (totp != lastProbableValue) {
 			Hero.logger.info(pnam + " probabiliyt=" + totp);
-			lastGetProbabilityLog = System.currentTimeMillis();
+			lastProbableValue = totp;
 		}
 		return totp;
-	}
-
-	/**
-	 * Action have agresiveness. fold has 0 agresiveness, check 1, call 2 and so on, this allow a numeric value for the
-	 * agresion. Some methods use this agresion to press the charge agains the oter players
-	 */
-	/**
-	 * this method increase the probability of chose an agresive action. This method take into accoun the diference
-	 * between the numbers of villans current active.
-	 * <p>
-	 * For all active villans (at the battle start) the probability of random select an action is uniform to all. At the
-	 * Head usp, the probaility of chose the mosts agresive options icrease
-	 * 
-	 * @param options
-	 * @return
-	 */
-	private String getRandomSelection() {
-		// int vills = sensorsArray.getVillans();
-		// int av = sensorsArray.getActivePlayers() - 1;
-		//
-		// double fact = Math.abs((av / vills) - 1) + 1;
-		// EnumeratedIntegerDistribution eid = new EnumeratedIntegerDistribution(data)
-		return null;
 	}
 
 	/**
@@ -353,26 +407,15 @@ public class Trooper extends Task {
 	}
 
 	/**
-	 * use de actions stored in {@link #availableActions} list. At this point, the game table is waiting for the herro
-	 * action.
-	 * <p>
-	 * this implenentation randomly select an action from the list and perfom it. if <code>fold</code> action is in the
-	 * list, this bust be the only action.
+	 * perform the action. At this point, the game table is waiting for the hero action.
+	 * 
+	 * TODO: complete documentation
 	 */
 	protected void act() {
 		if (isMyTurnToPlay() && availableActions.size() > 0) {
-			final StringBuffer actl = new StringBuffer();
-			availableActions.stream().forEach((act) -> actl.append(act + ", "));
-			Hero.logger.fine("Available actions to perform: " + actl.substring(0, actl.length() - 2));
+			Hero.logger.fine("Available actions to perform: " + availableActions.keySet().toString());
 			Hero.logger.info("Current hand: " + pokerSimulator.getMyHandHelper().getHand().toString());
-			String ha = "";
-			if (availableActions.size() == 1) {
-				ha = availableActions.elementAt(0);
-			} else {
-				double rnd = Math.random();
-				int r = (int) (rnd * availableActions.size());
-				ha = availableActions.elementAt(r);
-			}
+			String ha = getSubOptimalAction();
 			if (gameRecorder != null) {
 				gameRecorder.takeSnapShot(ha);
 			}
@@ -387,7 +430,12 @@ public class Trooper extends Task {
 	protected Object doInBackground() throws Exception {
 
 		// ensure db connection on the current thread.
-		Alesia.openDB();
+		try {
+			Alesia.openDB();
+		} catch (Exception e) {
+			// just a warning log because reiterated pause/stop/play can generate error re opening the connection
+			Hero.logger.warning(e.getMessage());
+		}
 
 		while (!isCancelled()) {
 			if (paused) {
@@ -403,7 +451,7 @@ public class Trooper extends Task {
 			}
 
 			sensorsArray.lookTable();
-			Hero.logger.info("---");
+			// Hero.logger.info("---");
 
 			// look the continue button and perform the action if available.
 			ScreenSensor ss = sensorsArray.getScreenSensor("continue");
