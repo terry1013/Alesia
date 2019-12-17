@@ -10,6 +10,7 @@ import org.jdesktop.application.*;
 
 import com.javaflair.pokerprophesier.api.card.*;
 import com.javaflair.pokerprophesier.api.helper.*;
+import com.jgoodies.common.base.*;
 
 import core.*;
 
@@ -20,15 +21,15 @@ import core.*;
  * <ul>
  * <li>{@link PokerSimulator} - get the numerical values for decition making
  * <li>{@link RobotActuator} - permorm the action sended by this class.
- * 
- * *
  * <li>{@link SensorsArray} - perform visual operation of the enviorement
- * 
+ * </ul>
  * <p>
- * RULES:
+ * RULE 1: hero is here to win money. So in order to do that, hero need to fight and stay in the table.
  * <ol>
- * <li>I came here to win money, and for win money i need to stay in the game. for that i choose the hihgest available
- * probability. it can be from inprove probability or from the global winning probability
+ * <li>This trooper implementation invest his chips only in calculated positive EV. the word FIGHT here means that in
+ * some cases, like pot=0 (initial bet and hero is the dealer) the EV function will return negative espectative even
+ * with pair of aces. For this particular case, the trooper will try to select the less worst negative EV.
+ * <li>to compute pot odd function, there is a metod who try to select the best probability for it
  * 
  * 
  * 
@@ -46,7 +47,7 @@ public class Trooper extends Task {
 	private SensorsArray sensorsArray;
 	private String trooperStatus;
 	private boolean isTestMode;
-	private Hashtable<String, Double> availableActions;
+	private Vector<TEntry<String, Double>> availableActions;
 	private int countdown = 5;
 	private File enviorement;
 	private long time1;
@@ -65,7 +66,7 @@ public class Trooper extends Task {
 	public Trooper(Trooper clone) {
 		super(Alesia.getInstance());
 		this.robotActuator = new RobotActuator();
-		availableActions = new Hashtable<>();
+		availableActions = new Vector<>();
 		this.outGameStats = new DescriptiveStatistics(10);
 		// this.trooperStatus = ACTIVE;
 		this.sensorsArray = new SensorsArray();
@@ -94,29 +95,24 @@ public class Trooper extends Task {
 	 * 
 	 */
 	private String getSubOptimalAction() {
-		ArrayList<Double> vals = new ArrayList<>(availableActions.values());
-		int elements = vals.size();
-		double denom = vals.stream().mapToDouble(Double::doubleValue).sum();
+		int elements = availableActions.size();
+		double denom = availableActions.stream().mapToDouble(te -> te.getValue().doubleValue()).sum();
 		int[] singletos = new int[elements];
 		double[] probabilities = new double[elements];
 		for (int i = 0; i < elements; i++) {
 			singletos[i] = i;
-			probabilities[i] = vals.get(i) / denom;
+			probabilities[i] = availableActions.get(i).getValue() / denom;
 		}
 		EnumeratedIntegerDistribution dist = new EnumeratedIntegerDistribution(singletos, probabilities);
-		ArrayList<String> keys = new ArrayList<>(availableActions.keySet());
-		String selact = keys.get(dist.sample());
+		String selact = availableActions.get(dist.sample()).getKey();
 		return selact;
 	}
 	/**
-	 * Return the expectation of the pot odd against the <code>val</code> argument. to comply with rule 1, this method
-	 * perform:
-	 * <ul>
-	 * <li>for negative <code>val</code> argument, this method will return negative expectative in order to ensure fold
-	 * action. this is a safe insurance agains posible read errors.
-	 * <li>for val = 0 (check) this method return 0 expectative
-	 * </ul>
+	 * Return the expectation of the pot odd against the <code>val</code> argument. to comply with rule 2, this method
+	 * retrive his probability from {@link #getProbability()}
+	 * 
 	 * <h5>MoP page 54</h5>
+	 * <p>
 	 * 
 	 * @param val - cost of call/bet/raise/...
 	 * @param name - name os the action. Only for logging
@@ -124,6 +120,8 @@ public class Trooper extends Task {
 	 * @return expected utility for the passed argument
 	 */
 	public double getPotOdds(int val, String name) {
+		Preconditions.checkArgument(val >= 0, "pot odd function accept only 0 or positive values.");
+
 		int pot = pokerSimulator.getPotValue();
 		double totp = getProbability();
 
@@ -132,13 +130,11 @@ public class Trooper extends Task {
 		// for pot=0 (initial bet) return 0 expectaive
 		// poto = (pot == 0) ? 0 : poto;
 		// for val=0 (check) return 0 expectaive
-		poto = (val == 0) ? 0 : poto;
+		// poto = (val == 0) ? 0 : poto;
 		// for val=-1 (posible error) return -1 expectaive
-		poto = (val < 0) ? -1 : poto;
+		// poto = (val < 0) ? -1 : poto;
 
-		// only log 0 or positive expectative
-		if (poto >= 0)
-			Hero.logger.info("Pot odd pot=" + pot + " " + name + "(" + val + ")=" + fourDigitFormat.format(poto));
+		Hero.logger.info("Pot odd pot=" + pot + " " + name + "(" + val + ")=" + fourDigitFormat.format(poto));
 		return poto;
 	}
 	private static DecimalFormat fourDigitFormat = new DecimalFormat("#0.0000");
@@ -200,32 +196,21 @@ public class Trooper extends Task {
 		this.trooperStatus = trooperStatus;
 	}
 	/**
-	 * add the action to the list of available actions. This metodh ensure:
-	 * <ul>
-	 * <li>the <code>fold</code> action is the only action on the list.
-	 * <li>only distict actions are present in the list.</li>
-	 * 
-	 * @param act - action
-	 */
-	private void addAction(String act, double utility) {
-		// if the action is fold or the list already contain a fold action
-		if (act.equals("fold") || availableActions.contains("fold")) {
-			availableActions.clear();
-		}
-		availableActions.remove(act);
-		availableActions.put(act, utility);
-	}
-	/**
 	 * Compute the actions available according to {@link #getPotOdds(int, String)} evaluations. The resulting
-	 * computation will be reflected in a single (fold) or multiples (check/call, raise, ...) actions available to be
-	 * randomy perform.
+	 * computation will be reflected in a list of actions with his expected values.
 	 * <p>
 	 * for initial bet (pot = 0), the normal potodd equation return negative espectative, in this case, the trooper will
-	 * fold his hand. to avoid this, for initial bet, translate all negatives values to the positive contepart changing
-	 * the sigh and shift the values to reflect the inverse of the retrived value. this allow
-	 * {@link #getSubOptimalAction()} select the action for this espetial case.
+	 * fold his hand. to avoid this, translate all negatives values to the positive contepart changing the sigh and
+	 * shift the values to reflect the inverse of the retrived value. this allow {@link #getSubOptimalAction()} select
+	 * the less worst action for this espetial case.
+	 * <p>
+	 * this method also remove negative ev if there exist positive ev. this is because most of the times, there are more
+	 * negative EV than positives ones, if i translate the function to the positive cuadrant to allow posible agressive
+	 * actions violate the main purporse of this implementation. so, until now, i just remove them.
 	 * 
-	 * TODO: the extreme values: fold=-1 and allin=x must be agree whit mathematical poker model to allow bluff.
+	 * 
+	 * TODO: maybe implement some kind of threshold to alow 1 more action (bluff) TODO: the extreme values: fold=-1 and
+	 * allin=x must be agree whit mathematical poker model to allow bluff.
 	 * 
 	 * <p>
 	 * Example: calculating the potodd for pot=0 will return: <code>
@@ -259,15 +244,12 @@ public class Trooper extends Task {
 		int raise = pokerSimulator.getRaiseValue();
 		int pot = pokerSimulator.getPotValue();
 		int chips = pokerSimulator.getHeroChips();
-		double utility = 0.0;
 
-		utility = getPotOdds(call, "call");
-		if (utility >= 0) {
-			addAction("call", utility);
+		if (call >= 0) {
+			availableActions.add(new TEntry<String, Double>("call", getPotOdds(call, "call")));
 		}
-		utility = getPotOdds(raise, "raise");
-		if (utility >= 0) {
-			addAction("raise", utility);
+		if (raise >= 0) {
+			availableActions.add(new TEntry<String, Double>("raise", getPotOdds(raise, "raise")));
 		}
 
 		// TODO: temporal removed for TH because the raise.slider is in the same area
@@ -276,9 +258,8 @@ public class Trooper extends Task {
 		// }
 
 		// TODO: temporal for TH: simulate allin
-		utility = getPotOdds(chips, "all in");
-		if (utility >= 0) {
-			addAction("raise.allin,c=10;raise", utility);
+		if (chips >= 0) {
+			availableActions.add(new TEntry<String, Double>("raise.allin,c=10;raise", getPotOdds(chips, "all in")));
 		}
 
 		// TODO: until now i.m goin to implement the slider performing click over the right side of the compoent.
@@ -292,36 +273,46 @@ public class Trooper extends Task {
 			for (int c = 1; c < 11; c++) {
 				// TODO: temporal for TH. every up button increament the call value
 				// TODO: move to house rules
-				utility = getPotOdds(call + (call * c), "raise.slider" + c);
-				if (utility >= 0) {
-					addAction("raise.slider,c=" + c + ";raise", utility);
-				}
+				int tick = call + (call * c);
+				availableActions.add(new TEntry<String, Double>("raise.slider,c=" + c + ";raise",
+						getPotOdds(tick, "raise.slider" + c)));
+			}
+		}
+
+		// remove negative values from +/- ev list of actions.
+		long zeroOrPos = availableActions.stream().mapToDouble(te -> te.getValue().doubleValue()).filter(d -> d >= 0)
+				.count();
+		long negatives = availableActions.size() - zeroOrPos;
+		if (pot > 0) {
+			if (negatives > 0) {
+				Vector<TEntry<String, Double>> neglist = new Vector<>();
+				availableActions.forEach(te -> {
+					if (te.getValue() < 0)
+						neglist.add(te);
+				});
+				availableActions.removeAll(neglist);
 			}
 		}
 
 		// perform algorith for pot = 0. see method documentation
 		if (pot == 0) {
-			addAction("fold", -1);
-			// check all values must be negative values
-			Collection<Double> orgVals = availableActions.values();
-			long positives = orgVals.stream().mapToDouble(Double::doubleValue).filter(d -> d > 0).count();
-			if (positives > 0)
-				Hero.logger.severe("Positive EV found for pot =0. this is a error !?!?!?!");
+			availableActions.add(new TEntry<String, Double>("fold", -1.0));
 
-			ArrayList<Double> newlst = new ArrayList<>();
-			orgVals.stream().forEach(dv -> newlst.add(new Double(dv.doubleValue() * -1.0)));
-			Collections.rotate(newlst, newlst.size());
-			orgVals.clear();
-			newlst.forEach(dv -> orgVals.add(dv));
+			availableActions.forEach(te -> te.setValue(te.getValue() * -1.0));
+			Collections.rotate(availableActions, availableActions.size());
 		}
+
+		// TODO: order list ???
 
 		// if the list of available actions are empty, the only posible action todo now is fold
 		if (availableActions.size() == 0)
-			addAction("fold", -1);
+			availableActions.add(new TEntry<String, Double>("fold", -1.0));
 
+		Hero.logger.info(availableActions.toString());
 	}
 	private void clearEnviorement() {
 		sensorsArray.init();
+		availableActions.clear();
 		// at first time execution, a standar time of 10 second is used
 		long tt = time1 == 0 ? 10000 : System.currentTimeMillis() - time1;
 		outGameStats.addValue(tt);
@@ -344,9 +335,9 @@ public class Trooper extends Task {
 
 	/**
 	 * consult the {@link PokerSimulator} and retrive the hihest probability between gobal win probability or inprove
-	 * probability. This is a direct application of Rule 1. This probability is used in {@link #getPotOdds(int, String)}
-	 * function
+	 * probability.
 	 * 
+	 * @see #getPotOdds(int, String)
 	 * @return the hights probability: win or inmprove hand
 	 */
 	private double getProbability() {
@@ -413,7 +404,7 @@ public class Trooper extends Task {
 	 */
 	protected void act() {
 		if (isMyTurnToPlay() && availableActions.size() > 0) {
-			Hero.logger.fine("Available actions to perform: " + availableActions.keySet().toString());
+			Hero.logger.fine("Available actions to perform: " + availableActions.toString());
 			Hero.logger.info("Current hand: " + pokerSimulator.getMyHandHelper().getHand().toString());
 			String ha = getSubOptimalAction();
 			if (gameRecorder != null) {

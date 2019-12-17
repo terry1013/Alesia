@@ -1,12 +1,11 @@
 package plugins.hero;
 
 import java.util.*;
-import java.util.function.Predicate;
+import java.util.function.*;
 import java.util.logging.*;
 
 import javax.swing.*;
 
-import com.alee.api.jdk.*;
 import com.alee.laf.combobox.*;
 import com.alee.managers.settings.*;
 import com.javaflair.pokerprophesier.api.adapter.*;
@@ -218,7 +217,7 @@ public class PokerSimulator {
 				return d > 0;
 			}
 		};
-//		long t1 = System.currentTimeMillis();
+		// long t1 = System.currentTimeMillis();
 		reportJLabel.setVisible(false);
 		String selectedHelper = ((TEntry) helperFilterComboBox.getSelectedItem()).getKey().toString();
 		String text = "<HTML>";
@@ -254,7 +253,7 @@ public class PokerSimulator {
 
 		reportJLabel.setText(text);
 		reportJLabel.setVisible(true);
-//		Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
+		// Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
 	}
 
 	/**
@@ -268,6 +267,10 @@ public class PokerSimulator {
 		Card car = null;
 		int suit = -1;
 		int rank = -1;
+
+		// todo temporal for detect weird error on the icoming card=null argument
+		if (card == null)
+			Hero.logger.severe("------------------------------------");
 		String scard = new String(card);
 
 		String srank = scard.substring(0, 1).toUpperCase();
@@ -300,6 +303,7 @@ public class PokerSimulator {
 			car = new Card(rank, suit);
 		else
 			Hero.logger.warning("String " + card + " for card representation incorrect. Card not created");
+
 		return car;
 	}
 
