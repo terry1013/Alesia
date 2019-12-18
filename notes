@@ -15,3 +15,6 @@ slider:		allow hero fine selecction of the amount to raise. the tick value is th
  
  HOUSE rules:
  - ths value of the slider increase tick can be $raise $bigblind or $small blind
+ 
+	populate the dicctionary with all numbers in fractions of small and big blinds. example.
+	if sb = 50 bb = 100, this list will be 50,100,50,200,250 ......

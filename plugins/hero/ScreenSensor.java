@@ -12,7 +12,6 @@ import javax.swing.*;
 import com.alee.utils.*;
 
 import core.*;
-import gui.jgoodies.*;
 import net.sourceforge.tess4j.*;
 import net.sourceforge.tess4j.util.*;
 
@@ -271,7 +270,9 @@ public class ScreenSensor extends JPanel {
 		String elin = "<FONT COLOR=" + ecol + "\">" + etex + "</FONT>";
 
 		String text = "<html><B>" + getName() + "</B>  " + elin + "<br>White %: " + whitePercent
-				+ "<br>Max color: <FONT COLOR=\"#" + maxc + "\"><B>" + maxc + "</B></FONT>" + "<br>OCR: " + ocrResult
+		// + "<br>Max color: <FONT style= \"background-color: #"+maxc +"\"><B>" + maxc + "</B></FONT>" + "<br>OCR: " +
+		// ocrResult
+				+ "<br>Max color: <B style= \"color: #" + maxc + "\">" + maxc + "</B>" + "<br>OCR: " + ocrResult
 				+ "</html>";
 		dataLabel.setText(text);
 	}
@@ -329,27 +330,16 @@ public class ScreenSensor extends JPanel {
 		/*
 		 * Perform ocr operation. the ocr operation is performed only if the current captured image is diferent to the
 		 * last imagen used for ocr operation. This avoid multiple ocr operations over the same image.
+		 * 
 		 */
 		if (doOcr) {
-			if ((lastOcrImage == null)
-					|| (lastOcrImage != null && getImageDiferences(lastOcrImage, capturedImage, 100) > 0)) {
-				doOCR();
-				lastOcrImage = capturedImage;
-			}
+			// if ((lastOcrImage == null)
+			// || (lastOcrImage != null && getImageDiferences(lastOcrImage, capturedImage, 100) > 0)) {
+			doOCR();
+			// lastOcrImage = capturedImage;
+			// }
 		}
 		update();
-	}
-
-	public static JPanel getSwingComponent(ScreenSensor sensor) {
-		ListItemView liv = new ListItemView(ListItemView.DOUBLE_LINE);
-		liv.setPrimaryText(sensor.getName());
-		liv.setNumber(sensor.isEnabled() ? "Enabled" : "Disabled");
-
-		liv.setSecondaryText(sensor.getOCR());
-		liv.setNumberUnit("W% " + sensor.getWhitePercent());
-
-		liv.setTertiaryText(sensor.getMaxColor());
-		return null;
 	}
 
 	public double getWhitePercent() {
@@ -424,8 +414,9 @@ public class ScreenSensor extends JPanel {
 		exception = null;
 		ocrResult = null;
 		preparedImage = null;
+		lastOcrImage = null;
 		capturedImage = null;
-//		TODO: put somethin to difierentiate the init status form others status
+		// TODO: put somethin to difierentiate the init status form others status
 		imageLabel.setIcon(null);
 		setToolTipText("");
 		setEnabled(false);
@@ -496,9 +487,9 @@ public class ScreenSensor extends JPanel {
 	 * @throws TesseractException
 	 */
 	private String getTesseractOCR() throws TesseractException {
-		regions = Hero.iTesseract.getSegmentedRegions(preparedImage, pageIteratorLevel);
+		// regions = Hero.iTesseract.getSegmentedRegions(preparedImage, pageIteratorLevel);
 		ocrResult = Hero.iTesseract.doOCR(preparedImage);
-		List<Word> wlst = Hero.iTesseract.getWords(preparedImage, pageIteratorLevel);
+//		List<Word> wlst = Hero.iTesseract.getWords(preparedImage, pageIteratorLevel);
 
 		// draw segmented regions (only on prepared image)
 		if (preparedImage != null) {
@@ -511,7 +502,9 @@ public class ScreenSensor extends JPanel {
 				}
 			}
 		}
-		Hero.logger.finer(getName() + ": Tesseract OCR performed. Regions: " + regions.size() + " OCR=" + ocrResult);
+//		Hero.logger.finer(getName() + ": list of words: " + wlst);
+		Hero.logger.finer(getName() + ": Tesseract OCR performed. OCR=" + ocrResult);
+		// Hero.logger.finer(getName() + ": Tesseract OCR performed. Regions: " + regions.size() + " OCR=" + ocrResult);
 
 		return OCRCorrection(this);
 	}

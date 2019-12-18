@@ -267,10 +267,6 @@ public class PokerSimulator {
 		Card car = null;
 		int suit = -1;
 		int rank = -1;
-
-		// todo temporal for detect weird error on the icoming card=null argument
-		if (card == null)
-			Hero.logger.severe("------------------------------------");
 		String scard = new String(card);
 
 		String srank = scard.substring(0, 1).toUpperCase();

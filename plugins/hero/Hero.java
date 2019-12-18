@@ -20,13 +20,11 @@ import java.util.logging.*;
 import javax.swing.*;
 import javax.swing.Action;
 
-import org.javalite.activejdbc.*;
 import org.jdesktop.application.*;
 
 import com.alee.laf.*;
 
 import core.*;
-import core.datasource.model.*;
 import gui.console.*;
 import net.sourceforge.tess4j.*;
 
@@ -39,13 +37,22 @@ public class Hero extends TPlugin {
 	protected static Logger logger;
 
 	public Hero() {
+
+		// TODO: no visible performance improve by setting every sensor with his own teseract instance
 		iTesseract = new Tesseract(); // JNA Interface Mapping
 		iTesseract.setDatapath("plugins/hero/tessdata"); // path to tessdata directory
+
+		// DON:T SET THE PAGEMODE VAR: THIS DESTROY THE ACURACY OF THE OCR OPERATION. i don.t know why but it is
+		// iTesseract.setPageSegMode(3); //
+
+		// TODO: recheck performanece. no visible performance improve setting this variable
+		// iTesseract.setOcrEngineMode(0); // Run Tesseract only - fastest
+
 		// iTesseract.setLanguage("pok");
 		actionMap = Alesia.getInstance().getContext().getActionMap(this);
 		logger = Logger.getLogger("Hero");
 		consolePanel = new ConsolePanel(logger);
-		new Trooper();		
+		new Trooper();
 	}
 	public static Action getLoadAction() {
 		Action load = TActionsFactory.getAction("fileChooserOpen");
@@ -108,7 +115,7 @@ public class Hero extends TPlugin {
 		actionMap.get("testTrooper").setEnabled(true);
 		actionMap.get("runTrooper").setEnabled(true);
 		actionMap.get("pauseTrooper").setEnabled(true);
-		Trooper.getInstance().cancel(false);
+		Trooper.getInstance().cancel(true);
 	}
 
 	@org.jdesktop.application.Action
