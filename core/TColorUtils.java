@@ -292,18 +292,30 @@ public class TColorUtils {
 	}
 
 	/**
-	 * Return the Color that has most presence or more frequent in the image.
+	 * Return the {@link Color} that has most presence or is more frequent in the image.
 	 * 
-	 * @param image - source image
+	 * @param image - Source image
+	 * 
 	 * @return the most frequent color
 	 */
 	public static Color getMaxColor(BufferedImage image) {
 		Hashtable<Integer, Integer> histo = getHistogram(image);
-		Vector<Integer> ks = new Vector<>(histo.keySet());
+		return getMaxColor(histo);
+	}
+
+	/**
+	 * Count the values inside the histogram argument an return the {@link Color} that is more present.
+	 * 
+	 * @param histogram - histogram to count
+	 * 
+	 * @return color who is more present
+	 */
+	public static Color getMaxColor(Hashtable<Integer, Integer> histogram) {
+		Vector<Integer> ks = new Vector<>(histogram.keySet());
 		int max = -1;
 		int color = Color.pink.getRGB(); // if no color is present, return pink
 		for (Integer col : ks) {
-			int cnt = histo.get(col);
+			int cnt = histogram.get(col);
 			if (max < cnt) {
 				max = cnt;
 				color = col;
@@ -335,13 +347,26 @@ public class TColorUtils {
 	/**
 	 * Return the percentage of white color present in the image <code>image</code>
 	 * 
-	 * @param image - image o scan
+	 * @param image - image to scan
 	 * @return white color percentage
 	 */
 	public static double getWhitePercent(BufferedImage image) {
 		Hashtable<Integer, Integer> histo = getHistogram(image);
-		float tot = image.getWidth() * image.getHeight();
-		int wcnt = histo.get(0xFFFFFFFF) == null ? 0 : histo.get(0xFFFFFFFF); // pure white WHIT ALPHA
+		return getWhitePercent(histo, image.getWidth(), image.getHeight());
+	}
+
+	/**
+	 * Compute the percentege of pure {@link Color#WHITE} present in the histogram argument.
+	 * 
+	 * @param histogram - histogram of the image
+	 * @param imageW - image width
+	 * @param imageH - image height
+	 * 
+	 * @return % of white color present in the image
+	 */
+	public static double getWhitePercent(Hashtable<Integer, Integer> histogram, int imageW, int imageH) {
+		float tot = imageW * imageH;
+		int wcnt = histogram.get(0xFFFFFFFF) == null ? 0 : histogram.get(0xFFFFFFFF); // pure white WHIT ALPHA
 		double d = (wcnt / tot * 100);
 		int t = (int) (d * 100); // decimal reduction
 		return t / 100d;

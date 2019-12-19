@@ -3,9 +3,11 @@ package plugins.hero;
 import java.io.*;
 import java.text.*;
 import java.util.*;
+import java.util.stream.*;
 
 import org.apache.commons.math3.distribution.*;
 import org.apache.commons.math3.stat.descriptive.*;
+import org.apache.poi.hsmf.parsers.*;
 import org.jdesktop.application.*;
 
 import com.javaflair.pokerprophesier.api.card.*;
@@ -127,14 +129,12 @@ public class Trooper extends Task {
 
 		// MoP page 54
 		double poto = totp * pot - val;
-		// for pot=0 (initial bet) return 0 expectaive
-		// poto = (pot == 0) ? 0 : poto;
-		// for val=0 (check) return 0 expectaive
-		// poto = (val == 0) ? 0 : poto;
-		// for val=-1 (posible error) return -1 expectaive
-		// poto = (val < 0) ? -1 : poto;
 
-		Hero.logger.info("Pot odd pot=" + pot + " " + name + "(" + val + ")=" + fourDigitFormat.format(poto));
+		// the final pot odd from the previous equation is multip by a new function based on the table position and the
+		// curren street. this modification alllow adjust the odds accordin to the enviorement making more dimanic. the
+		// general idea is allow hero go in or fold his cards acording to the enviorment.
+		
+		Hero.logger.info("Pot odds: pot=" + pot + " " + name + "(" + val + ")=" + fourDigitFormat.format(poto));
 		return poto;
 	}
 	private static DecimalFormat fourDigitFormat = new DecimalFormat("#0.0000");
@@ -183,6 +183,7 @@ public class Trooper extends Task {
 		ScreenAreas sDisp = new ScreenAreas(file);
 		sDisp.read();
 		this.enviorement = file;
+		this.availableActions.clear();
 		sensorsArray.createSensorsArray(sDisp);
 		robotActuator.setEnviorement(sDisp);
 		// gameRecorder = new GameRecorder(sensorsArray);
@@ -240,13 +241,15 @@ public class Trooper extends Task {
 	 */
 	private void addPotOddActions() {
 		sensorsArray.read(SensorsArray.TYPE_NUMBERS);
+		availableActions.clear();
 		int call = pokerSimulator.getCallValue();
 		int raise = pokerSimulator.getRaiseValue();
 		int pot = pokerSimulator.getPotValue();
 		int chips = pokerSimulator.getHeroChips();
 
 		if (call >= 0) {
-			availableActions.add(new TEntry<String, Double>("call", getPotOdds(call, "call")));
+			String an = call == 0 ? "check" : "call";
+			availableActions.add(new TEntry<String, Double>("call", getPotOdds(call, an)));
 		}
 		if (raise >= 0) {
 			availableActions.add(new TEntry<String, Double>("raise", getPotOdds(raise, "raise")));
@@ -308,8 +311,13 @@ public class Trooper extends Task {
 		if (availableActions.size() == 0)
 			availableActions.add(new TEntry<String, Double>("fold", -1.0));
 
-		Hero.logger.info(availableActions.toString());
+		String key = "Pot odd actions";
+		String val = availableActions.stream().map(te -> te.getKey() + "=" + fourDigitFormat.format(te.getValue()))
+				.collect(Collectors.joining(", "));
+		Hero.logger.info(key + " " + val);
+		pokerSimulator.setVariable(key, val);
 	}
+
 	private void clearEnviorement() {
 		sensorsArray.init();
 		availableActions.clear();
@@ -327,6 +335,10 @@ public class Trooper extends Task {
 	private void decide() {
 		Hero.logger.info("Deciding...");
 		sensorsArray.read(SensorsArray.TYPE_CARDS);
+		String key = "Current hand";
+		String value = pokerSimulator.getMyHandHelper().getHand().toString();
+		pokerSimulator.setVariable(key, value);
+		Hero.logger.info(key + " " + value);
 		int currentRound = pokerSimulator.getCurrentRound();
 		if (currentRound > PokerSimulator.NO_CARDS_DEALT) {
 			addPotOddActions();
@@ -348,7 +360,10 @@ public class Trooper extends Task {
 		String pnam = inprove > actual ? "Improve" : "Win";
 
 		if (totp != lastProbableValue) {
-			Hero.logger.info(pnam + " probabiliyt=" + totp);
+			String key = "Trooper probability";
+			String val = fourDigitFormat.format(totp);
+			pokerSimulator.setVariable(key, val);
+			Hero.logger.info(key + " " + pnam + "=" + val);
 			lastProbableValue = totp;
 		}
 		return totp;
@@ -404,8 +419,10 @@ public class Trooper extends Task {
 	 */
 	protected void act() {
 		if (isMyTurnToPlay() && availableActions.size() > 0) {
-			Hero.logger.fine("Available actions to perform: " + availableActions.toString());
-			Hero.logger.info("Current hand: " + pokerSimulator.getMyHandHelper().getHand().toString());
+			// String aa = availableActions.stream().map(te -> te.getKey() + "=" + te.getValue())
+			// .collect(Collectors.joining(", "));
+			// Hero.logger.info("Available actions to perform: " + aa);
+			// Hero.logger.info("Current hand: " + pokerSimulator.getMyHandHelper().getHand().toString());
 			String ha = getSubOptimalAction();
 			if (gameRecorder != null) {
 				gameRecorder.takeSnapShot(ha);

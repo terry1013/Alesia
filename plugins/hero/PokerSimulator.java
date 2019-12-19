@@ -3,6 +3,7 @@ package plugins.hero;
 import java.util.*;
 import java.util.function.*;
 import java.util.logging.*;
+import java.util.stream.*;
 
 import javax.swing.*;
 
@@ -46,6 +47,7 @@ public class PokerSimulator {
 	// number of players
 	private int numSimPlayers = 5;
 
+	private Hashtable<String, String> variableList;
 	private PokerProphesierAdapter adapter;
 	private int callValue, raiseValue, potValue;
 	private CommunityCards communityCards;
@@ -67,6 +69,7 @@ public class PokerSimulator {
 		// Create an adapter to communicate with the simulator
 		this.adapter = new PokerProphesierAdapter();
 		adapter.setNumSimulations(numSimulations);
+		variableList = new Hashtable<>();
 
 		// information components
 		helperFilterComboBox = new WebComboBox();
@@ -173,6 +176,7 @@ public class PokerSimulator {
 		this.currentRound = NO_CARDS_DEALT;
 		holeCards = null;
 		communityCards = null;
+		variableList.clear();
 		// 190831: ya el sistema se esta moviendo. por lo menos hace fold !!!! :D estoy en el salon de clases del campo
 		// de refujiados en dresden !!!! ya van 2 meses
 		cardsBuffer.clear();
@@ -186,6 +190,10 @@ public class PokerSimulator {
 		reportJLabel.setText("Poker simulator clean.");
 	}
 
+	public void setVariable(String key, String value) {
+		variableList.put(key, value);
+		updateReport();
+	}
 	public void setBlinds(int sb, int bb) {
 		this.smallBlind = sb;
 		this.bigBlind = bb;
@@ -237,7 +245,7 @@ public class PokerSimulator {
 		}
 		OppHandStatsHelper oppHandStatsHelper = adapter.getOppHandStatsHelper();
 		if (oppHandStatsHelper != null && selectedHelper.equals("OppHandStatsHelper")) {
-			text += "<h3>Oponents hands:" + getFormateTable(oppHandStatsHelper.toString(), valgt0);
+			text += "<h3>Villans hands:" + getFormateTable(oppHandStatsHelper.toString(), valgt0);
 		}
 		myGameStatsHelper = adapter.getMyGameStatsHelper();
 		if (myGameStatsHelper != null && selectedHelper.equals("MyGameStatsHelper")) {
@@ -247,6 +255,8 @@ public class PokerSimulator {
 			addinfo += "Pot: " + getPotValue() + "\n";
 			addinfo += "Small blind: " + getSmallBlind() + "\n";
 			addinfo += "Big blind: " + getBigBlind() + "\n";
+			addinfo += variableList.keySet().stream().map(key -> key + ": " + variableList.get(key))
+					.collect(Collectors.joining("\n"));
 			String allinfo = getFormateTable(myGameStatsHelper.toString() + addinfo);
 			text += "<h3>Game Statistics:" + allinfo;
 		}

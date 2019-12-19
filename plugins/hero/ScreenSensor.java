@@ -32,14 +32,12 @@ public class ScreenSensor extends JPanel {
 	public static String IMAGE_CARDS = "plugins/hero/image_cards/";
 	private static Hashtable<String, BufferedImage> cardsTable = ScreenSensor.loadImages(IMAGE_CARDS);
 	private Shape shape;
-	private List<Rectangle> regions;
 	private SensorsArray sensorsArray;
-	private int pageIteratorLevel = TessAPI.TessPageIteratorLevel.RIL_WORD;
 	private int scaledWidth, scaledHeight;
 	private boolean showCapturedImage;
 	private Color maxColor;
 	private double whitePercent;
-	private BufferedImage preparedImage, capturedImage, lastOcrImage;
+	private BufferedImage preparedImage, capturedImage;
 	private Exception exception;
 	private JLabel dataLabel;
 	private JLabel imageLabel;
@@ -56,18 +54,19 @@ public class ScreenSensor extends JPanel {
 		dataLabel.setFont(new Font("courier new", Font.PLAIN, 12));
 		setName(shape.name);
 
-		// TODO: test all shape normalized to 20px font size equivaled (hight)
-		double ratio = (float) shape.bounds.width / (float) shape.bounds.height;
-		// this.scaledHeight = 60;
-		// this.scaledWidth = (int) (scaledHeight * ratio);
-
-		this.scaledWidth = (int) (shape.bounds.width * 2.5);
-		this.scaledHeight = (int) (shape.bounds.height * 2.5);
+		// the scale factor form a image taked from the screen at 96dpi to the optimal image resolution 300dpi.
+		// Teste but no visible acuracy detected against the 2.5 factor. leave only because look like the correct
+		// procedure.
+		int dpi = 300;
+		float scale = dpi / 96;
+		this.scaledWidth = (int) (shape.bounds.width * scale);
+		this.scaledHeight = (int) (shape.bounds.height * scale);
 
 		showCapturedImage(true);
 
-		// standar: image at leaf, data center
-		// if ratio is > 2. the component aling are vertical (image at top, data center
+		// standar: image at left, data at center
+		// if ratio is > 2. the component aling are vertical (image at top, data at center)
+		double ratio = (float) shape.bounds.width / (float) shape.bounds.height;
 		add(imageLabel, ratio > 2 ? BorderLayout.NORTH : BorderLayout.WEST);
 		add(dataLabel, BorderLayout.CENTER);
 		update();
@@ -207,35 +206,30 @@ public class ScreenSensor extends JPanel {
 	}
 
 	/**
-	 * perform custom corrections. this metod is called during the OCR operation. the result returned from this method
-	 * will be setted as final OCR of the {@link ScreenSensor} instance
+	 * perform custom corrections accordint of the name or type of sensor. for example, for call sensor is spected this
+	 * correction retrive only the numeric value from the second line, ignoring the "call" text
 	 * 
-	 * @param ss - instance of {@link ScreenSensor} to fix the ocr
-	 * @see #replaceWhitNumbers(String)
-	 * @return - new text
 	 */
-	public static String OCRCorrection(ScreenSensor ss) {
-		String ocr = ss.getOCR();
+	private String OCRCorrection(String srcocd) {
 
 		// call sensors
-		if (TStringUtils.wildCardMacher(ss.getName(), "*.call")) {
-			ocr = ocr.replaceAll("\\s", "");
-			ocr = replaceWhitNumbers(ocr);
-			return ocr;
+		if (TStringUtils.wildCardMacher(getName(), "*.call")) {
+			srcocd = srcocd.replaceAll("\\s", "");
+			srcocd = replaceWhitNumbers(srcocd);
 		}
 
 		// for call/rise sensors,set the ocr only of the retrive numerical value
-		if (ss.getName().equals("call") || ss.getName().equals("raise")) {
-			String vals[] = ocr.split("\\n");
-			ocr = "0";
+		if (getName().equals("call") || getName().equals("raise")) {
+			String vals[] = srcocd.split("\\n");
+			srcocd = "0";
 			if (vals.length > 1) {
-				ocr = replaceWhitNumbers(vals[1]);
+				srcocd = replaceWhitNumbers(vals[1]);
 			}
 		}
 
 		// standar procedure: remove all blanks caracters
-		ocr = ocr.replaceAll("\\s", "");
-		return ocr;
+		srcocd = srcocd.replaceAll("\\s", "");
+		return srcocd;
 	}
 
 	/**
@@ -246,7 +240,7 @@ public class ScreenSensor extends JPanel {
 	 * @param ocrString - posible nomeric value with leters
 	 * @return string only numeric
 	 */
-	public static String replaceWhitNumbers(String ocrString) {
+	private static String replaceWhitNumbers(String ocrString) {
 		String rstr = ocrString.replace("z", "2");
 		rstr = rstr.replace("Z", "2");
 		rstr = rstr.replace("o", "0");
@@ -259,30 +253,6 @@ public class ScreenSensor extends JPanel {
 		return rstr;
 	}
 
-	private void update() {
-		BufferedImage sel = showCapturedImage ? capturedImage : preparedImage;
-		if (sel != null)
-			imageLabel.setIcon(new ImageIcon(sel));
-		String maxc = maxColor == null ? "000000" : getMaxColor();
-
-		String ecol = isEnabled() ? "GREEN" : "GRAY";
-		String etex = isEnabled() ? "Enabled" : "Disabled";
-		String elin = "<FONT COLOR=" + ecol + "\">" + etex + "</FONT>";
-
-		String text = "<html><B>" + getName() + "</B>  " + elin + "<br>White %: " + whitePercent
-		// + "<br>Max color: <FONT style= \"background-color: #"+maxc +"\"><B>" + maxc + "</B></FONT>" + "<br>OCR: " +
-		// ocrResult
-				+ "<br>Max color: <B style= \"color: #" + maxc + "\">" + maxc + "</B>" + "<br>OCR: " + ocrResult
-				+ "</html>";
-		dataLabel.setText(text);
-	}
-
-	public boolean isTextArea() {
-		return shape.isOCRTextArea;
-	}
-	public boolean isNumericArea() {
-		return shape.isOCRNumericArea;
-	}
 	/**
 	 * Capture the region of the screen specified by this sensor. this method is executed at diferent levels acording to
 	 * the retrived information from the screen. The <code>doOcr</code> argument idicate the desire for retrive ocr from
@@ -311,7 +281,7 @@ public class ScreenSensor extends JPanel {
 			capturedImage = sensorsArray.getRobot().createScreenCapture(bou);
 		}
 		/*
-		 * color reducction or image treatment before OCR operation or enable/disable action
+		 * color reducction or image treatment before OCR operation or enable/disable action: mandatory for all
 		 */
 		prepareImage();
 
@@ -327,11 +297,6 @@ public class ScreenSensor extends JPanel {
 		}
 		setEnabled(true);
 
-		/*
-		 * Perform ocr operation. the ocr operation is performed only if the current captured image is diferent to the
-		 * last imagen used for ocr operation. This avoid multiple ocr operations over the same image.
-		 * 
-		 */
 		if (doOcr) {
 			// if ((lastOcrImage == null)
 			// || (lastOcrImage != null && getImageDiferences(lastOcrImage, capturedImage, 100) > 0)) {
@@ -342,9 +307,6 @@ public class ScreenSensor extends JPanel {
 		update();
 	}
 
-	public double getWhitePercent() {
-		return whitePercent;
-	}
 	/**
 	 * Return the image captureds by this sensor area. The captured image is the exact image retribed from the
 	 * enviorement without any treatment
@@ -354,11 +316,9 @@ public class ScreenSensor extends JPanel {
 	public BufferedImage getCapturedImage() {
 		return capturedImage;
 	}
-
 	public Exception getException() {
 		return exception;
 	}
-
 	/**
 	 * Return the int value from this sensor. Some sensor has only numerical information or text/numerical information.
 	 * acording to this, this method will return that numerical information (if is available) or -1 if not. Also, -1 is
@@ -403,9 +363,6 @@ public class ScreenSensor extends JPanel {
 		return ocrTime;
 	}
 
-	public BufferedImage getPreparedImage() {
-		return preparedImage;
-	}
 	/**
 	 * init this sensor variables. use this method to clean for a fresh start
 	 * 
@@ -414,7 +371,6 @@ public class ScreenSensor extends JPanel {
 		exception = null;
 		ocrResult = null;
 		preparedImage = null;
-		lastOcrImage = null;
 		capturedImage = null;
 		// TODO: put somethin to difierentiate the init status form others status
 		imageLabel.setIcon(null);
@@ -433,6 +389,7 @@ public class ScreenSensor extends JPanel {
 	public boolean isActionArea() {
 		return shape.isActionArea;
 	}
+
 	public boolean isCardArea() {
 		return shape.isCardArea;
 	}
@@ -458,6 +415,35 @@ public class ScreenSensor extends JPanel {
 		String sn = getName();
 		return sn.startsWith("hero.card");
 	}
+	public boolean isNumericArea() {
+		return shape.isOCRNumericArea;
+	}
+
+	public boolean isTextArea() {
+		return shape.isOCRTextArea;
+	}
+
+	/**
+	 * set for this sensor that draw the original caputured image or the prepared image. this method affect only the
+	 * visual representation of the component.
+	 * <p>
+	 * WARNING: displaying prepared images will invoke more method on the {@link Tesseract} OCR api engine. this will
+	 * decrease the system performance 4x.
+	 * 
+	 * @param so - <code>true</code> to draw the original caputred image
+	 */
+	public void showCapturedImage(boolean so) {
+		this.showCapturedImage = so;
+		// show prepared or original
+		if (so) {
+			// plus 2 of image border
+			imageLabel.setPreferredSize(new Dimension(shape.bounds.width + 2, shape.bounds.height + 2));
+		} else {
+			// plus 2 of image border
+			imageLabel.setPreferredSize(new Dimension(scaledWidth + 2, scaledHeight + 2));
+			Hero.logger.warning("Showing the prepared will decrease the system performance.");
+		}
+	}
 
 	/**
 	 * Central method to get OCR operations. This method clear and re sets the ocr and exception variables according to
@@ -465,7 +451,6 @@ public class ScreenSensor extends JPanel {
 	 */
 	private void doOCR() {
 		long t1 = System.currentTimeMillis();
-		regions = null;
 		ocrResult = null;
 		exception = null;
 		try {
@@ -478,35 +463,6 @@ public class ScreenSensor extends JPanel {
 			Hero.logger.severe(getName() + ": Fail trying doOCR " + e);
 		}
 		ocrTime = (int) (System.currentTimeMillis() - t1);
-	}
-	/**
-	 * Perform tesseract ocr operation for generic areas.
-	 * 
-	 * @return the string recogniyed by tesseract
-	 * 
-	 * @throws TesseractException
-	 */
-	private String getTesseractOCR() throws TesseractException {
-		// regions = Hero.iTesseract.getSegmentedRegions(preparedImage, pageIteratorLevel);
-		ocrResult = Hero.iTesseract.doOCR(preparedImage);
-//		List<Word> wlst = Hero.iTesseract.getWords(preparedImage, pageIteratorLevel);
-
-		// draw segmented regions (only on prepared image)
-		if (preparedImage != null) {
-			Graphics2D g2d = (Graphics2D) preparedImage.getGraphics();
-			g2d.setColor(Color.BLUE);
-			if (regions != null) {
-				for (int i = 0; i < regions.size(); i++) {
-					Rectangle region = regions.get(i);
-					g2d.drawRect(region.x, region.y, region.width, region.height);
-				}
-			}
-		}
-//		Hero.logger.finer(getName() + ": list of words: " + wlst);
-		Hero.logger.finer(getName() + ": Tesseract OCR performed. OCR=" + ocrResult);
-		// Hero.logger.finer(getName() + ": Tesseract OCR performed. Regions: " + regions.size() + " OCR=" + ocrResult);
-
-		return OCRCorrection(this);
 	}
 	/**
 	 * return the String representation of the card area by comparing the {@link ScreenSensor#getCapturedImage()} image
@@ -539,20 +495,52 @@ public class ScreenSensor extends JPanel {
 
 		return ocr;
 	}
+	/**
+	 * Perform tesseract ocr operation for generic areas.
+	 * 
+	 * @return the string recogniyed by tesseract
+	 * 
+	 * @throws TesseractException
+	 */
+	private String getTesseractOCR() throws TesseractException {
+		String srcocr = Hero.iTesseract.doOCR(preparedImage);
+
+		// draw segmented regions (only on prepared image) and ONLY when the prepared image is request tobe visible
+		if (!showCapturedImage && preparedImage != null) {
+			int pageIteratorLevel = TessAPI.TessPageIteratorLevel.RIL_WORD;
+			// List<Word> wlst = Hero.iTesseract.getWords(preparedImage, pageIteratorLevel);
+			List<Rectangle> regions = Hero.iTesseract.getSegmentedRegions(preparedImage, pageIteratorLevel);
+			Graphics2D g2d = (Graphics2D) preparedImage.getGraphics();
+			g2d.setColor(Color.BLUE);
+			if (regions != null) {
+				for (int i = 0; i < regions.size(); i++) {
+					Rectangle region = regions.get(i);
+					g2d.drawRect(region.x, region.y, region.width, region.height);
+				}
+			}
+			// Hero.logger.finer(getName() + ": list of words: " + wlst);
+			// Hero.logger.finer(getName() + ": Tesseract OCR performed. Regions: " + regions.size() + " OCR=" +
+			// srcocr);
+		}
+		Hero.logger.finer(getName() + ": Tesseract OCR performed. Raw OCR whitout correction=" + srcocr);
+		return OCRCorrection(srcocr);
+	}
 
 	/**
-	 * perform image operation to set globals variables relatet whit the image previous to OCR, color count operations.
-	 * acording to the tipe of area that this sensor represent, the underling image can be transformed in diferent ways.
+	 * perform image operation to set globals variables relatet with the image previous to OCR, color count operations.
+	 * acording to the type of area that this sensor represent, the underling image can be transformed in diferent ways.
 	 * <p>
-	 * This method set the {@link #preparedImage}
+	 * This method set the {@link #preparedImage}, {@link #maxColor} and {@link #whitePercent} global variables
 	 * 
 	 */
 	private void prepareImage() {
 
-		// update global variable
+		// update global variable. this step is mandatory for all areas because maxcolor and white percent affect the
+		// flow of the entire class
 		BufferedImage bufimg = TColorUtils.convert4(capturedImage);
-		this.maxColor = TColorUtils.getMaxColor(bufimg);
-		this.whitePercent = TColorUtils.getWhitePercent(bufimg);
+		Hashtable<Integer, Integer> histo = TColorUtils.getHistogram(bufimg);
+		this.maxColor = TColorUtils.getMaxColor(histo);
+		this.whitePercent = TColorUtils.getWhitePercent(histo, bufimg.getWidth(), bufimg.getHeight());
 
 		// TODO: TEMPORAL jjust for whitePercent variable
 		// TODO: the pot font is so thing that stardar imagen treat don.t detect white pixels
@@ -571,20 +559,24 @@ public class ScreenSensor extends JPanel {
 	}
 
 	/**
-	 * set for this sensor that draw the original caputured image or the prepared image. this method affect only the
-	 * visual representation of the component.
-	 * 
-	 * @param so - <code>true</code> to draw the original caputred image
+	 * update the asociatet UI components with the internal values from this sensor.
 	 */
-	public void showCapturedImage(boolean so) {
-		this.showCapturedImage = so;
-		// show prepared or original
-		if (so) {
-			// plus 2 of image border
-			imageLabel.setPreferredSize(new Dimension(shape.bounds.width + 2, shape.bounds.height + 2));
-		} else {
-			// plus 2 of image border
-			imageLabel.setPreferredSize(new Dimension(scaledWidth + 2, scaledHeight + 2));
-		}
+	private void update() {
+		BufferedImage sel = showCapturedImage ? capturedImage : preparedImage;
+		// at init time, sel image can be null
+		if (sel != null)
+			imageLabel.setIcon(new ImageIcon(sel));
+		String maxc = maxColor == null ? "000000" : getMaxColor();
+
+		String ecol = isEnabled() ? "GREEN" : "GRAY";
+		String etex = isEnabled() ? "Enabled" : "Disabled";
+		String elin = "<FONT COLOR=" + ecol + "\">" + etex + "</FONT>";
+
+		String text = "<html><B>" + getName() + "</B>  " + elin + "<br>White %: " + whitePercent
+		// + "<br>Max color: <FONT style= \"background-color: #"+maxc +"\"><B>" + maxc + "</B></FONT>" + "<br>OCR: " +
+		// ocrResult
+				+ "<br>Max color: <B style= \"color: #" + maxc + "\">" + maxc + "</B>" + "<br>OCR: " + ocrResult
+				+ "</html>";
+		dataLabel.setText(text);
 	}
 }
