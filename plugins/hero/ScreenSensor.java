@@ -75,38 +75,33 @@ public class ScreenSensor extends JPanel {
 	/**
 	 * Compare the images <code>imagea</code> and <code>imageg</code> pixel by pixel returning the percentage of
 	 * diference. If the images are equals, return values closer to 0.0, and for complety diferent images, return values
-	 * closer to 100 percent
+	 * closer to 100 percent.
 	 * <p>
-	 * The <code>per</code> argument idicate the number of pixes to compare (expresed in percentage of the image data).
-	 * e.g: per=50 idicate to this method compare the images using only 50% of the pixes in the image data. Those pixel
-	 * are random selected.
+	 * the pixel by pixel diference is computed using th euclidean distance of the diference of the color. this mean
+	 * that a pixel in image a and image b are diferent by his RGB distance.
+	 * 
+	 * @see #getImageDiferences2(BufferedImage, BufferedImage)
 	 * 
 	 * @param imagea - firts image
 	 * @param imageb - second image
-	 * @param per - Percentages of pixel to compare.
 	 * 
 	 * @return percentaje of diference
 	 */
-	public static double getImageDiferences(BufferedImage imagea, BufferedImage imageb, int per) {
-		long diference = 0;
+	public static double getImageDiferences(BufferedImage imagea, BufferedImage imageb) {
+		double diference = 0;
 		// compare image sizes. if the images are not the same dimension. create a scaled instance of the biggert
 		// long t1 = System.currentTimeMillis();
 		if (imagea.getWidth() != imageb.getWidth() || imagea.getHeight() != imageb.getHeight()) {
 			throw new IllegalArgumentException("images dimensions are not the same.");
 		}
 
-		int tot_width = per == 100 ? imagea.getWidth() : (int) (imagea.getWidth() * per / 100);
-		int tot_height = per == 100 ? imagea.getHeight() : (int) (imagea.getHeight() * per / 100);
+		int tot_width = imagea.getWidth();
+		int tot_height = imagea.getHeight();
 
 		for (int i = 0; i < tot_width; i++) {
 			for (int j = 0; j < tot_height; j++) {
 				int x = i;
 				int y = j;
-				if (per != 100) {
-					Point rc = getRandCoordenates(imagea.getWidth(), imagea.getHeight());
-					x = rc.x;
-					y = rc.y;
-				}
 				int rgba = imagea.getRGB(x, y);
 				int rgbb = imageb.getRGB(x, y);
 				int reda = (rgba >> 16) & 0xff;
@@ -129,19 +124,18 @@ public class ScreenSensor extends JPanel {
 
 		// percentage
 		double percent = avg_diff / 255 * 100;
-		// performanceLog("for total pixel = " + total_pixel + " at %=" + per, t1);
 		return percent;
 	}
 
 	/**
-	 * utilice the {@link ScreenSensor#getImageDiferences(BufferedImage, BufferedImage, int)} to compare the
+	 * utilice the {@link ScreenSensor#getImageDiferences2(BufferedImage, BufferedImage)} to compare the
 	 * <code>imagea</code> argument against the list of images <code>images</code>. the name of the image with less
 	 * diference is returned.
 	 * <p>
 	 * This method return <code>null</code> if no image are found or the diference bettwen images > diferenceThreshold.
 	 * the difference threshold for this method is 30%. The average image similarity (for card areas is 2%)
 	 * 
-	 * @see ScreenSensor#getImageDiferences(BufferedImage, BufferedImage, int)
+	 * @see ScreenSensor#getImageDiferences2(BufferedImage, BufferedImage)
 	 * @param imagea - image to compare
 	 * @param images - list of candidates.
 	 * @return a {@link TEntry} where the key is the ocr from the image and the dif is the diference betwen the imagea
@@ -154,7 +148,8 @@ public class ScreenSensor extends JPanel {
 		ArrayList<String> names = new ArrayList<>(images.keySet());
 		for (String name : names) {
 			BufferedImage imageb = images.get(name);
-			double s = ScreenSensor.getImageDiferences(imagea, imageb, 100);
+			double s = ScreenSensor.getImageDiferences(imagea, imageb);
+			Hero.logger.finer("file name: " + name + " Diference: " + s);
 			if (s < dif) {
 				dif = s;
 				ocr = name;
@@ -193,6 +188,11 @@ public class ScreenSensor extends JPanel {
 			BufferedImage imageb;
 			try {
 				imageb = ImageIO.read(f);
+				
+//				imageb = ImageHelper.convertImageToGrayscale(imageb);
+//				imageb = TColorUtils.convert4(imageb);
+//				imageb = TColorUtils.convert1(imageb);
+				
 				String inam = f.getName().split("[.]")[0];
 				BufferedImage old = images.put(inam, imageb);
 				if (old != null) {
@@ -203,33 +203,6 @@ public class ScreenSensor extends JPanel {
 			}
 		}
 		return images;
-	}
-
-	/**
-	 * perform custom corrections accordint of the name or type of sensor. for example, for call sensor is spected this
-	 * correction retrive only the numeric value from the second line, ignoring the "call" text
-	 * 
-	 */
-	private String OCRCorrection(String srcocd) {
-
-		// call sensors
-		if (TStringUtils.wildCardMacher(getName(), "*.call")) {
-			srcocd = srcocd.replaceAll("\\s", "");
-			srcocd = replaceWhitNumbers(srcocd);
-		}
-
-		// for call/rise sensors,set the ocr only of the retrive numerical value
-		if (getName().equals("call") || getName().equals("raise")) {
-			String vals[] = srcocd.split("\\n");
-			srcocd = "0";
-			if (vals.length > 1) {
-				srcocd = replaceWhitNumbers(vals[1]);
-			}
-		}
-
-		// standar procedure: remove all blanks caracters
-		srcocd = srcocd.replaceAll("\\s", "");
-		return srcocd;
 	}
 
 	/**
@@ -250,6 +223,7 @@ public class ScreenSensor extends JPanel {
 		rstr = rstr.replace("S", "8");
 		rstr = rstr.replace("U", "0");
 		rstr = rstr.replace("u", "0");
+		rstr = rstr.replace("e", "6");
 		return rstr;
 	}
 
@@ -316,9 +290,11 @@ public class ScreenSensor extends JPanel {
 	public BufferedImage getCapturedImage() {
 		return capturedImage;
 	}
+
 	public Exception getException() {
 		return exception;
 	}
+
 	/**
 	 * Return the int value from this sensor. Some sensor has only numerical information or text/numerical information.
 	 * acording to this, this method will return that numerical information (if is available) or -1 if not. Also, -1 is
@@ -340,7 +316,6 @@ public class ScreenSensor extends JPanel {
 		}
 		return val;
 	}
-
 	/**
 	 * Return the string representation of the {@link #maxColor} variable. the format is RRGGBB
 	 * 
@@ -349,7 +324,6 @@ public class ScreenSensor extends JPanel {
 	public String getMaxColor() {
 		return TColorUtils.getRGBColor(maxColor);
 	}
-
 	/**
 	 * Retrun the optical caracter recognition extracted from the asociated area
 	 * 
@@ -361,6 +335,10 @@ public class ScreenSensor extends JPanel {
 
 	public long getOCRPerformanceTime() {
 		return ocrTime;
+	}
+
+	public BufferedImage getPreparedImage() {
+		return preparedImage;
 	}
 
 	/**
@@ -415,10 +393,10 @@ public class ScreenSensor extends JPanel {
 		String sn = getName();
 		return sn.startsWith("hero.card");
 	}
+
 	public boolean isNumericArea() {
 		return shape.isOCRNumericArea;
 	}
-
 	public boolean isTextArea() {
 		return shape.isOCRTextArea;
 	}
@@ -464,6 +442,7 @@ public class ScreenSensor extends JPanel {
 		}
 		ocrTime = (int) (System.currentTimeMillis() - t1);
 	}
+
 	/**
 	 * return the String representation of the card area by comparing the {@link ScreenSensor#getCapturedImage()} image
 	 * against the list of card loaded in {@link #cardsTable} static variable. The most probable image file name is
@@ -480,7 +459,8 @@ public class ScreenSensor extends JPanel {
 		if (!shape.isCardArea) {
 			throw new IllegalArgumentException("The screen sensor must be a card area sensor.");
 		}
-		BufferedImage imagea = getCapturedImage();
+		// BufferedImage imagea = getCapturedImage();
+		BufferedImage imagea = preparedImage;
 		String ocr = getOCRFromImage(imagea, cardsTable);
 
 		// if the card is the file name is card_facedown, set null for ocr
@@ -525,6 +505,32 @@ public class ScreenSensor extends JPanel {
 		Hero.logger.finer(getName() + ": Tesseract OCR performed. Raw OCR whitout correction=" + srcocr);
 		return OCRCorrection(srcocr);
 	}
+	/**
+	 * perform custom corrections accordint of the name or type of sensor. for example, for call sensor is spected this
+	 * correction retrive only the numeric value from the second line, ignoring the "call" text
+	 * 
+	 */
+	private String OCRCorrection(String srcocd) {
+
+		// call sensors
+		if (TStringUtils.wildCardMacher(getName(), "*.call")) {
+			srcocd = srcocd.replaceAll("\\s", "");
+			srcocd = replaceWhitNumbers(srcocd);
+		}
+
+		// for call/rise sensors,set the ocr only of the retrive numerical value
+		if (getName().equals("call") || getName().equals("raise")) {
+			String vals[] = srcocd.split("\\n");
+			srcocd = "0";
+			if (vals.length > 1) {
+				srcocd = replaceWhitNumbers(vals[1]);
+			}
+		}
+
+		// standar procedure: remove all blanks caracters
+		srcocd = srcocd.replaceAll("\\s", "");
+		return srcocd;
+	}
 
 	/**
 	 * perform image operation to set globals variables relatet with the image previous to OCR, color count operations.
@@ -541,6 +547,10 @@ public class ScreenSensor extends JPanel {
 		Hashtable<Integer, Integer> histo = TColorUtils.getHistogram(bufimg);
 		this.maxColor = TColorUtils.getMaxColor(histo);
 		this.whitePercent = TColorUtils.getWhitePercent(histo, bufimg.getWidth(), bufimg.getHeight());
+
+//		if (isCardArea())
+			// bufimg = ImageHelper.convertImageToGrayscale(capturedImage);
+			// bufimg = TColorUtils.convert4(bufimg);
 
 		// TODO: TEMPORAL jjust for whitePercent variable
 		// TODO: the pot font is so thing that stardar imagen treat don.t detect white pixels

@@ -7,7 +7,6 @@ import java.util.stream.*;
 
 import org.apache.commons.math3.distribution.*;
 import org.apache.commons.math3.stat.descriptive.*;
-import org.apache.poi.hsmf.parsers.*;
 import org.jdesktop.application.*;
 
 import com.javaflair.pokerprophesier.api.card.*;
@@ -44,6 +43,7 @@ public class Trooper extends Task {
 	// public static String ACTIVE = "active";
 	private static Trooper instance;
 
+	private static DecimalFormat fourDigitFormat = new DecimalFormat("#0.0000");
 	private PokerSimulator pokerSimulator;
 	private RobotActuator robotActuator;
 	private SensorsArray sensorsArray;
@@ -55,7 +55,8 @@ public class Trooper extends Task {
 	private long time1;
 	private DescriptiveStatistics outGameStats;
 	private boolean paused = false;
-	private double lastProbableValue;
+	private double lastProbableValue = -1;
+
 	/**
 	 * the game recorder is created only after the continue action. this avoid record incomplete sesion
 	 */
@@ -64,7 +65,6 @@ public class Trooper extends Task {
 	public Trooper() {
 		this(null);
 	}
-
 	public Trooper(Trooper clone) {
 		super(Alesia.getInstance());
 		this.robotActuator = new RobotActuator();
@@ -78,36 +78,9 @@ public class Trooper extends Task {
 			setEnviorement(clone.enviorement);
 		}
 	}
+
 	public static Trooper getInstance() {
 		return instance;
-	}
-
-	/**
-	 * perform a random selection of the available actions. this method build a probability distribution and select
-	 * randmly a variate of that distribution. this is suboptimal because the objetive function already has the optimal
-	 * action to perfomr. but this behavior make the trooper visible to the villans that can use this informatiion for
-	 * trap or fool the troper.
-	 * <p>
-	 * the available actions and his values must be previous evaluated. The action value express the hihest expected
-	 * return.
-	 * 
-	 * TODO: take into account table position??
-	 * 
-	 * TODO: take into account numbers of active villans ??
-	 * 
-	 */
-	private String getSubOptimalAction() {
-		int elements = availableActions.size();
-		double denom = availableActions.stream().mapToDouble(te -> te.getValue().doubleValue()).sum();
-		int[] singletos = new int[elements];
-		double[] probabilities = new double[elements];
-		for (int i = 0; i < elements; i++) {
-			singletos[i] = i;
-			probabilities[i] = availableActions.get(i).getValue() / denom;
-		}
-		EnumeratedIntegerDistribution dist = new EnumeratedIntegerDistribution(singletos, probabilities);
-		String selact = availableActions.get(dist.sample()).getKey();
-		return selact;
 	}
 	/**
 	 * Return the expectation of the pot odd against the <code>val</code> argument. to comply with rule 2, this method
@@ -130,18 +103,12 @@ public class Trooper extends Task {
 		// MoP page 54
 		double poto = totp * pot - val;
 
-		// the final pot odd from the previous equation is multip by a new function based on the table position and the
-		// curren street. this modification alllow adjust the odds accordin to the enviorement making more dimanic. the
-		// general idea is allow hero go in or fold his cards acording to the enviorment.
-		
 		Hero.logger.info("Pot odds: pot=" + pot + " " + name + "(" + val + ")=" + fourDigitFormat.format(poto));
 		return poto;
 	}
-	private static DecimalFormat fourDigitFormat = new DecimalFormat("#0.0000");
 	public RobotActuator getRobotActuator() {
 		return robotActuator;
 	}
-
 	public SensorsArray getSensorsArray() {
 		return sensorsArray;
 	}
@@ -183,6 +150,7 @@ public class Trooper extends Task {
 		ScreenAreas sDisp = new ScreenAreas(file);
 		sDisp.read();
 		this.enviorement = file;
+		lastProbableValue = -1;
 		this.availableActions.clear();
 		sensorsArray.createSensorsArray(sDisp);
 		robotActuator.setEnviorement(sDisp);
@@ -193,6 +161,7 @@ public class Trooper extends Task {
 	public void setTestMode(boolean isTestMode) {
 		this.isTestMode = isTestMode;
 	}
+
 	public void setTrooperStatus(String trooperStatus) {
 		this.trooperStatus = trooperStatus;
 	}
@@ -200,10 +169,11 @@ public class Trooper extends Task {
 	 * Compute the actions available according to {@link #getPotOdds(int, String)} evaluations. The resulting
 	 * computation will be reflected in a list of actions with his expected values.
 	 * <p>
-	 * for initial bet (pot = 0), the normal potodd equation return negative espectative, in this case, the trooper will
-	 * fold his hand. to avoid this, translate all negatives values to the positive contepart changing the sigh and
-	 * shift the values to reflect the inverse of the retrived value. this allow {@link #getSubOptimalAction()} select
-	 * the less worst action for this espetial case.
+	 * under some conditions, for example, when pot=0 or when, in pre flop street, the cost of a single call can be
+	 * afforded even if hero has a pair of AAs, the normal potodd equation return negative espectative, in this case,
+	 * the trooper will fold his hand. to avoid this, translate all negatives values to the positive contepart changing
+	 * the sigh and shift the values to reflect the inverse of the retrived value. this allow
+	 * {@link #getSubOptimalAction()} select the less worst action for this espetial case.
 	 * <p>
 	 * this method also remove negative ev if there exist positive ev. this is because most of the times, there are more
 	 * negative EV than positives ones, if i translate the function to the positive cuadrant to allow posible agressive
@@ -282,30 +252,35 @@ public class Trooper extends Task {
 			}
 		}
 
-		// remove negative values from +/- ev list of actions.
 		long zeroOrPos = availableActions.stream().mapToDouble(te -> te.getValue().doubleValue()).filter(d -> d >= 0)
 				.count();
 		long negatives = availableActions.size() - zeroOrPos;
-		if (pot > 0) {
-			if (negatives > 0) {
-				Vector<TEntry<String, Double>> neglist = new Vector<>();
-				availableActions.forEach(te -> {
-					if (te.getValue() < 0)
-						neglist.add(te);
-				});
-				availableActions.removeAll(neglist);
-			}
+
+		// remove negative values from +/- ev list of actions.
+		if (negatives > 0 && zeroOrPos > 0) {
+			Vector<TEntry<String, Double>> neglist = new Vector<>();
+			availableActions.forEach(te -> {
+				if (te.getValue() < 0)
+					neglist.add(te);
+			});
+			availableActions.removeAll(neglist);
 		}
 
-		// perform algorith for pot = 0. see method documentation
-		if (pot == 0) {
+		// perform algorith when the ev all are negatives.
+		if (negatives == availableActions.size()) {
 			availableActions.add(new TEntry<String, Double>("fold", -1.0));
-
-			availableActions.forEach(te -> te.setValue(te.getValue() * -1.0));
-			Collections.rotate(availableActions, availableActions.size());
+			availableActions.sort(null);
+			// test remove extreme values
+			availableActions.remove(0);
+			double max = availableActions.get(0).getValue() * -1.0;
+			availableActions.stream().forEach(te -> te.setValue(max + te.getValue()));
 		}
 
-		// TODO: order list ???
+		// check the win probability. The tendency of the trooper to stay in the game some times make him reach higher
+		// street with 0 win probability (spetialy the river) to avoid error on getSubObtimalaction, this code ensure
+		// fold action only for 0 troper probability
+		if (getProbability() < 0.0001)
+			availableActions.clear();
 
 		// if the list of available actions are empty, the only posible action todo now is fold
 		if (availableActions.size() == 0)
@@ -317,8 +292,8 @@ public class Trooper extends Task {
 		Hero.logger.info(key + " " + val);
 		pokerSimulator.setVariable(key, val);
 	}
-
 	private void clearEnviorement() {
+		lastProbableValue = -1;
 		sensorsArray.init();
 		availableActions.clear();
 		// at first time execution, a standar time of 10 second is used
@@ -327,10 +302,11 @@ public class Trooper extends Task {
 		time1 = System.currentTimeMillis();
 		Hero.logger.fine("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
 	}
+
 	/**
 	 * decide de action(s) to perform. This method is called when the {@link Trooper} detect that is my turn to play. At
-	 * this point, the game enviorement is waiting for an accion. This method must report all posible actions using the
-	 * {@link #addAction(String)} method
+	 * this point, the game enviorement is waiting for an accion.
+	 * 
 	 */
 	private void decide() {
 		Hero.logger.info("Deciding...");
@@ -344,10 +320,9 @@ public class Trooper extends Task {
 			addPotOddActions();
 		}
 	}
-
 	/**
 	 * consult the {@link PokerSimulator} and retrive the hihest probability between gobal win probability or inprove
-	 * probability.
+	 * probability. When the turn card is dealed, this metod only return the win probability
 	 * 
 	 * @see #getPotOdds(int, String)
 	 * @return the hights probability: win or inmprove hand
@@ -356,17 +331,49 @@ public class Trooper extends Task {
 		MyHandStatsHelper myhsh = pokerSimulator.getMyHandStatsHelper();
 		float inprove = myhsh == null ? 0 : myhsh.getTotalProb();
 		float actual = pokerSimulator.getMyGameStatsHelper().getWinProb();
-		float totp = inprove > actual ? inprove : actual;
-		String pnam = inprove > actual ? "Improve" : "Win";
+		float totp;
+		if (pokerSimulator.getCurrentRound() == PokerSimulator.RIVER_CARD_DEALT)
+			totp = actual;
+		else
+			totp = inprove > actual ? inprove : actual;
 
 		if (totp != lastProbableValue) {
-			String key = "Trooper probability";
+			String pnam = inprove > actual ? "Improve" : "Win";
+			String key = "Trooper selected probability "+ pnam;
 			String val = fourDigitFormat.format(totp);
 			pokerSimulator.setVariable(key, val);
-			Hero.logger.info(key + " " + pnam + "=" + val);
+			Hero.logger.info(key + "=" + val);
 			lastProbableValue = totp;
 		}
 		return totp;
+	}
+
+	/**
+	 * perform a random selection of the available actions. this method build a probability distribution and select
+	 * randmly a variate of that distribution. this is suboptimal because the objetive function already has the optimal
+	 * action to perfomr. but this behavior make the trooper visible to the villans that can use this informatiion for
+	 * trap or fool the troper.
+	 * <p>
+	 * the available actions and his values must be previous evaluated. The action value express the hihest expected
+	 * return.
+	 * 
+	 * TODO: take into account table position??
+	 * 
+	 * TODO: take into account numbers of active villans ??
+	 * 
+	 */
+	private String getSubOptimalAction() {
+		int elements = availableActions.size();
+		double denom = availableActions.stream().mapToDouble(te -> te.getValue().doubleValue()).sum();
+		int[] singletos = new int[elements];
+		double[] probabilities = new double[elements];
+		for (int i = 0; i < elements; i++) {
+			singletos[i] = i;
+			probabilities[i] = availableActions.get(i).getValue() / denom;
+		}
+		EnumeratedIntegerDistribution dist = new EnumeratedIntegerDistribution(singletos, probabilities);
+		String selact = availableActions.get(dist.sample()).getKey();
+		return selact;
 	}
 
 	/**

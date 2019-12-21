@@ -16,6 +16,7 @@ import java.util.*;
 import javax.swing.*;
 
 import com.alee.laf.combobox.*;
+import com.alee.laf.tabbedpane.*;
 import com.alee.managers.settings.*;
 
 import core.*;
@@ -30,6 +31,7 @@ import gui.*;
 public class SensorsPanel extends TUIPanel {
 
 	// private JScrollPane scrollPane;
+	private TUIPanel sensorsPanelMain;
 	private JPanel sensorsPanel;
 	private JPanel simulationDataPanel;
 
@@ -49,15 +51,16 @@ public class SensorsPanel extends TUIPanel {
 		this.simulationDataPanel = new JPanel(new BorderLayout());
 
 		JScrollPane ajsp = new JScrollPane(sensorsPanel);
+		this.sensorsPanelMain = new TUIPanel(false);
+		sensorsPanelMain.setBodyComponent(ajsp);
 
-		JTabbedPane jtp = new JTabbedPane();
-		jtp.add(ajsp, "Sensor Array");
-		jtp.add(simulationDataPanel, "Simulator data");
+		WebTabbedPane wtp = new WebTabbedPane();
+		wtp.add(sensorsPanelMain, "Sensor Array");
+		wtp.add(simulationDataPanel, "Simulator data");
+		wtp.add(Hero.consolePanel, "Log console");
+		wtp.registerSettings(new Configuration<TabbedPaneState>("SensorsPanel.tabbedPanel"));
 
-		JPanel jp = new JPanel(new BorderLayout());
-		jp.add(jtp, BorderLayout.CENTER);
-		jp.add(Hero.consolePanel, BorderLayout.SOUTH);
-		setBodyComponent(jp);
+		setBodyComponent(wtp);
 	}
 
 	private void filterSensors() {
@@ -122,10 +125,11 @@ public class SensorsPanel extends TUIPanel {
 
 		// set tool bar clear al previous toolbar components
 		setToolBar(loadAction, Hero.actionMap.get("runTrooper"), Hero.actionMap.get("testTrooper"),
-				Hero.actionMap.get("stopTrooper"), Hero.actionMap.get("pauseTrooper")
-		// ,Hero.actionMap.get("takeCardSample"), Hero.actionMap.get("takeActionSample"));
-		);
-		getToolBarPanel().add(sensorTypeComboBox, imageTypeComboBox);
+				Hero.actionMap.get("stopTrooper"), Hero.actionMap.get("pauseTrooper"),
+				Hero.actionMap.get("takeCardSample"), Hero.actionMap.get("takeActionSample"));
+
+		sensorsPanelMain.getToolBarPanel().removeAll();
+		sensorsPanelMain.getToolBarPanel().add(sensorTypeComboBox, imageTypeComboBox);
 
 		// after all component has been created
 		imageTypeComboBox.registerSettings(new Configuration<ComboBoxState>("SensorPanel.imageType"));

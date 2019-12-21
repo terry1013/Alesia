@@ -200,7 +200,7 @@ public class TColorUtils {
 	 * <p>
 	 * the values for this method range from 1.0 to 100. where
 	 * <ul>
-	 * <li>1.0 no jperceptible by human eye
+	 * <li>1.0 no perceptible by human eye
 	 * <li>1-2 perceptible by close observation
 	 * <li>2-10 perceptible at glance
 	 * <li>11-49 color are more similar than oposite
@@ -336,12 +336,31 @@ public class TColorUtils {
 		return mc;
 	}
 
+	/**
+	 * 
+	 * Low cost algorith cor color diference. This function return a percent where 100 is the max diference (returned by
+	 * comparing black and white values) and 0 are de same color
+	 * 
+	 * @see https://www.compuphase.com/cmetric.htm
+	 * 
+	 *      TODO: modified to return percentual diference. terry modification. i don.t know if this is correct.
+	 * 
+	 * @param c1 - first color
+	 * @param c2 - second color
+	 * @return
+	 */
 	public static double getRGBColorDistance(Color c1, Color c2) {
+		// most diferent colors: black and white
+		double maxdif = 764.8333151739665;
+
 		long rmean = (c1.getRed() + c2.getRed()) / 2;
 		long r = (long) c2.getRed() - (long) c1.getRed();
 		long g = (long) c2.getGreen() - (long) c1.getGreen();
 		long b = (long) c2.getBlue() - (long) c1.getBlue();
-		return Math.sqrt((((512 + rmean) * r * r) >> 8) + 4 * g * g + (((767 - rmean) * b * b) >> 8));
+		double dif = Math.sqrt((((512 + rmean) * r * r) >> 8) + 4 * g * g + (((767 - rmean) * b * b) >> 8));
+
+		// terry: diference based on the max diference detected by direct comparation betwenn balck and white
+		return dif / maxdif * 100;
 	}
 
 	/**

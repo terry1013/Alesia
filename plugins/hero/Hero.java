@@ -139,7 +139,7 @@ public class Hero extends TPlugin {
 		PropertyChangeListener tl = new PropertyChangeListener() {
 			public void propertyChange(PropertyChangeEvent evt) {
 				if (Trooper.PROP_DONE.equals(evt.getPropertyName())) {
-					WebLookAndFeel.setForceSingleEventsThread(true);
+//					WebLookAndFeel.setForceSingleEventsThread(true);
 				}
 			}
 		};

@@ -83,15 +83,15 @@ public class ConsolePanel extends WebPanel {
 
 		toolbar.add(comboBox, TUIUtils.getWebButtonForToolBar(actionMap.get("cleanConsole")));
 
-		editorPane.setSize(Short.MAX_VALUE, 150);
+//		editorPane.setSize(Short.MAX_VALUE, Short.MAX_VALUE);
 		editorPane.setText(blanck);
 		JScrollPane jsp = new JScrollPane(editorPane);
 		add(toolbar);
 		add(jsp);
 
 		Dimension prefd = editorPane.getPreferredSize();
-		jsp.getViewport().setPreferredSize(new Dimension(prefd.width, 150));
-		jsp.getViewport().setMinimumSize(new Dimension(prefd.width, 150));
+		jsp.getViewport().setPreferredSize(new Dimension(prefd.width, 350));
+		jsp.getViewport().setMinimumSize(new Dimension(prefd.width, 350));
 		// editorPane.setText("");
 
 	}

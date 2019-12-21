@@ -29,7 +29,7 @@ import javax.swing.*;
  *
  * @since 2.3
  */
-public class TEntry<K, V> implements Entry<K, V>, java.io.Serializable {
+public class TEntry<K, V> implements Entry<K, V>, java.io.Serializable, Comparable<TEntry<K, V>> {
 	private static final long serialVersionUID = -8499721149061103585L;
 
 	private final K key;
@@ -140,6 +140,18 @@ public class TEntry<K, V> implements Entry<K, V>, java.io.Serializable {
 	public String toString() {
 		// return key + "=" + value;
 		return value.toString();
+	}
+
+
+	@Override
+	public int compareTo(TEntry<K, V> o) {
+		if (o instanceof TEntry) {
+			Comparable oval = (Comparable) o.getValue();
+			Comparable valc = (Comparable) value;
+			return valc.compareTo(oval);
+		}
+		// 20161109 que ladilla !!! parece que contamos may y le tumbaron 500 bs a mama en el deposito de mercantil
+		return 0;
 	}
 
 }

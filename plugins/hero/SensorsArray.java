@@ -314,7 +314,7 @@ public class SensorsArray {
 					ScreenSensor ss = screenSensors.get(sn);
 					ss.capture(false);
 					BufferedImage bi = ss.getCapturedImage();
-					String ext = "gif";
+					String ext = "png";
 					File f = new File(GameRecorder.IMAGE_ACTIONS + "sample_" + System.currentTimeMillis() + "." + ext);
 					f.createNewFile();
 					ImageIO.write(bi, ext, f);
@@ -336,7 +336,7 @@ public class SensorsArray {
 				if (ss.isCardArea()) {
 					ss.capture(false);
 					BufferedImage bi = ss.getCapturedImage();
-					String ext = "gif";
+					String ext = "png";
 					File f = new File(ScreenSensor.IMAGE_CARDS + "sample_" + System.currentTimeMillis() + "." + ext);
 					f.createNewFile();
 					ImageIO.write(bi, ext, f);
