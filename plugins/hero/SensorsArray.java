@@ -15,6 +15,8 @@ import org.apache.commons.math3.stat.descriptive.*;
 
 import com.jgoodies.common.base.*;
 
+import core.*;
+
 /**
  * This class control the array of sensor inside of the screen. This class is responsable for reading all the sensor
  * configurated in the {@link DrawingPanel} passsed as argument in the {@link #createSensorsArray(DrawingPanel)} method.
@@ -334,12 +336,15 @@ public class SensorsArray {
 			for (String sn : screenSensors.keySet()) {
 				ScreenSensor ss = screenSensors.get(sn);
 				if (ss.isCardArea()) {
+//					if (ss.getName().equals("hero.card2")) {
 					ss.capture(false);
-					BufferedImage bi = ss.getCapturedImage();
+					BufferedImage image = ss.getCapturedImage();
+										
 					String ext = "png";
 					File f = new File(ScreenSensor.IMAGE_CARDS + "sample_" + System.currentTimeMillis() + "." + ext);
 					f.createNewFile();
-					ImageIO.write(bi, ext, f);
+					TColorUtils.drawMassCenterPoint(image);
+					ImageIO.write(image, ext, f);
 				}
 			}
 		} catch (Exception e) {

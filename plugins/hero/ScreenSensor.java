@@ -77,10 +77,10 @@ public class ScreenSensor extends JPanel {
 	 * diference. If the images are equals, return values closer to 0.0, and for complety diferent images, return values
 	 * closer to 100 percent.
 	 * <p>
-	 * the pixel by pixel diference is computed using th euclidean distance of the diference of the color. this mean
-	 * that a pixel in image a and image b are diferent by his RGB distance.
+	 * this function accept diferent sizes from imagea and b. in this case, this function compare only the common area.
+	 * that is, starting from (0,0) until the dimension of the smaller image
 	 * 
-	 * @see #getImageDiferences2(BufferedImage, BufferedImage)
+	 * @see TColorUtils#getRGBColorDistance(Color, Color)
 	 * 
 	 * @param imagea - firts image
 	 * @param imageb - second image
@@ -89,41 +89,37 @@ public class ScreenSensor extends JPanel {
 	 */
 	public static double getImageDiferences(BufferedImage imagea, BufferedImage imageb) {
 		double diference = 0;
-		// compare image sizes. if the images are not the same dimension. create a scaled instance of the biggert
-		// long t1 = System.currentTimeMillis();
-		if (imagea.getWidth() != imageb.getWidth() || imagea.getHeight() != imageb.getHeight()) {
-			throw new IllegalArgumentException("images dimensions are not the same.");
-		}
 
-		int tot_width = imagea.getWidth();
-		int tot_height = imagea.getHeight();
+		int tot_width = imagea.getWidth() < imageb.getWidth() ? imagea.getWidth() : imageb.getWidth();
+		int tot_height = imagea.getHeight() < imageb.getHeight() ? imagea.getHeight() : imageb.getHeight();
 
-		for (int i = 0; i < tot_width; i++) {
-			for (int j = 0; j < tot_height; j++) {
-				int x = i;
-				int y = j;
+		for (int x = 0; x < tot_width; x++) {
+			for (int y = 0; y < tot_height; y++) {
 				int rgba = imagea.getRGB(x, y);
 				int rgbb = imageb.getRGB(x, y);
-				int reda = (rgba >> 16) & 0xff;
-				int greena = (rgba >> 8) & 0xff;
-				int bluea = (rgba) & 0xff;
-				int redb = (rgbb >> 16) & 0xff;
-				int greenb = (rgbb >> 8) & 0xff;
-				int blueb = (rgbb) & 0xff;
-				diference += Math.abs(reda - redb);
-				diference += Math.abs(greena - greenb);
-				diference += Math.abs(bluea - blueb);
+				diference += TColorUtils.getRGBColorDistance(new Color(rgba), new Color(rgbb));
+				// int reda = (rgba >> 16) & 0xff;
+				// int greena = (rgba >> 8) & 0xff;
+				// int bluea = (rgba) & 0xff;
+				// int redb = (rgbb >> 16) & 0xff;
+				// int greenb = (rgbb >> 8) & 0xff;
+				// int blueb = (rgbb) & 0xff;
+				// diference += Math.abs(reda - redb);
+				// diference += Math.abs(greena - greenb);
+				// diference += Math.abs(bluea - blueb);
 			}
 		}
 
 		// total number of pixels (all 3 chanels)
-		int total_pixel = tot_width * tot_height * 3;
+		int total_pixel = tot_width * tot_height;
+		// int total_pixel = tot_width * tot_height * 3;
 
 		// normaliye the value of diferent pixel
 		double avg_diff = diference / total_pixel;
 
 		// percentage
-		double percent = avg_diff / 255 * 100;
+		// double percent = avg_diff / 255 * 100;
+		double percent = avg_diff * 100;
 		return percent;
 	}
 
@@ -188,11 +184,13 @@ public class ScreenSensor extends JPanel {
 			BufferedImage imageb;
 			try {
 				imageb = ImageIO.read(f);
-				
-//				imageb = ImageHelper.convertImageToGrayscale(imageb);
-//				imageb = TColorUtils.convert4(imageb);
-//				imageb = TColorUtils.convert1(imageb);
-				
+
+				// imageb = TColorUtils.convert1(imageb);
+				// imageb = TColorUtils.autoCrop(imageb, rgb -> rgb != Color.WHITE.getRGB());
+				// File f1 = new File(dir + img + "c.png");
+				// f1.delete();
+				// ImageIO.write(imageb, "png", f1);
+
 				String inam = f.getName().split("[.]")[0];
 				BufferedImage old = images.put(inam, imageb);
 				if (old != null) {
@@ -433,7 +431,8 @@ public class ScreenSensor extends JPanel {
 		exception = null;
 		try {
 			if (isCardArea()) {
-				ocrResult = getImageDifferenceOCR();
+				// ocrResult = getImageDifferenceOCR();
+				ocrResult = getTesseractOCR();
 			} else {
 				ocrResult = getTesseractOCR();
 			}
@@ -455,10 +454,6 @@ public class ScreenSensor extends JPanel {
 	 */
 	private String getImageDifferenceOCR() throws Exception {
 
-		// ensure is an card area
-		if (!shape.isCardArea) {
-			throw new IllegalArgumentException("The screen sensor must be a card area sensor.");
-		}
 		// BufferedImage imagea = getCapturedImage();
 		BufferedImage imagea = preparedImage;
 		String ocr = getOCRFromImage(imagea, cardsTable);
@@ -512,6 +507,19 @@ public class ScreenSensor extends JPanel {
 	 */
 	private String OCRCorrection(String srcocd) {
 
+		// cards sensors
+		if (isCardArea()) {
+			srcocd = srcocd.replaceAll("\\s", "");
+			// checq the last character looking for the suit.
+			String tmp = srcocd.substring(srcocd.length() - 1, srcocd.length());
+			String suit = "c";
+			suit = tmp.equals("V") ? "h" : suit;
+			suit = tmp.equals("Q") ? "s" : suit;
+			suit = tmp.equals("0") ? "d" : suit;
+			String rank = srcocd.substring(0, 1);
+			rank = rank.equals("1") ? "10" : rank;
+			srcocd = rank + suit;
+		}
 		// call sensors
 		if (TStringUtils.wildCardMacher(getName(), "*.call")) {
 			srcocd = srcocd.replaceAll("\\s", "");
@@ -548,9 +556,10 @@ public class ScreenSensor extends JPanel {
 		this.maxColor = TColorUtils.getMaxColor(histo);
 		this.whitePercent = TColorUtils.getWhitePercent(histo, bufimg.getWidth(), bufimg.getHeight());
 
-//		if (isCardArea())
-			// bufimg = ImageHelper.convertImageToGrayscale(capturedImage);
-			// bufimg = TColorUtils.convert4(bufimg);
+		if (isCardArea()) {
+			bufimg = ImageHelper.getScaledInstance(capturedImage, scaledWidth, scaledHeight);
+			bufimg = ImageHelper.invertImageColor(bufimg);
+		}
 
 		// TODO: TEMPORAL jjust for whitePercent variable
 		// TODO: the pot font is so thing that stardar imagen treat don.t detect white pixels
@@ -562,7 +571,6 @@ public class ScreenSensor extends JPanel {
 		// all ocr areas need scaled instance
 		if (isTextArea() || isNumericArea()) {
 			bufimg = ImageHelper.getScaledInstance(capturedImage, scaledWidth, scaledHeight);
-			// bufimg = ImageHelper.convertImageToGrayscale(bufimg);
 		}
 
 		this.preparedImage = bufimg;

@@ -1,12 +1,14 @@
 package core;
 
 import java.awt.*;
+import java.awt.geom.*;
 import java.awt.image.*;
 import java.util.*;
+import java.util.function.*;
 
 import javax.swing.*;
 
-import com.alee.utils.*;
+import org.apache.commons.math3.linear.*;
 
 public class TColorUtils {
 	public static int argb(int R, int G, int B) {
@@ -145,32 +147,96 @@ public class TColorUtils {
 		return dest;
 	}
 
-	public static Rectangle findArea(BufferedImage image, int x, int y, int coldif) {
-		Color tocol = Color.PINK;
-		Color fromcol = new Color(image.getRGB(x, y));
-		BufferedImage copy = ImageUtils.createCompatibleImage(image);
-		boolean init = true;
-		flood(copy, x, y, fromcol, tocol, coldif);
-		Rectangle rec = new Rectangle();
-		for (int px = 0; px < copy.getWidth(); px++) {
-			for (int py = 0; py < copy.getHeight(); py++) {
-				if (copy.getRGB(px, py) == tocol.getRGB()) {
-					// the first time
-					if (init) {
-						rec.x = px;
-						rec.y = py;
-						init = false;
-					} else {
-						rec.add(px, py);
-					}
+	/**
+	 * Return a new {@link BufferedImage} with the image data copied from the <code>image </code>argument.
+	 * 
+	 * @param image image tobe copied
+	 * 
+	 * @return a new {@link BufferedImage}
+	 */
+	public static BufferedImage copy(final BufferedImage image) {
+		BufferedImage newimagea = new BufferedImage(image.getWidth(), image.getHeight(), image.getType());
+		final Graphics2D g2d = newimagea.createGraphics();
+		g2d.drawImage(newimagea, 0, 0, null);
+		g2d.dispose();
+		return newimagea;
+	}
+
+	/**
+	 * Perform auto crop operation over the incoming image. The {@link Predicate} argumet is used for evaluation of when
+	 * the crop function need to act. for exaple.
+	 * <li>if a image with white background has a noisy border, use this function passing
+	 * <code>rgb -> rgb == Color.white.getRGB()</code> this will remove all exterior leaving the interior of the image.
+	 * <li>if an image need to be croped to remove excess of background, use
+	 * <code>rgb -> rgb != Color.white.getRGB()</code>
+	 * 
+	 * @see #getImageDataRegion(BufferedImage)
+	 * @param image - image to crop
+	 * @param predicate - predicate
+	 * 
+	 * @return sub image of the source image using {@link BufferedImage#getSubimage(int, int, int, int)}
+	 */
+	public static BufferedImage autoCrop(BufferedImage image, Predicate<Integer> predicate) {
+		int topY = Integer.MAX_VALUE, topX = Integer.MAX_VALUE;
+		int bottomY = -1, bottomX = -1;
+		for (int y = 0; y < image.getHeight(); y++) {
+			for (int x = 0; x < image.getWidth(); x++) {
+				if (predicate.test(image.getRGB(x, y))) {
+					if (x < topX)
+						topX = x;
+					if (y < topY)
+						topY = y;
+					if (x > bottomX)
+						bottomX = x;
+					if (y > bottomY)
+						bottomY = y;
 				}
 			}
 		}
 
-		return rec;
+		// the resulting area must be lest or ecual to the original area. if not, return the original image
+		Rectangle croprec = new Rectangle(topX, topY, bottomX - topX + 1, bottomY - topY + 1);
+		int cropa = croprec.width * croprec.height;
+		int orga = image.getWidth() * image.getHeight();
+		if (cropa <= 0 && orga >= cropa)
+			return image;
+
+		// the area must be ok
+		BufferedImage cropimg = image.getSubimage(croprec.x, croprec.y, croprec.width, croprec.height);
+		return cropimg;
 	}
 
-	public static void flood(BufferedImage image, int x, int y, Color fromcol, Color tocol, int coldif) {
+	public static BufferedImage getImageDataRegion(BufferedImage image) {
+		BufferedImage tmpimage = copy(image);
+		// anchor point
+		int apx = tmpimage.getWidth() - 5;
+		int apy = 5;
+		Color fromcol = new Color(tmpimage.getRGB(apx, apy));
+		Color tocol = Color.PINK;
+
+		flood(tmpimage, apx, apy, fromcol, tocol, 0.05);
+
+		// crop interior area
+		BufferedImage newimage = autoCrop(tmpimage, rgb -> rgb == tocol.getRGB());
+
+		// cut corners
+		// TODO: temporal: paint rectangles. change to triangles
+		int dim = 3;
+		Graphics2D g2d = tmpimage.createGraphics();
+		g2d.drawImage(tmpimage, 0, 0, null);
+		g2d.setColor(tocol);
+		g2d.fillRect(0, 0, dim, dim);
+		g2d.fillRect(tmpimage.getWidth() - dim, 0, dim, dim);
+		g2d.fillRect(tmpimage.getWidth() - dim, tmpimage.getHeight() - dim, dim, dim);
+		g2d.fillRect(0, tmpimage.getHeight() - dim, dim, dim);
+		g2d.dispose();
+
+		// auto crop to remove excess of background
+		newimage = autoCrop(newimage, rgb -> rgb != tocol.getRGB());
+		return newimage;
+	}
+
+	public static void flood(BufferedImage image, int x, int y, Color fromcol, Color tocol, double coldif) {
 		if (x >= 1 && y >= 1 && x < image.getWidth() && y < image.getHeight()) {
 			Color c2 = new Color(image.getRGB(x, y));
 			// if this point was painted already
@@ -179,13 +245,11 @@ public class TColorUtils {
 			}
 
 			// outside of color diference
-			if (getColorDifference(c2, fromcol) > coldif) {
+			if (getRGBColorDistance(fromcol, c2) > coldif) {
+				// if (getColorDifference(c2, fromcol) > coldif) {
 				return;
 			}
 
-			// if (Math.abs(c2.getGreen() - fromcol.getGreen()) < 10 && Math.abs(c2.getRed() - fromcol.getRed()) <
-			// 10
-			// && Math.abs(c2.getBlue() - fromcol.getBlue()) < 10) {
 			image.setRGB(x, y, tocol.getRGB());
 			flood(image, x, y + 1, fromcol, tocol, coldif);
 			flood(image, x + 1, y, fromcol, tocol, coldif);
@@ -338,8 +402,9 @@ public class TColorUtils {
 
 	/**
 	 * 
-	 * Low cost algorith cor color diference. This function return a percent where 100 is the max diference (returned by
-	 * comparing black and white values) and 0 are de same color
+	 * Low cost algorith cor color diference. This function return:
+	 * <li>1.0 is the max diference (returned by comparing black and white values)
+	 * <li>0 are de same color
 	 * 
 	 * @see https://www.compuphase.com/cmetric.htm
 	 * 
@@ -360,7 +425,7 @@ public class TColorUtils {
 		double dif = Math.sqrt((((512 + rmean) * r * r) >> 8) + 4 * g * g + (((767 - rmean) * b * b) >> 8));
 
 		// terry: diference based on the max diference detected by direct comparation betwenn balck and white
-		return dif / maxdif * 100;
+		return dif / maxdif;
 	}
 
 	/**
@@ -505,5 +570,46 @@ public class TColorUtils {
 		Kernel kernel = new Kernel(3, 3, elements);
 		ConvolveOp op = new ConvolveOp(kernel);
 		return op.filter(image, null);
+	}
+
+	public static Point getMassCenter(BufferedImage image) {
+		Array2DRowRealMatrix matrix = new Array2DRowRealMatrix(image.getWidth(), image.getHeight());
+		double M = 0;
+
+		for (int x = 0; x < image.getWidth(); x++) {
+			for (int y = 0; y < image.getHeight(); y++) {
+				int rgb = image.getRGB(x, y);
+				double dif = getRGBColorDistance(Color.white, new Color(rgb));
+				M += dif;
+				matrix.setEntry(x, y, dif);
+			}
+		}
+
+		Point2D.Double center = new Point2D.Double();
+		for (int x = 0; x < image.getWidth(); x++) {
+			for (int y = 0; y < image.getHeight(); y++) {
+				center.x += x * matrix.getEntry(x, y);
+			}
+		}
+		for (int y = 0; y < image.getHeight(); y++) {
+			for (int x = 0; x < image.getWidth(); x++) {
+				center.y += y * matrix.getEntry(x, y);
+			}
+		}
+
+		double prob = 1 / M;
+		center.x = center.x * prob;
+		center.y = center.y * prob;
+		Point p = new Point((int) center.x, (int) center.y);
+		return p;
+	}
+
+	public static void drawMassCenterPoint(BufferedImage image) {
+		// 191709: my first modification of hero plugin in refuge camp in germany !!!
+		Point ms = getMassCenter(image);
+		Graphics2D g2d = (Graphics2D) image.getGraphics();
+		g2d.setColor(Color.pink);
+		g2d.drawLine(ms.x - 3, ms.y, ms.x + 3, ms.y);
+		g2d.drawLine(ms.x, ms.y - 3, ms.x, ms.y + 3);
 	}
 }
