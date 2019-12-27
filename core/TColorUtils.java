@@ -154,10 +154,10 @@ public class TColorUtils {
 	 * 
 	 * @return a new {@link BufferedImage}
 	 */
-	public static BufferedImage copy(final BufferedImage image) {
+	public static BufferedImage copy(BufferedImage image) {
 		BufferedImage newimagea = new BufferedImage(image.getWidth(), image.getHeight(), image.getType());
-		final Graphics2D g2d = newimagea.createGraphics();
-		g2d.drawImage(newimagea, 0, 0, null);
+		Graphics2D g2d = newimagea.createGraphics();
+		g2d.drawImage(image, 0, 0, null);
 		g2d.dispose();
 		return newimagea;
 	}
@@ -174,9 +174,10 @@ public class TColorUtils {
 	 * @param image - image to crop
 	 * @param predicate - predicate
 	 * 
-	 * @return sub image of the source image using {@link BufferedImage#getSubimage(int, int, int, int)}
+	 * @return new croped area
 	 */
-	public static BufferedImage autoCrop(BufferedImage image, Predicate<Integer> predicate) {
+	public static Rectangle autoCrop(BufferedImage image, Predicate<Integer> predicate) {
+		Rectangle orgrect = new Rectangle(0, 0, image.getWidth(), image.getHeight());
 		int topY = Integer.MAX_VALUE, topX = Integer.MAX_VALUE;
 		int bottomY = -1, bottomX = -1;
 		for (int y = 0; y < image.getHeight(); y++) {
@@ -194,45 +195,43 @@ public class TColorUtils {
 			}
 		}
 
-		// the resulting area must be lest or ecual to the original area. if not, return the original image
+		// the resulting area must be inside of the original area. if not. no succses predicate was performed and return
+		// the original area
 		Rectangle croprec = new Rectangle(topX, topY, bottomX - topX + 1, bottomY - topY + 1);
-		int cropa = croprec.width * croprec.height;
-		int orga = image.getWidth() * image.getHeight();
-		if (cropa <= 0 && orga >= cropa)
-			return image;
+		if (!orgrect.contains(croprec))
+			return orgrect;
 
-		// the area must be ok
-		BufferedImage cropimg = image.getSubimage(croprec.x, croprec.y, croprec.width, croprec.height);
-		return cropimg;
+		return croprec;
 	}
 
 	public static BufferedImage getImageDataRegion(BufferedImage image) {
 		BufferedImage tmpimage = copy(image);
 		// anchor point
-		int apx = tmpimage.getWidth() - 5;
-		int apy = 5;
+		int apx = tmpimage.getWidth() - 8;
+		int apy = 8;
 		Color fromcol = new Color(tmpimage.getRGB(apx, apy));
 		Color tocol = Color.PINK;
 
 		flood(tmpimage, apx, apy, fromcol, tocol, 0.05);
 
-		// crop interior area
-		BufferedImage newimage = autoCrop(tmpimage, rgb -> rgb == tocol.getRGB());
-
+		// remove data outside the flood area
+		Rectangle croprec = autoCrop(tmpimage, rgb -> rgb == tocol.getRGB());
+		BufferedImage newimage = image.getSubimage(croprec.x, croprec.y, croprec.width, croprec.height);
+		
 		// cut corners
 		// TODO: temporal: paint rectangles. change to triangles
-		int dim = 3;
-		Graphics2D g2d = tmpimage.createGraphics();
-		g2d.drawImage(tmpimage, 0, 0, null);
-		g2d.setColor(tocol);
-		g2d.fillRect(0, 0, dim, dim);
-		g2d.fillRect(tmpimage.getWidth() - dim, 0, dim, dim);
-		g2d.fillRect(tmpimage.getWidth() - dim, tmpimage.getHeight() - dim, dim, dim);
-		g2d.fillRect(0, tmpimage.getHeight() - dim, dim, dim);
-		g2d.dispose();
+		// int dim = 3;
+		// Graphics2D g2d = tmpimage.createGraphics();
+		// g2d.drawImage(tmpimage, 0, 0, null);
+		// g2d.setColor(tocol);
+		// g2d.fillRect(0, 0, dim, dim);
+		// g2d.fillRect(tmpimage.getWidth() - dim, 0, dim, dim);
+		// g2d.fillRect(tmpimage.getWidth() - dim, tmpimage.getHeight() - dim, dim, dim);
+		// g2d.fillRect(0, tmpimage.getHeight() - dim, dim, dim);
+		// g2d.dispose();
 
 		// auto crop to remove excess of background
-		newimage = autoCrop(newimage, rgb -> rgb != tocol.getRGB());
+		// newimage = autoCrop(newimage, rgb -> rgb != tocol.getRGB());
 		return newimage;
 	}
 

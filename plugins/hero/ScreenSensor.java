@@ -9,7 +9,11 @@ import java.util.List;
 import javax.imageio.*;
 import javax.swing.*;
 
+import org.hsqldb.lib.HashMap;
+
 import com.alee.utils.*;
+import com.github.kilianB.hash.*;
+import com.github.kilianB.hashAlgorithms.*;
 
 import core.*;
 import net.sourceforge.tess4j.*;
@@ -54,13 +58,9 @@ public class ScreenSensor extends JPanel {
 		dataLabel.setFont(new Font("courier new", Font.PLAIN, 12));
 		setName(shape.name);
 
-		// the scale factor form a image taked from the screen at 96dpi to the optimal image resolution 300dpi.
-		// Teste but no visible acuracy detected against the 2.5 factor. leave only because look like the correct
-		// procedure.
-		int dpi = 300;
-		float scale = dpi / 96;
-		this.scaledWidth = (int) (shape.bounds.width * scale);
-		this.scaledHeight = (int) (shape.bounds.height * scale);
+		Dimension sd = getScaledDimension(shape.bounds.width, shape.bounds.height);
+		this.scaledWidth = sd.width;
+		this.scaledHeight = sd.height;
 
 		showCapturedImage(true);
 
@@ -70,6 +70,30 @@ public class ScreenSensor extends JPanel {
 		add(imageLabel, ratio > 2 ? BorderLayout.NORTH : BorderLayout.WEST);
 		add(dataLabel, BorderLayout.CENTER);
 		update();
+	}
+
+	/**
+	 * the scale factor form a image taked from the screen at 96dpi to the optimal image resolution 300dpi. Teste but no
+	 * visible acuracy detected against the 2.5 factor. leave only because look like the correct procedure.
+	 * 
+	 * @param width - original width
+	 * @param height - original height
+	 * @return dimension with the scale size
+	 */
+	public static Dimension getScaledDimension(int width, int height) {
+		int dpi = 300;
+		float scale = dpi / 96;
+		int scaledWidth = (int) (width * scale);
+		int scaledHeight = (int) (height * scale);
+		return new Dimension(scaledWidth, scaledHeight);
+	}
+
+	public static double getImageDiferences2(BufferedImage imagea, BufferedImage imageb) {
+		HashingAlgorithm hasher = new PerceptiveHash(32);
+		Hash hash0 = hasher.hash(imagea);
+		Hash hash1 = hasher.hash(imageb);
+		double similarityScore = hash0.normalizedHammingDistance(hash1);
+		return similarityScore;
 	}
 
 	/**
@@ -185,7 +209,9 @@ public class ScreenSensor extends JPanel {
 			try {
 				imageb = ImageIO.read(f);
 
-				// imageb = TColorUtils.convert1(imageb);
+				// Dimension dim = getScaledDimension(imageb.getWidth(), imageb.getHeight());
+				// imageb = ImageHelper.getScaledInstance(imageb, dim.width, dim.height);
+
 				// imageb = TColorUtils.autoCrop(imageb, rgb -> rgb != Color.WHITE.getRGB());
 				// File f1 = new File(dir + img + "c.png");
 				// f1.delete();
@@ -252,8 +278,9 @@ public class ScreenSensor extends JPanel {
 			// from the screen
 			capturedImage = sensorsArray.getRobot().createScreenCapture(bou);
 		}
+
 		/*
-		 * color reducction or image treatment before OCR operation or enable/disable action: mandatory for all
+		 * color reducction and image treatment before OCR operation or enable/disable action: mandatory for all areas
 		 */
 		prepareImage();
 
@@ -350,7 +377,6 @@ public class ScreenSensor extends JPanel {
 		capturedImage = null;
 		// TODO: put somethin to difierentiate the init status form others status
 		imageLabel.setIcon(null);
-		setToolTipText("");
 		setEnabled(false);
 		repaint();
 	}
@@ -417,7 +443,7 @@ public class ScreenSensor extends JPanel {
 		} else {
 			// plus 2 of image border
 			imageLabel.setPreferredSize(new Dimension(scaledWidth + 2, scaledHeight + 2));
-			Hero.logger.warning("Showing the prepared will decrease the system performance.");
+//			Hero.logger.warning("Showing the prepared will decrease the system performance.");
 		}
 	}
 
@@ -431,8 +457,7 @@ public class ScreenSensor extends JPanel {
 		exception = null;
 		try {
 			if (isCardArea()) {
-				// ocrResult = getImageDifferenceOCR();
-				ocrResult = getTesseractOCR();
+				ocrResult = getImageOCR();
 			} else {
 				ocrResult = getTesseractOCR();
 			}
@@ -447,27 +472,28 @@ public class ScreenSensor extends JPanel {
 	 * against the list of card loaded in {@link #cardsTable} static variable. The most probable image file name is
 	 * return.
 	 * <p>
-	 * This method is intendet for card areas. If the diference is more than 30% or the special image
-	 * <code>card_facedown</code> is founded, this metod will return <code>null</code>
+	 * This method is intendet for card areas. a card area is practicaly equals if the diference is < 3%. This method
+	 * will return <code>null</code> if the captured image is less than 50% of the original shape dimensions
 	 * 
-	 * @return th ocr retrived from the original file name
+	 * @return the ocr retrived from the original file name or <code>null</code>
 	 */
-	private String getImageDifferenceOCR() throws Exception {
-
-		// BufferedImage imagea = getCapturedImage();
+	private String getImageOCR() throws Exception {
 		BufferedImage imagea = preparedImage;
+		// fail safe. if the food function cant detetct enought area is because the card is face down or due noise in
+		// the table. return null if the captured area is lest than the half of the original shape area
+		int imagearea = imagea.getWidth() * imagea.getHeight();
+		int shapearea = shape.bounds.width * shape.bounds.height;
+		if (imagearea * 2 < shapearea) {
+			Hero.logger.finer(getName() + ": Not enought area. OCR set to null");
+			return null;
+		}
 		String ocr = getOCRFromImage(imagea, cardsTable);
 
 		// if the card is the file name is card_facedown, set null for ocr
-		if (ocr != null && ocr.equals("card_facedown")) {
+		if (ocr != null && ocr.equals("xx")) {
 			ocr = null;
-			// Hero.logger.finest(getName() + ": card id face down.");
+			Hero.logger.finer(getName() + ": card is face down.");
 		}
-
-		// at this point, if the ocr=null, the image diference is > difference threshold. that means than some garbage
-		// is interfiring
-		// whit the screen capture. this card area is marked as empty area.
-
 		return ocr;
 	}
 	/**
@@ -480,7 +506,7 @@ public class ScreenSensor extends JPanel {
 	private String getTesseractOCR() throws TesseractException {
 		String srcocr = Hero.iTesseract.doOCR(preparedImage);
 
-		// draw segmented regions (only on prepared image) and ONLY when the prepared image is request tobe visible
+		// draw segmented regions (only on prepared image) and ONLY when the prepared image is request to be visible
 		if (!showCapturedImage && preparedImage != null) {
 			int pageIteratorLevel = TessAPI.TessPageIteratorLevel.RIL_WORD;
 			// List<Word> wlst = Hero.iTesseract.getWords(preparedImage, pageIteratorLevel);
@@ -544,7 +570,7 @@ public class ScreenSensor extends JPanel {
 	 * perform image operation to set globals variables relatet with the image previous to OCR, color count operations.
 	 * acording to the type of area that this sensor represent, the underling image can be transformed in diferent ways.
 	 * <p>
-	 * This method set the {@link #preparedImage}, {@link #maxColor} and {@link #whitePercent} global variables
+	 * This method set the {@link #preparedImage}, {@link #maxColor} and {@link #whitePercent} global variables.
 	 * 
 	 */
 	private void prepareImage() {
@@ -557,8 +583,7 @@ public class ScreenSensor extends JPanel {
 		this.whitePercent = TColorUtils.getWhitePercent(histo, bufimg.getWidth(), bufimg.getHeight());
 
 		if (isCardArea()) {
-			bufimg = ImageHelper.getScaledInstance(capturedImage, scaledWidth, scaledHeight);
-			bufimg = ImageHelper.invertImageColor(bufimg);
+			bufimg = TColorUtils.getImageDataRegion(capturedImage);
 		}
 
 		// TODO: TEMPORAL jjust for whitePercent variable

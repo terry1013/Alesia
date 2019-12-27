@@ -124,7 +124,7 @@ public class SensorsArray {
 	 * in this particular moment are not active.
 	 * 
 	 * @see #getActiveSeats()
-	 * @return - num of active villans + hero
+	 * @return - num of active villans
 	 */
 	public int getActiveVillans() {
 		int av = 0;
@@ -254,9 +254,9 @@ public class SensorsArray {
 
 		// TODO: complete implementation
 		if (TYPE_VILLANS.equals(type)) {
-//			List<ScreenSensor> slist = allSensors.stream().filter(ss -> ss.getName().startsWith("villan"))
-//					.collect(Collectors.toList());
-//			readSensors(true, slist);
+			// List<ScreenSensor> slist = allSensors.stream().filter(ss -> ss.getName().startsWith("villan"))
+			// .collect(Collectors.toList());
+			// readSensors(true, slist);
 		}
 
 		// ation areas
@@ -333,19 +333,20 @@ public class SensorsArray {
 	 */
 	public void takeCardSample() {
 		try {
+			String ext = "png";
 			for (String sn : screenSensors.keySet()) {
 				ScreenSensor ss = screenSensors.get(sn);
-				if (ss.isCardArea()) {
+				if (ss.isComunityCard() || ss.isHoleCard()) {
 //					if (ss.getName().equals("hero.card2")) {
-					ss.capture(false);
-					BufferedImage image = ss.getCapturedImage();
-										
-					String ext = "png";
-					File f = new File(ScreenSensor.IMAGE_CARDS + "sample_" + System.currentTimeMillis() + "." + ext);
-					f.createNewFile();
-					TColorUtils.drawMassCenterPoint(image);
-					ImageIO.write(image, ext, f);
-				}
+						ss.capture(false);
+						BufferedImage image = ss.getCapturedImage();
+//						image = TColorUtils.getImageDataRegion(image);
+						File f = new File(
+								ScreenSensor.IMAGE_CARDS + "sample_" + System.currentTimeMillis() + "." + ext);
+						f.createNewFile();
+						ImageIO.write(image, ext, f);
+					}
+//				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

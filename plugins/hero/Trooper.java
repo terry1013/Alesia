@@ -339,8 +339,8 @@ public class Trooper extends Task {
 
 		if (totp != lastProbableValue) {
 			String pnam = inprove > actual ? "Improve" : "Win";
-			String key = "Trooper selected probability "+ pnam;
-			String val = fourDigitFormat.format(totp);
+			String key = "Trooper selected probability";
+			String val = pnam + " " + fourDigitFormat.format(totp);
 			pokerSimulator.setVariable(key, val);
 			Hero.logger.info(key + "=" + val);
 			lastProbableValue = totp;

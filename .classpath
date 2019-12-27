@@ -65,5 +65,8 @@
 	<classpathentry kind="lib" path="lib/poi-ooxml-schemas-4.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-api-1.7.25.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-simple-1.7.25.jar"/>
+	<classpathentry kind="lib" path="plugins/hero/lib/JImageHash-3.0.0.jar" sourcepath="C:/Users/terry/Documents/java/CV/JImageHash/JImageHash-3.0.0-sources.jar"/>
+	<classpathentry kind="lib" path="plugins/hero/lib/UtilityCode-1.5.9.jar"/>
+	<classpathentry kind="lib" path="plugins/hero/lib/JTransforms-3.1-with-dependencies.jar"/>
 	<classpathentry kind="output" path=""/>
 </classpath>
