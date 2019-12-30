@@ -9,11 +9,7 @@ import java.util.List;
 import javax.imageio.*;
 import javax.swing.*;
 
-import org.hsqldb.lib.HashMap;
-
 import com.alee.utils.*;
-import com.github.kilianB.hash.*;
-import com.github.kilianB.hashAlgorithms.*;
 
 import core.*;
 import net.sourceforge.tess4j.*;
@@ -88,13 +84,6 @@ public class ScreenSensor extends JPanel {
 		return new Dimension(scaledWidth, scaledHeight);
 	}
 
-	public static double getImageDiferences2(BufferedImage imagea, BufferedImage imageb) {
-		HashingAlgorithm hasher = new PerceptiveHash(32);
-		Hash hash0 = hasher.hash(imagea);
-		Hash hash1 = hasher.hash(imageb);
-		double similarityScore = hash0.normalizedHammingDistance(hash1);
-		return similarityScore;
-	}
 
 	/**
 	 * Compare the images <code>imagea</code> and <code>imageg</code> pixel by pixel returning the percentage of
@@ -289,7 +278,6 @@ public class ScreenSensor extends JPanel {
 		 * over some %, the action is setted as enabled. use the property enable.when=% to set a diferent percentage
 		 */
 		setEnabled(false);
-		// TODO: test performance changin prepared image for captured image because is smaller
 		if (!(whitePercent > shape.enableWhen)) {
 			update();
 			return;
@@ -443,7 +431,6 @@ public class ScreenSensor extends JPanel {
 		} else {
 			// plus 2 of image border
 			imageLabel.setPreferredSize(new Dimension(scaledWidth + 2, scaledHeight + 2));
-//			Hero.logger.warning("Showing the prepared will decrease the system performance.");
 		}
 	}
 

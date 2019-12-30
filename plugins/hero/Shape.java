@@ -32,9 +32,9 @@ public class Shape {
 	/**
 	 * Property: enable.when <br>
 	 * Range: 0-100 <br>
-	 * Description: indicate the % of white color that must be present to cosider a action area as enabled.
+	 * Description: indicate the % of white color that must be present to cosider an area as enabled.
 	 */
-	public int enableWhen = 0;
+	public int enableWhen = 1;
 
 	/**
 	 * An action area is an area that is clicable by the aplication. this kind of area is of interest because it can has
