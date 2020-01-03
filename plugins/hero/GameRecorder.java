@@ -47,7 +47,7 @@ public class GameRecorder {
 	 * Call this method before a new enviorement or clean eviorement invocation.
 	 */
 	public void flush() {
-//		take a last look of the cards in case of showdown
+		// take a last look of the cards in case of showdown
 		sensorsArray.read(SensorsArray.TYPE_CARDS);
 		takeSnapShot(null);
 
@@ -61,7 +61,9 @@ public class GameRecorder {
 
 		GamesHistory gh = new GamesHistory();
 		gh.set("VILLANS", vil, "TABLE_POSITION", tp, "SMALL_BLIND", sb, "COMUNITY_CARDS", scc);
-		gh.set("GAME_FLOW", villans.stream().map(GamePlayer::toString).collect(Collectors.joining("|")));
+		String gf = trooper.toString() + "|"
+				+ villans.stream().map(GamePlayer::toString).collect(Collectors.joining("|"));
+		gh.set("GAME_FLOW", gf);
 		gh.set("WINNINGS", sensorsArray.getPokerSimulator().getPotValue());
 		gh.save();
 	}

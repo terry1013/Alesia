@@ -197,8 +197,16 @@ public class PokerSimulator {
 		raiseValue = -1;
 		heroChips = -1;
 		reportJLabel.setText("Poker simulator clean.");
+		actionsBarChart.setDataSet(null);
+		actionsBarChart.setTitle("");
 	}
-	
+
+	public void setActionsData(String aperformed, Vector<TEntry<String, Double>> actions) {
+		actionsBarChart.setCategoryMarker(aperformed);
+		actionsBarChart.setDataSet(actions);
+		updateReport();		
+	}
+
 	public void setActionsData(String title, String aperformed, Vector<TEntry<String, Double>> actions) {
 		actionsBarChart.setTitle(title);
 		actionsBarChart.setCategoryMarker(aperformed);
@@ -208,7 +216,7 @@ public class PokerSimulator {
 
 	public void setVariable(String key, String value) {
 		variableList.put(key, value);
-		updateReport();
+//		updateReport();  
 	}
 	public void setBlinds(int sb, int bb) {
 		this.smallBlind = sb;
@@ -222,6 +230,7 @@ public class PokerSimulator {
 	}
 	public void setNunOfPlayers(int p) {
 		this.numSimPlayers = p;
+		variableList.put("Simulation players", ""+numSimPlayers);
 	}
 	public void setPotValue(int potValue) {
 		this.potValue = potValue;

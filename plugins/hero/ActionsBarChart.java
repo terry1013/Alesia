@@ -36,7 +36,7 @@ public class ActionsBarChart {
 
 		CategoryMarker categoryMarker = new CategoryMarker(category);
 		categoryMarker.setPaint(Color.BLUE);
-		categoryMarker.setAlpha(0.8F);
+		categoryMarker.setAlpha(0.3F);
 		categoryPlot.addDomainMarker(categoryMarker, Layer.FOREGROUND);
 	}
 

@@ -15,8 +15,6 @@ import org.apache.commons.math3.stat.descriptive.*;
 
 import com.jgoodies.common.base.*;
 
-import core.*;
-
 /**
  * This class control the array of sensor inside of the screen. This class is responsable for reading all the sensor
  * configurated in the {@link DrawingPanel} passsed as argument in the {@link #createSensorsArray(DrawingPanel)} method.
@@ -119,25 +117,34 @@ public class SensorsArray {
 	}
 
 	/**
-	 * Return the number of current active villans. A VILLAN IS ACTIVE IF HE HAS CARDS IN THIS HANDS. if a player fold
-	 * his card. this method will not count that player. from this method point of view. the player is in tha game, but
-	 * in this particular moment are not active.
+	 * Return the number of current active villans.
 	 * 
+	 * @see #isVillanActive(int)
 	 * @see #getActiveSeats()
 	 * @return - num of active villans
 	 */
 	public int getActiveVillans() {
 		int av = 0;
 		for (int i = 1; i <= getVillans(); i++) {
-			ScreenSensor vc1 = getScreenSensor("villan" + i + ".card1");
-			ScreenSensor vc2 = getScreenSensor("villan" + i + ".card2");
-			if (vc1.isEnabled() && vc2.isEnabled()) {
+			if (isVillanActive(i))
 				av++;
-			}
 		}
 		return av;
 	}
 
+	/**
+	 * return <code>true</code> if the villan identifyed as id argument is active. A VILLAN IS ACTIVE IF HE HAS CARDS IN
+	 * THIS HANDS. if a player fold his card. this method will not count that player. from this method point of view.
+	 * the player is in tha game, but in this particular moment are not active.
+	 * 
+	 * @param id - villan id or seat
+	 * @return true if the villan is active
+	 */
+	public boolean isVillanActive(int id) {
+		ScreenSensor vc1 = getScreenSensor("villan" + id + ".card1");
+		ScreenSensor vc2 = getScreenSensor("villan" + id + ".card2");
+		return vc1.isEnabled() && vc2.isEnabled();
+	}
 	/**
 	 * return where in the table, the dealer button are. If hero has the button, this method return 0.
 	 * 
@@ -223,7 +230,7 @@ public class SensorsArray {
 	 * the action
 	 * 
 	 * @param villanId - the seat as configured in the ppt file. villan1 is at hero.s left
-	 * @see #getActivePlayers()
+	 * @see #getActiveVillans()
 	 * @return numers of villans active seats
 	 */
 	public boolean isSeatActive(int villanId) {
@@ -337,16 +344,15 @@ public class SensorsArray {
 			for (String sn : screenSensors.keySet()) {
 				ScreenSensor ss = screenSensors.get(sn);
 				if (ss.isComunityCard() || ss.isHoleCard()) {
-//					if (ss.getName().equals("hero.card2")) {
-						ss.capture(false);
-						BufferedImage image = ss.getCapturedImage();
-//						image = TColorUtils.getImageDataRegion(image);
-						File f = new File(
-								ScreenSensor.IMAGE_CARDS + "sample_" + System.currentTimeMillis() + "." + ext);
-						f.createNewFile();
-						ImageIO.write(image, ext, f);
-					}
-//				}
+					// if (ss.getName().equals("hero.card2")) {
+					ss.capture(false);
+					BufferedImage image = ss.getCapturedImage();
+					// image = TColorUtils.getImageDataRegion(image);
+					File f = new File(ScreenSensor.IMAGE_CARDS + "sample_" + System.currentTimeMillis() + "." + ext);
+					f.createNewFile();
+					ImageIO.write(image, ext, f);
+				}
+				// }
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

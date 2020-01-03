@@ -55,7 +55,7 @@ public class Trooper extends Task {
 	private long time1;
 	private DescriptiveStatistics outGameStats;
 	private boolean paused = false;
-	private double lastProbableValue = -1;
+	private double logMark = -1;
 
 	/**
 	 * the game recorder is created only after the continue action. this avoid record incomplete sesion
@@ -84,7 +84,7 @@ public class Trooper extends Task {
 	}
 	/**
 	 * Return the expectation of the <code>base</code> argument against the <code>cost</code> argument. to comply with
-	 * rule 2, this method retrive his probability from {@link #getProbability()}
+	 * rule 1, this method retrive his probability from {@link #getProbability()}
 	 * <h5>MoP page 54</h5>
 	 * <p>
 	 * 
@@ -147,7 +147,7 @@ public class Trooper extends Task {
 		ScreenAreas sDisp = new ScreenAreas(file);
 		sDisp.read();
 		this.enviorement = file;
-		lastProbableValue = -1;
+		logMark = -1;
 		this.availableActions.clear();
 		sensorsArray.createSensorsArray(sDisp);
 		robotActuator.setEnviorement(sDisp);
@@ -163,70 +163,171 @@ public class Trooper extends Task {
 		this.trooperStatus = trooperStatus;
 	}
 
-	/**
-	 * Compute the actions available according to {@link #getOdds(int, String)} evaluations. The resulting computation
-	 * will be reflected in a list of actions with his expected values.
-	 * <p>
-	 * this method also remove negative ev if there exist positive ev. this is because most of the times, there are more
-	 * negative EV than positives ones, if i translate the function to the positive cuadrant to allow posible agressive
-	 * actions violate the main purporse of this implementation. so, until now, i just remove them.
-	 * 
-	 * 
-	 * TODO: maybe implement some kind of threshold to alow 1 more action (bluff) TODO: the extreme values: fold=-1 and
-	 * allin=x must be agree whit mathematical poker model to allow bluff.
-	 * 
-	 * @param sourceName - the name of the source
-	 * @param sourceValue - the value
-	 */
-	private void addOddActions(String sourceName, int sourceValue) {
+	private void clearEnviorement() {
+		logMark = -1;
+		sensorsArray.init();
 		availableActions.clear();
-		int call = pokerSimulator.getCallValue();
-		int raise = pokerSimulator.getRaiseValue();
-		int chips = pokerSimulator.getHeroChips();
-
-		if (call >= 0)
-			availableActions.add(new TEntry<String, Double>("call", getOdds(sourceValue, call)));
-
-		if (raise >= 0)
-			availableActions.add(new TEntry<String, Double>("raise", getOdds(sourceValue, raise)));
-
-		// TODO: temporal removed for TH because the raise.slider is in the same area
-		// if (getPotOdds(pot, "pot") >= 0) {
-		// addAction("raise.pot;raise");
-		// }
-
-		// TODO: temporal for TH: simulate allin
-//		if (chips >= 0) {
-//			availableActions.add(new TEntry<String, Double>("raise.allin,c=10;raise", getOdds(sourceValue, chips)));
-//		}
-
-		// TODO: until now i.m goin to implement the slider performing click over the right side of the compoent.
-		// TODO: complete implementation of writhe the ammount for Poker star
-		int sb = pokerSimulator.getSmallBlind();
-		int bb = pokerSimulator.getBigBlind();
-
-		// check the variable. if the house rule is for call variable (remember call has -1 for invalid, 0 for check and
-		// positive for call) check the slider only for positive value
-		if (call > 0) {
-			for (int c = 1; c < 11; c++) {
-				// TODO: temporal for TH. every up button increament the call value
-				// TODO: move to house rules
-				int tick = call + (call * c);
-				availableActions
-						.add(new TEntry<String, Double>("raise.slider,c=" + c + ";raise", getOdds(sourceValue, tick)));
-			}
-		}
-
-		clearNegativeEV();
-		// 191228: Hero win his first game against TH app !!!!!!!!!!!!!!!! :D
-		String key = "Odds actions for";
-		// String val = sourceName + "(" + sourceValue + ") " + availableActions.stream()
-		String val = " " + sourceName + " " + availableActions.stream()
-				.map(te -> te.getKey() + "=" + fourDigitFormat.format(te.getValue())).collect(Collectors.joining(", "));
-		Hero.logger.info(key + " " + val);
-		pokerSimulator.setActionsData(sourceName, null, availableActions);
+		// at first time execution, a standar time of 10 second is used
+		long tt = time1 == 0 ? 10000 : System.currentTimeMillis() - time1;
+		outGameStats.addValue(tt);
+		time1 = System.currentTimeMillis();
+		Hero.logger.fine("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
 	}
 
+	/**
+	 * remove all negative EV form the list of {@link #availableActions} leaving the list only with positive or 0 EV
+	 * actions. If the list contains only negative values, after this method, {@link #availableActions} will be empty
+	 */
+	private void clearNegativeEV() {
+		Vector<TEntry<String, Double>> neglist = new Vector<>();
+		availableActions.forEach(te -> {
+			if (te.getValue() < 0)
+				neglist.add(te);
+		});
+		availableActions.removeAll(neglist);
+	}
+
+	/**
+	 * decide de action(s) to perform. This method is called when the {@link Trooper} detect that is my turn to play. At
+	 * this point, the game enviorement is waiting for an accion.
+	 * 
+	 */
+	private void decide() {
+		Hero.logger.info("Deciding...");
+		sensorsArray.read(SensorsArray.TYPE_CARDS);
+		sensorsArray.read(SensorsArray.TYPE_NUMBERS);
+		availableActions.clear();
+
+		String key = "Current hand";
+		String value = pokerSimulator.getMyHandHelper().getHand().toString();
+		pokerSimulator.setVariable(key, value);
+		Hero.logger.info(key + " " + value);
+
+		key = "Hero hand";
+		value = pokerSimulator.getMyHoleCards().getFirstCard() + ", " + pokerSimulator.getMyHoleCards().getSecondCard();
+		pokerSimulator.setVariable(key, value);
+		Hero.logger.info(key + " " + value);
+
+		key = "comunity cards";
+		value = pokerSimulator.getCommunityCards().toString();
+		pokerSimulator.setVariable(key, value);
+		Hero.logger.info(key + " " + value);
+
+		int currentRound = pokerSimulator.getCurrentRound();
+		int pot = pokerSimulator.getPotValue();
+		int chips = pokerSimulator.getHeroChips();
+
+		setOddActions("Pot " + pot, pot);
+
+		// // check the invest posibility based on weaker villan.
+		// if (availableActions.size() == 0) {
+		// int wv = getWeakVillan();
+		// addOddActions("Weaker Villan " + wv, wv);
+		// }
+
+		// Exterme cases: Preflop
+		// check preflop actions.
+		// TODO: check Loky implementation of UoA
+		if (availableActions.size() == 0 && currentRound == PokerSimulator.HOLE_CARDS_DEALT) {
+			setPrefloopActions();
+		}
+		// invertNegativeEV();
+
+		// Exterme cases: turn/river
+		// check the win probability. The tendency of the trooper to stay in the game some times make him reach higher
+		// street with 0 win probability (spetialy the river) to avoid error on getSubObtimalaction, this code ensure
+		// fold action only for 0 troper probability
+		// TODO: this variables must be ajusted. maybe dinamicaly or based on gamerecording analisis. for now, pot to
+		// 10% only to aboid drain chips in lost causes
+		if (getProbability() < 0.10)
+			availableActions.clear();
+
+		// if the list of available actions are empty, the only posible action todo now is fold
+		if (availableActions.size() == 0)
+			availableActions.add(new TEntry<String, Double>("fold", 1.0));
+	}
+
+	/**
+	 * consult the {@link PokerSimulator} and retrive the hihest probability between gobal win probability or inprove
+	 * probability. When the river card is dealed, this metod only return the win probability
+	 * 
+	 * @see #getOdds(int, String)
+	 * @return the hights probability: win or inmprove hand
+	 */
+	private double getProbability() {
+		MyHandStatsHelper myhsh = pokerSimulator.getMyHandStatsHelper();
+		float inprove = myhsh == null ? 0 : myhsh.getTotalProb();
+		float actual = pokerSimulator.getMyGameStatsHelper().getWinProb();
+		float totp;
+		if (pokerSimulator.getCurrentRound() == PokerSimulator.RIVER_CARD_DEALT)
+			totp = actual;
+		else
+			totp = inprove > actual ? inprove : actual;
+
+		// just to avoid execiong login
+		if (totp != logMark) {
+			String pnam = inprove > actual ? "Improve" : "Win";
+			String key = "Trooper selected probability";
+			String val = pnam + " " + fourDigitFormat.format(totp);
+			pokerSimulator.setVariable(key, val);
+			Hero.logger.info(key + "=" + val);
+			logMark = totp;
+		}
+		return totp;
+	}
+
+	/**
+	 * chck for all sensor and return the current active stronger villan. The stronger villan in this functions is the
+	 * villan with more chips.
+	 */
+	private int getStrongerVillan() {
+		ArrayList<Integer> chips = new ArrayList<>();
+		for (int id = 1; id <= sensorsArray.getVillans(); id++) {
+			if (sensorsArray.isVillanActive(id))
+				chips.add(sensorsArray.getScreenSensor("villan" + id + ".chips").getIntOCR());
+		}
+		chips.removeIf(i -> i.intValue() < 0);
+		chips.sort(null);
+
+		// TODO: temporal for TH, the sensor some times get error and this function cant detect the stronger villan. in
+		// this case, return 0 kto allow the fight continue
+		if (chips.isEmpty())
+			return 0;
+
+		int wv = chips.get(chips.size() - 1);
+		return wv;
+	}
+
+	/**
+	 * perform a random selection of the available actions. this method build a probability distribution and select
+	 * randmly a variate of that distribution. this is suboptimal because the objetive function already has the optimal
+	 * action to perfomr. but this behavior make the trooper visible to the villans that can use this informatiion for
+	 * trap or fool the troper.
+	 * <p>
+	 * the available actions and his values must be previous evaluated. The action value express the hihest expected
+	 * return.
+	 * 
+	 * TODO: take into account table position??
+	 * 
+	 * TODO: take into account numbers of active villans ??
+	 * 
+	 */
+	private String getSubOptimalAction() {
+		Vector<TEntry<String, Double>> tmp = new Vector<>();
+		int elements = availableActions.size();
+		double denom = availableActions.stream().mapToDouble(te -> te.getValue().doubleValue()).sum();
+		int[] singletos = new int[elements];
+		double[] probabilities = new double[elements];
+		for (int i = 0; i < elements; i++) {
+			singletos[i] = i;
+			probabilities[i] = availableActions.get(i).getValue() / denom;
+			tmp.add(new TEntry<>(availableActions.get(i).getKey(), probabilities[i]));
+		}
+		EnumeratedIntegerDistribution dist = new EnumeratedIntegerDistribution(singletos, probabilities);
+		String selact = availableActions.get(dist.sample()).getKey();
+		pokerSimulator.setActionsData(selact, tmp);
+		return selact;
+	}
 	/**
 	 * invert the list of {@link #availableActions} if the list contain all negative expected values.
 	 * <p>
@@ -264,183 +365,52 @@ public class Trooper extends Task {
 	 * 
 	 */
 	private void invertNegativeEV() {
-		long zeroOrPos = availableActions.stream().mapToDouble(te -> te.getValue().doubleValue()).filter(d -> d >= 0)
-				.count();
-		long negatives = availableActions.size() - zeroOrPos;
+		// remove positive values. just in case
+		availableActions.removeIf(te -> te.getValue().doubleValue() > 0);
+		if (availableActions.isEmpty())
+			return;
 
-		// perform algorith when the ev all are negatives.
-		if (negatives == availableActions.size()) {
-			availableActions.add(new TEntry<String, Double>("fold", -1.0));
-			availableActions.sort(null);
-			// test remove extreme values
-			availableActions.remove(0);
-			double max = availableActions.get(0).getValue() * -1.0;
-			availableActions.stream().forEach(te -> te.setValue(max + te.getValue()));
-		}
+		// availableActions.add(new TEntry<String, Double>("fold", -1.0));
+		// availableActions.sort(null);
+		double max = availableActions.get(0).getValue() * -1.0;
+		availableActions.stream().forEach(te -> te.setValue(max + te.getValue()));
+		pokerSimulator.setActionsData("Inverted", null, availableActions);
 	}
 
 	/**
-	 * remove all negative EV form the list of {@link #availableActions} leaving the list only with positive or 0 EV
-	 * actions. If the list contains only negative values, after this method, {@link #availableActions} will be empty
-	 */
-	private void clearNegativeEV() {
-		Vector<TEntry<String, Double>> neglist = new Vector<>();
-		availableActions.forEach(te -> {
-			if (te.getValue() < 0)
-				neglist.add(te);
-		});
-		availableActions.removeAll(neglist);
-	}
-
-	private void clearEnviorement() {
-		lastProbableValue = -1;
-		sensorsArray.init();
-		availableActions.clear();
-		// at first time execution, a standar time of 10 second is used
-		long tt = time1 == 0 ? 10000 : System.currentTimeMillis() - time1;
-		outGameStats.addValue(tt);
-		time1 = System.currentTimeMillis();
-		Hero.logger.fine("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
-	}
-
-	/**
-	 * decide de action(s) to perform. This method is called when the {@link Trooper} detect that is my turn to play. At
-	 * this point, the game enviorement is waiting for an accion.
+	 * return <code>true</code> if the hero cards are inside of the predefinde hand distributions for pre-flop
 	 * 
 	 */
-	private void decide() {
-		Hero.logger.info("Deciding...");
-		sensorsArray.read(SensorsArray.TYPE_CARDS);
-		sensorsArray.read(SensorsArray.TYPE_NUMBERS);
-		availableActions.clear();
-
-		String key = "Current hand";
-		String value = pokerSimulator.getMyHandHelper().getHand().toString();
-		pokerSimulator.setVariable(key, value);
-		Hero.logger.info(key + " " + value);
-
-		key = "Hero hand";
-		value = pokerSimulator.getMyHoleCards().getFirstCard() + ", " + pokerSimulator.getMyHoleCards().getSecondCard();
-		pokerSimulator.setVariable(key, value);
-		Hero.logger.info(key + " " + value);
-
-		key = "comunity cards";
-		value = pokerSimulator.getCommunityCards().toString();
-		pokerSimulator.setVariable(key, value);
-		Hero.logger.info(key + " " + value);
-
-		int currentRound = pokerSimulator.getCurrentRound();
-		int pot = pokerSimulator.getPotValue();
-		int chips = pokerSimulator.getHeroChips();
-		addOddActions("Pot", pot);
-
-		// check the invest posibility based on heros chips. ONLY IN PREFLOP. AND ONLY ONCE.
-		if (availableActions.size() == 0 && currentRound == PokerSimulator.HOLE_CARDS_DEALT)
-			addOddActions("Hero chips", chips);
-
-		// check the win probability. The tendency of the trooper to stay in the game some times make him reach higher
-		// street with 0 win probability (spetialy the river) to avoid error on getSubObtimalaction, this code ensure
-		// fold action only for 0 troper probability
-
-		// TODO: this variables must be ajusted. maybe dinamicaly or based on gamerecording analisis. for now, pot to
-		// 10% only to aboid drain chips in lost causes
-		if (getProbability() < 0.10)
-			availableActions.clear();
-
-		// if the list of available actions are empty, the only posible action todo now is fold
-		if (availableActions.size() == 0)
-			availableActions.add(new TEntry<String, Double>("fold", -1.0));
-	}
-	/**
-	 * consult the {@link PokerSimulator} and retrive the hihest probability between gobal win probability or inprove
-	 * probability. When the turn card is dealed, this metod only return the win probability
-	 * 
-	 * @see #getOdds(int, String)
-	 * @return the hights probability: win or inmprove hand
-	 */
-	private double getProbability() {
-		MyHandStatsHelper myhsh = pokerSimulator.getMyHandStatsHelper();
-		float inprove = myhsh == null ? 0 : myhsh.getTotalProb();
-		float actual = pokerSimulator.getMyGameStatsHelper().getWinProb();
-		float totp;
-		if (pokerSimulator.getCurrentRound() == PokerSimulator.RIVER_CARD_DEALT)
-			totp = actual;
-		else
-			totp = inprove > actual ? inprove : actual;
-
-		if (totp != lastProbableValue) {
-			String pnam = inprove > actual ? "Improve" : "Win";
-			String key = "Trooper selected probability";
-			String val = pnam + " " + fourDigitFormat.format(totp);
-			pokerSimulator.setVariable(key, val);
-			Hero.logger.info(key + "=" + val);
-			lastProbableValue = totp;
-		}
-		return totp;
-	}
-
-	/**
-	 * perform a random selection of the available actions. this method build a probability distribution and select
-	 * randmly a variate of that distribution. this is suboptimal because the objetive function already has the optimal
-	 * action to perfomr. but this behavior make the trooper visible to the villans that can use this informatiion for
-	 * trap or fool the troper.
-	 * <p>
-	 * the available actions and his values must be previous evaluated. The action value express the hihest expected
-	 * return.
-	 * 
-	 * TODO: take into account table position??
-	 * 
-	 * TODO: take into account numbers of active villans ??
-	 * 
-	 */
-	private String getSubOptimalAction() {
-		int elements = availableActions.size();
-		double denom = availableActions.stream().mapToDouble(te -> te.getValue().doubleValue()).sum();
-		int[] singletos = new int[elements];
-		double[] probabilities = new double[elements];
-		for (int i = 0; i < elements; i++) {
-			singletos[i] = i;
-			probabilities[i] = availableActions.get(i).getValue() / denom;
-		}
-		EnumeratedIntegerDistribution dist = new EnumeratedIntegerDistribution(singletos, probabilities);
-		String selact = availableActions.get(dist.sample()).getKey();
-		return selact;
-	}
-
-	/**
-	 * return <code>true</code> if the herro cards are inside of the predefinde hand distributions for pre-flop
-	 * 
-	 */
-	private boolean isGoodHand() {
+	private boolean isGoodStartingHand() {
 		boolean ok = false;
 
-		// suited hand
-		if (pokerSimulator.getMyHoleCards().isSuited()) {
-			Hero.logger.info("Hero hand: is Suited");
-			ok = true;
-		}
-
-		// 10 or higher
-		Card[] heroc = pokerSimulator.getMyHoleCards().getCards();
-		if (heroc[0].getRank() > Card.TEN && heroc[1].getRank() > Card.TEN) {
-			Hero.logger.info("Hero hand: 10 or higher");
-			ok = true;
-		}
-
-		// posible straight: cernters cards separated only by 1 or 2 cards provides de best probabilities (>=6%)
-		if (pokerSimulator.getMyHandStatsHelper().getStraightProb() >= 6) {
-			Hero.logger.info("Hero hand: Posible straight");
-			ok = true;
-		}
-		// is already a pair
+		// pocket pair
 		if (pokerSimulator.getMyHandHelper().isPocketPair()) {
 			Hero.logger.info("Hero hand: is pocket pair");
 			ok = true;
 		}
 
-		if (ok) {
-			Hero.logger.info("the current hand is a bad hand");
+		// suited
+		if (pokerSimulator.getMyHoleCards().isSuited()) {
+			Hero.logger.info("Hero hand: is Suited");
+			ok = true;
 		}
+
+		// connected: cernters cards separated only by 1 or 2 cards provides de best probabilities (>6%)
+		if (pokerSimulator.getMyHandStatsHelper().getStraightProb() >= 6) {
+			Hero.logger.info("Hero hand: Posible straight");
+			ok = true;
+		}
+
+		// 10 or higher
+		Card[] heroc = pokerSimulator.getMyHoleCards().getCards();
+		if (heroc[0].getRank() > Card.NINE && heroc[1].getRank() > Card.NINE) {
+			Hero.logger.info("Hero hand: 10 or higher");
+			ok = true;
+		}
+
+		if(!ok)
+			Hero.logger.info("Not good starting hand.");
 
 		return ok;
 	}
@@ -451,13 +421,108 @@ public class Trooper extends Task {
 	}
 
 	/**
+	 * Compute the actions available according to {@link #getOdds(int, String)} evaluations. The resulting computation
+	 * will be reflected in a list of actions with his expected values.
+	 * <p>
+	 * this method also remove negative ev if there exist positive ev. this is because most of the times, there are more
+	 * negative EV than positives ones, if i translate the function to the positive cuadrant to allow posible agressive
+	 * actions violate the main purporse of this implementation. so, until now, i just remove them.
+	 * 
+	 * 
+	 * TODO: maybe implement some kind of threshold to alow 1 more action (bluff) TODO: the extreme values: fold=-1 and
+	 * allin=x must be agree whit mathematical poker model to allow bluff.
+	 * 
+	 * @param sourceName - the name of the source
+	 * @param sourceValue - the value
+	 */
+	private void setOddActions(String sourceName, int sourceValue) {
+		availableActions.clear();
+		int call = pokerSimulator.getCallValue();
+		int raise = pokerSimulator.getRaiseValue();
+		int chips = pokerSimulator.getHeroChips();
+
+		if (call >= 0)
+			availableActions.add(new TEntry<String, Double>("call", getOdds(sourceValue, call)));
+
+		if (raise >= 0)
+			availableActions.add(new TEntry<String, Double>("raise", getOdds(sourceValue, raise)));
+
+		// TODO: temporal removed for TH because the raise.slider is in the same area
+		// if (getPotOdds(pot, "pot") >= 0) {
+		// addAction("raise.pot;raise");
+		// }
+
+		// TODO: temporal for TH: simulate allin
+		// if (chips >= 0) {
+		// availableActions.add(new TEntry<String, Double>("raise.allin,c=10;raise", getOdds(sourceValue, chips)));
+		// }
+
+		// TODO: until now i.m goin to implement the slider performing click over the right side of the compoent.
+		// TODO: complete implementation of writhe the ammount for Poker star
+		int sb = pokerSimulator.getSmallBlind();
+		int bb = pokerSimulator.getBigBlind();
+
+		// check the variable. if the house rule is for call variable (remember call has -1 for invalid, 0 for check and
+		// positive for call) check the slider only for positive value
+		if (call > 0) {
+			for (int c = 1; c < 11; c++) {
+				// TODO: temporal for TH. every up button increament the call value
+				// TODO: move to house rules
+				int tick = call + (call * c);
+				availableActions
+						.add(new TEntry<String, Double>("raise.slider,c=" + c + ";raise", getOdds(sourceValue, tick)));
+			}
+		}
+
+		clearNegativeEV();
+		// 191228: Hero win his first game against TH app !!!!!!!!!!!!!!!! :D
+		String key = "Odds actions for";
+		// String val = sourceName + "(" + sourceValue + ") " + availableActions.stream()
+		String val = " " + sourceName + " " + availableActions.stream()
+				.map(te -> te.getKey() + "=" + fourDigitFormat.format(te.getValue())).collect(Collectors.joining(", "));
+		Hero.logger.info(key + " " + val);
+		pokerSimulator.setActionsData(sourceName, null, availableActions);
+	}
+
+	/**
+	 * Set the action based on the starting hand distribution. if the starting hand is inside on the predefined
+	 * distribution, then compute the amount of chips able to invest in this situation.
+	 * <p>
+	 * This method is used when the standar pot odds function return an empty action list. this happen when hero is in
+	 * an early position in preflo game. To avoid hero fold his hand with a pocket AA, this function compare the villans
+	 * with more chips against hero chips. the lowers of them is selected to calculate the normal odd actions.
+	 * 
+	 */
+	private void setPrefloopActions() {
+		availableActions.clear();
+		if (!isGoodStartingHand())
+			return;
+
+		int herochips = pokerSimulator.getHeroChips();
+		int boss = getStrongerVillan();
+		int base = herochips > boss ? boss : herochips;
+		int invest = (int) (base * getProbability());
+		setOddActions("Starting hand", invest);
+	}
+
+	private void upperBound() {
+		// double max = availableActions.stream().mapToDouble(te -> te.getValue().doubleValue()).max().orElse(0);
+		// double min = availableActions.stream().mapToDouble(te -> te.getValue().doubleValue()).min().orElse(0);
+		if (availableActions.size() < 3)
+			return;
+
+		availableActions.sort(null);
+		Double ub = availableActions.get(availableActions.size() - 2).getValue();
+		availableActions.removeIf(te -> te.getValue() > ub);
+	}
+	/**
 	 * perform the action. At this point, the game table is waiting for the hero action.
 	 * 
 	 * TODO: complete documentation
 	 */
 	protected void act() {
 		String ha = getSubOptimalAction();
-//		pokerSimulator.setActionsData("Sub obtimal selection", ha, availableActions);
+		// pokerSimulator.setActionsData(ha, availableActions);
 		if (gameRecorder != null) {
 			gameRecorder.takeSnapShot(ha);
 		}
