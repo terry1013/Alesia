@@ -18,24 +18,28 @@ public class GamePlayer {
 	public String card1 = unkData;
 	public String card2 = unkData;
 	public StringBuffer actions = new StringBuffer();
-	public StringBuffer values = new StringBuffer();
-
+	private int playerId;
 	private String prefix;
 	public GamePlayer(int playerId) {
+		this.playerId = playerId;
 		this.prefix = "villan" + playerId;
 		this.name = prefix;
 	}
 
 	/**
-	 * signal by ??? when is time to update the information about this player. This method will updata all the available
-	 * information retrived from the enviorement.
+	 * signal by {@link GameRecorder} when is time to update the information about this player. This method will updata
+	 * all the available information retrived from the enviorement.
 	 * <p>
-	 * when this method detect the name of the villan, it will try to retrive pass information about him form the data
-	 * base. propabilistic information about this villan could be retribed afeter that
+	 * TODO: when this method detect the name of the villan, it will try to retrive pass information about him form the
+	 * data base. propabilistic information about this villan could be retribed afeter that
 	 */
 	public void update() {
 		SensorsArray array = Trooper.getInstance().getSensorsArray();
 		ScreenSensor nameSensor = array.getScreenSensor(prefix + ".name");
+
+		// update only the active villans. if a villan fold, his last actions was already recorded
+		if (!array.isVillanActive(playerId))
+			return;
 
 		// TODO: temporal for th app. retrive the name only once when the background is black
 		if (name.equals(prefix) && nameSensor.getMaxColor().equals("000000")) {
@@ -52,19 +56,19 @@ public class GamePlayer {
 			card2 = ct == null ? unkData : ct;
 		}
 
-		// action perform by the by villan
+		// action perform by the by villan. at this point the villan still alive. if i can get the villan action it is
+		// because the villan is not spoked yet, hero is in a early table position. So he still alive at this point he
+		// must be call/check the hero last action
 		// BufferedImage imagea = nameSensor.getPreparedImage();
 		BufferedImage imagea = nameSensor.getCapturedImage();
 		String ocr = ScreenSensor.getOCRFromImage(imagea, GameRecorder.actionsTable);
-		actions.append(ocr == null ? unkData : ocr.substring(0, 1));
 		// values. the unknow or error spetial value -1 is appended too
 		int val = array.getScreenSensor(prefix + ".call").getIntOCR();
-		values.append(val + ",");
+		actions.append(ocr == null ? "c" : ocr.substring(0, 1));
+		actions.append(val);
 	}
 	@Override
 	public String toString() {
-		// String rval = values.length() > 0 ? values.substring(0, values.length() - 1) : "-1";
-		// return name + "," + card1 + card2 + "," + actions + "," + rval;
 		return name + "," + card1 + "," + card2 + "," + actions;
 	}
 }

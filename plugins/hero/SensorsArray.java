@@ -60,17 +60,12 @@ public class SensorsArray {
 	 */
 	public final static String TYPE_ACTIONS = "Actions";
 	private Hashtable<String, ScreenSensor> screenSensors;
-
 	private Robot robot;
 	private Border readingBorder, lookingBorder, standByBorder;
-
 	private PokerSimulator pokerSimulator;
-
 	private ScreenAreas screenAreas;
 	DescriptiveStatistics tesseractTime = new DescriptiveStatistics(10);
-
 	DescriptiveStatistics imageDiffereceTime = new DescriptiveStatistics(10);
-
 	private Hashtable<String, Integer> blinds;
 
 	public SensorsArray() {
@@ -278,7 +273,7 @@ public class SensorsArray {
 					.collect(Collectors.toList());
 			readSensors(true, slist);
 			updateTablePosition();
-			updateBlinds();
+			updateCalls();
 			// TODO: Temporal for th: the pot is the previous pot value + all calls
 			int potInt = getScreenSensor("pot").getIntOCR();
 			potInt = potInt + blinds.values().stream().mapToInt(iv -> iv.intValue()).sum();
@@ -293,20 +288,23 @@ public class SensorsArray {
 
 		// cards areas sensor will perform a simulation
 		if (TYPE_CARDS.equals(type)) {
+			pokerSimulator.getCardsBuffer().clear();
 			List<ScreenSensor> slist = allSensors.stream().filter(ss -> ss.isCardArea()).collect(Collectors.toList());
 			readSensors(true, slist);
 			for (ScreenSensor ss : slist) {
 				if ((ss.isHoleCard() || ss.isComunityCard())) {
 					String ocr = ss.getOCR();
 					if (ocr != null)
-						pokerSimulator.addCard(ss.getName(), ocr);
+						pokerSimulator.getCardsBuffer().put(ss.getName(), ocr);
 				}
 			}
 			pokerSimulator.runSimulation();
 		}
 		Hero.logger.fine("average Tesseract OCR time: " + tesseractTime.getMean());
-		Hero.logger.fine("average ImageDiference OCR time: " + imageDiffereceTime.getMean());
+		pokerSimulator.setVariable("Tesseract OCR time: ", "" + tesseractTime.getMean());
 
+		Hero.logger.fine("average ImageDiference OCR time: " + imageDiffereceTime.getMean());
+		pokerSimulator.setVariable("ImageDiference OCR time: ", "" + imageDiffereceTime.getMean());
 	}
 
 	/**
@@ -389,26 +387,30 @@ public class SensorsArray {
 	}
 
 	/**
-	 * this methos update the small and big blind values. Those values are retrived scanning all call sensors. if a
-	 * sensor has a value and the internal table for that sensor is empty, this method update the value. in this way,
-	 * for all call sensors, this methhod update the value ONLY ONCE. The small blind is determinated by the smaller
-	 * value in the list, and the big blind is the nex one
+	 * Update the internal list of calls values. this list is used to calculate the correct pot value. The small and big
+	 * blinds are updatet too. The small blind is determinated by the smaller value in the list, and the big blind is
+	 * the next one.
+	 * <p>
+	 * NOTE: from this method point of view, the small/big blinds are the current detected smalles values. In some
+	 * ocations, the gameplay is too agressive to detect the real values.
 	 */
-	private void updateBlinds() {
+	private void updateCalls() {
+		blinds.clear();
+		int sb = pokerSimulator.getSmallBlind() == -1 ? Integer.MAX_VALUE : pokerSimulator.getSmallBlind();
+		int bb = pokerSimulator.getBigBlind() == -1 ? Integer.MAX_VALUE : pokerSimulator.getBigBlind();
 		List<ScreenSensor> calls = getSensors(".call");
 		for (ScreenSensor ss : calls) {
-			if (!blinds.contains(ss.getName())) {
-				int intocr = ss.getIntOCR();
-				// ignore errors or not available information
-				if (intocr > 0)
-					blinds.put(ss.getName(), intocr);
+			int intocr = ss.getIntOCR();
+			// ignore errors or not available information
+			if (intocr > 0) {
+				sb = intocr < sb ? intocr : sb;
+				bb = intocr < bb && intocr > sb ? intocr : bb;
+				blinds.put(ss.getName(), intocr);
 			}
 		}
-		List<Integer> vals = new ArrayList<Integer>(blinds.values());
-		Collections.sort(vals);
-		int i = vals.size();
-		int sb = i > 0 ? vals.get(0) : -1;
-		int bb = vals.stream().filter(ii -> ii > sb).mapToInt(ii -> ii.intValue()).min().orElse(-1);
+		// reset to -1 values in case of no one make a call
+		sb = sb == Integer.MAX_VALUE ? -1 : sb;
+		bb = bb == Integer.MAX_VALUE ? -1 : bb;
 		pokerSimulator.setBlinds(sb, bb);
 	}
 	/**

@@ -48,7 +48,7 @@ public class Hero extends TPlugin {
 		// TODO: recheck performanece. no visible performance improve setting this variable
 		// iTesseract.setOcrEngineMode(0); // Run Tesseract only - fastest
 
-		// iTesseract.setLanguage("pok");
+//		iTesseract.setLanguage("pok");
 		actionMap = Alesia.getInstance().getContext().getActionMap(this);
 		logger = Logger.getLogger("Hero");
 		consolePanel = new ConsolePanel(logger);

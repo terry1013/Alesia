@@ -48,7 +48,7 @@ public class PokerSimulator {
 	// number of players
 	private int numSimPlayers;
 
-	private Hashtable<String, String> variableList;
+	private TreeMap<String, Object> variableList;
 	private PokerProphesierAdapter adapter;
 	private int callValue, raiseValue, potValue;
 	private CommunityCards communityCards;
@@ -71,7 +71,7 @@ public class PokerSimulator {
 		// Create an adapter to communicate with the simulator
 		this.adapter = new PokerProphesierAdapter();
 		adapter.setNumSimulations(numSimulations);
-		variableList = new Hashtable<>();
+		variableList = new TreeMap<>();
 
 		// information components
 		helperFilterComboBox = new WebComboBox();
@@ -93,12 +93,15 @@ public class PokerSimulator {
 		JPanel jp = new JPanel(new BorderLayout());
 		jp.add(reportJLabel, BorderLayout.CENTER);
 		jp.add(actionsBarChart.getChartPanel(), BorderLayout.SOUTH);
-//		reportPanel.setBodyComponent(new JScrollPane(reportJLabel));
+		// reportPanel.setBodyComponent(new JScrollPane(reportJLabel));
 		reportPanel.setBodyComponent(jp);
 
 		init();
 	}
-	
+
+	public Hashtable<String, String> getCardsBuffer() {
+		return cardsBuffer;
+	}
 	/**
 	 * this mathod act like a buffer betwen {@link SensorsArray} and this class to set the cards based on the name/value
 	 * of the {@link ScreenSensor} component while the cards arrive at the game table. For example durin a reading
@@ -106,12 +109,9 @@ public class PokerSimulator {
 	 * method will create the correct game status based on the card stored
 	 * 
 	 * @param sName - name of the {@link ScreenSensor}
-	 * @param card - ocr retrived from the sensor.
+	 * @param card - ocr retrived from the sensor. public void addCard(String sName, String card) {
+	 *        cardsBuffer.put(sName, card); // System.out.println(sName + " " + card); }
 	 */
-	public void addCard(String sName, String card) {
-		cardsBuffer.put(sName, card);
-		// System.out.println(sName + " " + card);
-	}
 	public PokerProphesierAdapter getAdapter() {
 		return adapter;
 	}
@@ -198,25 +198,22 @@ public class PokerSimulator {
 		heroChips = -1;
 		reportJLabel.setText("Poker simulator clean.");
 		actionsBarChart.setDataSet(null);
-		actionsBarChart.setTitle("");
 	}
 
 	public void setActionsData(String aperformed, Vector<TEntry<String, Double>> actions) {
 		actionsBarChart.setCategoryMarker(aperformed);
 		actionsBarChart.setDataSet(actions);
-		updateReport();		
+		updateReport();
 	}
 
-	public void setActionsData(String title, String aperformed, Vector<TEntry<String, Double>> actions) {
-		actionsBarChart.setTitle(title);
-		actionsBarChart.setCategoryMarker(aperformed);
+	public void setActionsData(Vector<TEntry<String, Double>> actions) {
 		actionsBarChart.setDataSet(actions);
 		updateReport();
 	}
 
-	public void setVariable(String key, String value) {
+	public void setVariable(String key, Object value) {
 		variableList.put(key, value);
-//		updateReport();  
+		updateReport();
 	}
 	public void setBlinds(int sb, int bb) {
 		this.smallBlind = sb;
@@ -230,7 +227,6 @@ public class PokerSimulator {
 	}
 	public void setNunOfPlayers(int p) {
 		this.numSimPlayers = p;
-		variableList.put("Simulation players", ""+numSimPlayers);
 	}
 	public void setPotValue(int potValue) {
 		this.potValue = potValue;
@@ -251,7 +247,7 @@ public class PokerSimulator {
 			}
 		};
 		// long t1 = System.currentTimeMillis();
-		reportPanel.setVisible(false);
+		reportJLabel.setVisible(false);
 		String selectedHelper = ((TEntry) helperFilterComboBox.getSelectedItem()).getKey().toString();
 		String text = "<HTML>";
 		myHandHelper = adapter.getMyHandHelper();
@@ -277,19 +273,21 @@ public class PokerSimulator {
 			text += getFormateTable(myGameStatsHelper.toString());
 		}
 		if (selectedHelper.equals("trooperVariables")) {
-			String addinfo = "Table Position: " + getTablePosition() + "\n";
-			addinfo += "Current round: " + getCurrentRound() + "\n";
-			addinfo += "Call amount: " + getCallValue() + "\n";
-			addinfo += "Pot: " + getPotValue() + "\n";
-			addinfo += "Small blind: " + getSmallBlind() + "\n";
-			addinfo += "Big blind: " + getBigBlind() + "\n";
-			addinfo += variableList.keySet().stream().map(key -> key + ": " + variableList.get(key))
+			// variableList.put("Table Position", getTablePosition());
+			variableList.put("Current round", getCurrentRound());
+			variableList.put("Call amount", getCallValue());
+			variableList.put("Raise amount", getRaiseValue());
+			variableList.put("Pot", getPotValue());
+			variableList.put("Small blind", getSmallBlind());
+			variableList.put("Num of players", getNumSimPlayers());
+			variableList.put("Big blind", getBigBlind());
+			String tmp = variableList.keySet().stream().map(key -> key + ": " + variableList.get(key))
 					.collect(Collectors.joining("\n"));
-			text += getFormateTable(addinfo);;
+			text += getFormateTable(tmp);
 		}
 
 		reportJLabel.setText(text);
-		reportPanel.setVisible(true);
+		reportJLabel.setVisible(true);
 		// Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
 	}
 
@@ -435,16 +433,27 @@ public class PokerSimulator {
 			adapter.setOppHoleCardsRealistic(true);
 			adapter.setOppProbMyHandSensitive(true);
 
+			String c1 = cardsBuffer.get("hero.card1");
+			String c2 = cardsBuffer.get("hero.card2");
+			if (c1 == null || c2 == null) {
+				JOptionPane.showMessageDialog(Alesia.mainFrame, "error");
+				Trooper.getInstance().cancel(true);
+			}
 			createHoleCards();
 			createComunityCards();
 
 			adapter.runMySimulations(holeCards, communityCards, numSimPlayers, currentRound);
 			updateReport();
 		} catch (SimulatorException e) {
+			setVariable("Exception", e);
 			Hero.logger.warning(e.getMessage() + "\n\tCurrent round: " + currentRound + "\n\tHole cards: " + holeCards
 					+ "\n\tComunity cards: " + communityCards);
 		} catch (Exception e) {
+			setVariable("Exception", e);
 			Hero.logger.log(Level.SEVERE, "", e);
 		}
+	}	
+	public Exception getException() {
+		return (Exception) variableList.get("Exception");
 	}
 }

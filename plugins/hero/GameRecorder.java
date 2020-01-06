@@ -18,10 +18,6 @@ import core.datasource.model.*;
  * TODO: maybe exted the funcionality to supply imediate info. a villans in this game sesion may alter his behabior and
  * the curren hero status is not aware of this.
  * 
- * TODO: evaluate the posibility of separate the text ocr areas form the numeric ocr ares to improve the reability of
- * the ocr operation
- * 
- * 
  * @author terry
  *
  */

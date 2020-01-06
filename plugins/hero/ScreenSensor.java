@@ -54,7 +54,7 @@ public class ScreenSensor extends JPanel {
 		dataLabel.setFont(new Font("courier new", Font.PLAIN, 12));
 		setName(shape.name);
 
-		Dimension sd = getScaledDimension(shape.bounds.width, shape.bounds.height);
+		Dimension sd = TCVUtils.getScaledDimension(shape.bounds.width, shape.bounds.height);
 		this.scaledWidth = sd.width;
 		this.scaledHeight = sd.height;
 
@@ -68,22 +68,25 @@ public class ScreenSensor extends JPanel {
 		update();
 	}
 
-	/**
-	 * the scale factor form a image taked from the screen at 96dpi to the optimal image resolution 300dpi. Teste but no
-	 * visible acuracy detected against the 2.5 factor. leave only because look like the correct procedure.
-	 * 
-	 * @param width - original width
-	 * @param height - original height
-	 * @return dimension with the scale size
-	 */
-	public static Dimension getScaledDimension(int width, int height) {
-		int dpi = 300;
-		float scale = dpi / 96;
-		int scaledWidth = (int) (width * scale);
-		int scaledHeight = (int) (height * scale);
-		return new Dimension(scaledWidth, scaledHeight);
-	}
+	public static double getImageDiferences2(BufferedImage imagea, BufferedImage imageb) {
 
+		Hashtable<Integer, Integer> ha = TColorUtils.getHistogram(TColorUtils.convert4(imagea));
+		Hashtable<Integer, Integer> hb = TColorUtils.getHistogram(TColorUtils.convert4(imageb));
+
+		Set<Integer> keys = ha.size() > hb.size() ? ha.keySet() : hb.keySet();
+		double diference = 0.0;
+		for (Integer key : keys) {
+			int ia = ha.get(key) != null ? ha.get(key).intValue() : 0;
+			int ib = hb.get(key) != null ? hb.get(key).intValue() : 0;
+			diference += Math.abs(ia - ib);
+		}
+
+//		int total_pixel = tot_width * tot_height;
+//		double avg_diff = diference / total_pixel;
+//		double percent = avg_diff * 100;
+//		return percent;
+		return diference;
+	}
 
 	/**
 	 * Compare the images <code>imagea</code> and <code>imageg</code> pixel by pixel returning the percentage of
@@ -111,27 +114,14 @@ public class ScreenSensor extends JPanel {
 				int rgba = imagea.getRGB(x, y);
 				int rgbb = imageb.getRGB(x, y);
 				diference += TColorUtils.getRGBColorDistance(new Color(rgba), new Color(rgbb));
-				// int reda = (rgba >> 16) & 0xff;
-				// int greena = (rgba >> 8) & 0xff;
-				// int bluea = (rgba) & 0xff;
-				// int redb = (rgbb >> 16) & 0xff;
-				// int greenb = (rgbb >> 8) & 0xff;
-				// int blueb = (rgbb) & 0xff;
-				// diference += Math.abs(reda - redb);
-				// diference += Math.abs(greena - greenb);
-				// diference += Math.abs(bluea - blueb);
 			}
 		}
 
-		// total number of pixels (all 3 chanels)
+		// total number of pixels
 		int total_pixel = tot_width * tot_height;
-		// int total_pixel = tot_width * tot_height * 3;
-
 		// normaliye the value of diferent pixel
 		double avg_diff = diference / total_pixel;
-
 		// percentage
-		// double percent = avg_diff / 255 * 100;
 		double percent = avg_diff * 100;
 		return percent;
 	}
@@ -197,15 +187,6 @@ public class ScreenSensor extends JPanel {
 			BufferedImage imageb;
 			try {
 				imageb = ImageIO.read(f);
-
-				// Dimension dim = getScaledDimension(imageb.getWidth(), imageb.getHeight());
-				// imageb = ImageHelper.getScaledInstance(imageb, dim.width, dim.height);
-
-				// imageb = TColorUtils.autoCrop(imageb, rgb -> rgb != Color.WHITE.getRGB());
-				// File f1 = new File(dir + img + "c.png");
-				// f1.delete();
-				// ImageIO.write(imageb, "png", f1);
-
 				String inam = f.getName().split("[.]")[0];
 				BufferedImage old = images.put(inam, imageb);
 				if (old != null) {
@@ -522,16 +503,16 @@ public class ScreenSensor extends JPanel {
 
 		// cards sensors
 		if (isCardArea()) {
-			srcocd = srcocd.replaceAll("\\s", "");
-			// checq the last character looking for the suit.
-			String tmp = srcocd.substring(srcocd.length() - 1, srcocd.length());
-			String suit = "c";
-			suit = tmp.equals("V") ? "h" : suit;
-			suit = tmp.equals("Q") ? "s" : suit;
-			suit = tmp.equals("0") ? "d" : suit;
-			String rank = srcocd.substring(0, 1);
-			rank = rank.equals("1") ? "10" : rank;
-			srcocd = rank + suit;
+//			srcocd = srcocd.replaceAll("\\s", "");
+//			// checq the last character looking for the suit.
+//			String tmp = srcocd.substring(srcocd.length() - 1, srcocd.length());
+//			String suit = "c";
+//			suit = tmp.equals("V") ? "h" : suit;
+//			suit = tmp.equals("Q") ? "s" : suit;
+//			suit = tmp.equals("0") ? "d" : suit;
+//			String rank = srcocd.substring(0, 1);
+//			rank = rank.equals("1") ? "10" : rank;
+//			srcocd = rank + suit;
 		}
 		// call sensors
 		if (TStringUtils.wildCardMacher(getName(), "*.call")) {
@@ -571,6 +552,7 @@ public class ScreenSensor extends JPanel {
 
 		if (isCardArea()) {
 			bufimg = TColorUtils.getImageDataRegion(capturedImage);
+//			bufimg = ImageHelper.getScaledInstance(bufimg, scaledWidth, scaledHeight);
 		}
 
 		// TODO: TEMPORAL jjust for whitePercent variable

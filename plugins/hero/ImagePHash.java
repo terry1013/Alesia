@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.color.*;
 import java.awt.image.*;
 import java.io.*;
+import java.util.*;
 
 import javax.imageio.*;
 /*
@@ -44,9 +45,7 @@ public class ImagePHash {
 	}
 
 	// Returns a 'binary string' (like. 001010111011100010) which is easy to do a hamming distance on.
-	public String getHash(InputStream is) throws Exception {
-		BufferedImage img = ImageIO.read(is);
-
+	public String getHash(BufferedImage img) {
 		/*
 		 * 1. Reduce size. Like Average Hash, pHash starts with a small image. However, the image is larger than 8x8;
 		 * 32x32 is a good size. This is really done to simplify the DCT computation and not because it is needed to
@@ -158,4 +157,25 @@ public class ImagePHash {
 		return resizedImage;
 	}
 
+	public static void main(String[] args) {
+		String dir = "plugins/hero/image_cards/";
+		File fdir = new File(dir);
+		String[] imgs = fdir.list();
+		Hashtable<String, BufferedImage> images = new Hashtable<>();
+		for (String img : imgs) {
+			File f = new File(dir + img);
+			BufferedImage imageb;
+			try {
+				imageb = ImageIO.read(f);
+				String inam = f.getName().split("[.]")[0];
+				images.put(inam, imageb);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		ImagePHash imagePHash = new ImagePHash();
+		String tc = imagePHash.getHash(images.get("3c"));
+		String fc = imagePHash.getHash(images.get("5c"));
+		System.out.println(imagePHash.distance(tc, fc));
+	}
 }

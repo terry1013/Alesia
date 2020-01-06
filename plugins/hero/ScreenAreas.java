@@ -103,8 +103,8 @@ public class ScreenAreas {
 				}
 			}
 			ppt.close();
-			Predicate<Shape> pre = (sh -> sh.name.contains(".name"));
-			checkDimensions(pre, "villan2.name", "Name areas");
+//			Predicate<Shape> pre = (sh -> sh.name.contains(".name"));
+//			checkDimensions(pre, "villan2.name", "Name areas");
 //			checkDimensions((sh -> sh.isCardArea), "hero.card1", "Card areas");
 		} catch (Exception e) {
 			e.printStackTrace();

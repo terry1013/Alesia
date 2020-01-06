@@ -21,7 +21,7 @@ public class ActionsBarChart {
 		this.dataset = new DefaultCategoryDataset();
 		this.chart = createChart(dataset);
 		this.chartPanel = new ChartPanel(chart);
-		chartPanel.setPreferredSize(new Dimension(500, 270));
+		chartPanel.setPreferredSize(new Dimension(500, 200));
 	}
 
 	public ChartPanel getChartPanel() {
@@ -46,23 +46,25 @@ public class ActionsBarChart {
 
 	public void setDataSet(Vector<TEntry<String, Double>> example) {
 		dataset.clear();
-		if (example == null)
-			return;
 
+		// fill the dataset with empty sloot to keep the shape of the graphics
+		if (example == null)
+			example = new Vector<>();
+		
 		example.forEach(te -> dataset.addValue(te.getValue(), "", te.getKey()));
 		int morec = 15 - dataset.getColumnCount();
-		if(morec<1)
+		if (morec < 1)
 			return;
-		
+
 		for (int i = 0; i < morec; i++) {
-			dataset.addValue(0, "", "Empty slot "+i);
+			dataset.addValue(0, "", "Empty slot " + i);
 		}
 		// CategoryPlot categoryPlot = (CategoryPlot) chart.getPlot();
 		// categoryPlot.setDataset(dataset);
 	}
 
 	private static JFreeChart createChart(CategoryDataset paramCategoryDataset) {
-		JFreeChart chart = ChartFactory.createBarChart("", null, "EV", paramCategoryDataset);
+		JFreeChart chart = ChartFactory.createBarChart(null, null, null, paramCategoryDataset);
 		CategoryPlot categoryPlot = (CategoryPlot) chart.getPlot();
 		categoryPlot.setNoDataMessage("NO DATA!");
 		categoryPlot.setDomainGridlinesVisible(true);
