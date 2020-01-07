@@ -38,8 +38,8 @@ public class Shape {
 
 	/**
 	 * An action area is an area that is clicable by the aplication. this kind of area is of interest because it can has
-	 * enable/disable status and control the game flow. the property is setted when the name of the sape star whit
-	 * <code>Action.</code> word
+	 * enable/disable status and control the game flow. the property is setted when the name of the shape star with
+	 * <code>action.</code> prefix
 	 */
 	public boolean isActionArea = false;
 
@@ -56,13 +56,13 @@ public class Shape {
 	public boolean isButtonArea = false;
 	/**
 	 * mark if this shape is required to be readed by tesserac and is a text area. this area can contain any string.
-	 * this property is hardcoded in a method nside of {@link ScreenAreas}
+	 * this property is hardcoded in a method nside of {@link ShapeAreas}
 	 */
 	public boolean isOCRTextArea = false;
 
 	/**
 	 * mark if this shape is required to be readed by tesserac and is a numeric area. a numeric area MUST ontain ONLY
-	 * numbers. this property is hardcoded in a method inside of {@link ScreenAreas}
+	 * numbers. this property is hardcoded in a method inside of {@link ShapeAreas}
 	 */
 	public boolean isOCRNumericArea = false;
 

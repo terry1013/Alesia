@@ -157,6 +157,7 @@ public class ScreenSensor extends JPanel {
 		Hero.logger.finer("getOCRFromImage: image " + ocr + " found. Diference: " + dif);
 		return ocr == null || dif > difThreshold ? null : ocr;
 	}
+	
 	/**
 	 * Return a random {@link Point} selectd inside of the area (0,width) (0,height)
 	 * 
@@ -350,17 +351,10 @@ public class ScreenSensor extends JPanel {
 		repaint();
 	}
 
-	/**
-	 * return if this sensor is an action area
-	 * 
-	 * @return <code>true</code> or <code>false</code>
-	 * @since 2.3
-	 * @see Shape#isActionArea
-	 */
 	public boolean isActionArea() {
 		return shape.isActionArea;
 	}
-
+	
 	public boolean isCardArea() {
 		return shape.isCardArea;
 	}

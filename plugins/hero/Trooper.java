@@ -45,19 +45,16 @@ import core.*;
  */
 public class Trooper extends Task {
 
-	// public static String WAITING = "waiting";
-	// public static String ACTIVE = "active";
 	private static Trooper instance;
-
 	private static DecimalFormat fourDigitFormat = new DecimalFormat("#0.0000");
+
 	private PokerSimulator pokerSimulator;
 	private RobotActuator robotActuator;
 	private SensorsArray sensorsArray;
-	private String trooperStatus;
 	private boolean isTestMode;
 	private Vector<TEntry<String, Double>> availableActions;
 	private int countdown = 5;
-	private File enviorement;
+	private File file;
 	private long time1;
 	private DescriptiveStatistics outGameStats;
 	private boolean paused = false;
@@ -80,8 +77,8 @@ public class Trooper extends Task {
 		this.sensorsArray = new SensorsArray();
 		this.pokerSimulator = sensorsArray.getPokerSimulator();
 		instance = this;
-		if (clone != null && clone.enviorement != null) {
-			setEnviorement(clone.enviorement);
+		if (clone != null && clone.file != null) {
+			init(clone.file);
 		}
 	}
 
@@ -116,7 +113,7 @@ public class Trooper extends Task {
 	}
 
 	public boolean isCallEnabled() {
-		return sensorsArray.getScreenSensor("call").isEnabled();
+		return sensorsArray.getSensor("call").isEnabled();
 	}
 
 	public boolean isPaused() {
@@ -124,15 +121,15 @@ public class Trooper extends Task {
 	}
 
 	public boolean isRaiseDownEnabled() {
-		return sensorsArray.getScreenSensor("raise.down").isEnabled();
+		return sensorsArray.getSensor("raise.down").isEnabled();
 	}
 
 	public boolean isRaiseEnabled() {
-		return sensorsArray.getScreenSensor("raise").isEnabled();
+		return sensorsArray.getSensor("raise").isEnabled();
 	}
 
 	public boolean isRaiseUpEnabled() {
-		return sensorsArray.getScreenSensor("raise.up").isEnabled();
+		return sensorsArray.getSensor("raise.up").isEnabled();
 	}
 
 	public boolean isTestMode() {
@@ -148,24 +145,20 @@ public class Trooper extends Task {
 	 * set the enviorement. this method create a new enviorement discarting all previous created objects
 	 * 
 	 */
-	public void setEnviorement(File file) {
-		ScreenAreas sDisp = new ScreenAreas(file);
+	public void init(File file) {
+		ShapeAreas sDisp = new ShapeAreas(file);
 		sDisp.read();
-		this.enviorement = file;
+		this.file = file;
 		logMark = -1;
 		this.availableActions.clear();
 		sensorsArray.createSensorsArray(sDisp);
 		robotActuator.setEnviorement(sDisp);
 		// gameRecorder = new GameRecorder(sensorsArray);
-		Hero.sensorsPanel.setEnviorement(this);
+		Hero.sensorsPanel.setArray(sensorsArray);
 	}
 
 	public void setTestMode(boolean isTestMode) {
 		this.isTestMode = isTestMode;
-	}
-
-	public void setTrooperStatus(String trooperStatus) {
-		this.trooperStatus = trooperStatus;
 	}
 
 	private void clearEnviorement() {
@@ -181,9 +174,12 @@ public class Trooper extends Task {
 
 	private static String EXPLANATION = "Action explanation";
 
-	private void setVariableAndLog(String key, String value) {
+	private void setVariableAndLog(String key, Object value) {
+		String value1 = value.toString();
+		if (value instanceof Double)
+			value1 = fourDigitFormat.format(((Double) value).doubleValue());
 		pokerSimulator.setVariable(key, value);
-		Hero.logger.info(key + " " + value);
+		Hero.logger.info(key + " " + value1);
 	}
 	/**
 	 * decide de action(s) to perform. This method is called when the {@link Trooper} detect that is my turn to play. At
@@ -285,7 +281,7 @@ public class Trooper extends Task {
 		ArrayList<Integer> chips = new ArrayList<>();
 		for (int id = 1; id <= sensorsArray.getVillans(); id++) {
 			if (sensorsArray.isVillanActive(id))
-				chips.add(sensorsArray.getScreenSensor("villan" + id + ".chips").getIntOCR());
+				chips.add(sensorsArray.getSensor("villan" + id + ".chips").getIntOCR());
 		}
 		chips.removeIf(i -> i.intValue() < 0);
 		chips.sort(null);
@@ -415,8 +411,8 @@ public class Trooper extends Task {
 	}
 
 	private boolean isMyTurnToPlay() {
-		return sensorsArray.getScreenSensor("fold").isEnabled() || sensorsArray.getScreenSensor("call").isEnabled()
-				|| sensorsArray.getScreenSensor("raise").isEnabled();
+		return sensorsArray.isSensorEnabled("fold") || sensorsArray.isSensorEnabled("call")
+				|| sensorsArray.isSensorEnabled("raise");
 	}
 
 	/**
@@ -537,6 +533,32 @@ public class Trooper extends Task {
 			// setTrooperStatus(WAITING);
 		}
 	}
+
+	/**
+	 * this metod will try to return to the game table if he detect the current enviorement is in another place. This
+	 * method will try a few times to return to the main gametable. if it not succede return <code>false</code>
+	 * call it again.
+	 * 
+	 * @return <code>true</code> if the enviorement is in the main gametable.
+	 */
+	private boolean ensureGameTable() {
+		int trys = 3;
+		for (int i = 0; i < trys; i++) {
+			sensorsArray.lookActionSensors();
+			// enviorement is already in the gametable
+			if (isMyTurnToPlay())
+				return true;
+
+			// enviorement is in main menu? click on play button
+			if (sensorsArray.isSensorEnabled("sensor0"))
+				robotActuator.perform("sensor0");
+
+			// enviorement is in continue after lost focus? click on continue button
+			if (sensorsArray.isSensorEnabled("sensor2") && sensorsArray.isSensorEnabled("sensor3"))
+				robotActuator.perform("sensor2");
+		}
+		return false;
+	}
 	@Override
 	protected Object doInBackground() throws Exception {
 
@@ -556,16 +578,23 @@ public class Trooper extends Task {
 			// countdown before start
 			if (countdown > 0) {
 				countdown--;
-				Hero.logger.info("Seconds to start: " + countdown);
+				setVariableAndLog("Seconds to start: ", countdown);
 				Thread.sleep(1000);
 				continue;
 			}
 
-			sensorsArray.lookTable();
+			setVariableAndLog(EXPLANATION, "Checking actions areas");
+			boolean ingt = ensureGameTable();
+			if (!ingt) {
+				// if after a few attemps, the enviorement is not in the gametable, signal error
+				setVariableAndLog(EXPLANATION, "the enviorement is not in the main gametable. Trooper return.");
+				return null;
+			}
+
 			// Hero.logger.info("---");
 
 			// look the continue button and perform the action if available.
-			ScreenSensor ss = sensorsArray.getScreenSensor("continue");
+			ScreenSensor ss = sensorsArray.getSensor("continue");
 			if (ss.isEnabled()) {
 				if (gameRecorder != null) {
 					gameRecorder.flush();

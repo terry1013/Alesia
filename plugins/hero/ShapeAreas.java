@@ -20,13 +20,13 @@ import core.*;
  * @author terry
  *
  */
-public class ScreenAreas {
+public class ShapeAreas {
 
 	private Hashtable<String, Shape> shapes;
 	private File file;
 	private ImageIcon backgroundImage;
 
-	public ScreenAreas(File file) {
+	public ShapeAreas(File file) {
 		this.shapes = new Hashtable<>();
 		this.file = file;
 	}
@@ -87,7 +87,7 @@ public class ScreenAreas {
 						Shape sha = new Shape(anchor.getBounds());
 						Hero.logger.finer("shape found " + name + " Bounds" + "[x=" + sha.bounds.x + ",y="
 								+ sha.bounds.y + ",width=" + sha.bounds.width + ",height=" + sha.bounds.height + "]");
-						// marck action areas
+						// mark action areas
 						if (name.startsWith("action.")) {
 							sha.isActionArea = true;
 							name = name.replace("action.", "");

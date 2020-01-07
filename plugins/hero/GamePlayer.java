@@ -35,7 +35,7 @@ public class GamePlayer {
 	 */
 	public void update() {
 		SensorsArray array = Trooper.getInstance().getSensorsArray();
-		ScreenSensor nameSensor = array.getScreenSensor(prefix + ".name");
+		ScreenSensor nameSensor = array.getSensor(prefix + ".name");
 
 		// update only the active villans. if a villan fold, his last actions was already recorded
 		if (!array.isVillanActive(playerId))
@@ -48,11 +48,11 @@ public class GamePlayer {
 			name = name == null ? prefix : name;
 		}
 		if (card1.equals(unkData)) {
-			String ct = array.getScreenSensor(prefix + ".card1").getOCR();
+			String ct = array.getSensor(prefix + ".card1").getOCR();
 			card1 = ct == null ? unkData : ct;
 		}
 		if (card2.equals(unkData)) {
-			String ct = array.getScreenSensor(prefix + ".card2").getOCR();
+			String ct = array.getSensor(prefix + ".card2").getOCR();
 			card2 = ct == null ? unkData : ct;
 		}
 
@@ -63,7 +63,7 @@ public class GamePlayer {
 		BufferedImage imagea = nameSensor.getCapturedImage();
 		String ocr = ScreenSensor.getOCRFromImage(imagea, GameRecorder.actionsTable);
 		// values. the unknow or error spetial value -1 is appended too
-		int val = array.getScreenSensor(prefix + ".call").getIntOCR();
+		int val = array.getSensor(prefix + ".call").getIntOCR();
 		actions.append(ocr == null ? "c" : ocr.substring(0, 1));
 		actions.append(val);
 	}

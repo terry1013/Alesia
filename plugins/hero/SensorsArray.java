@@ -59,11 +59,11 @@ public class SensorsArray {
 	 * Read/see only actions areas (call button, raise, continue)
 	 */
 	public final static String TYPE_ACTIONS = "Actions";
-	private Hashtable<String, ScreenSensor> screenSensors;
+	private TreeMap<String, ScreenSensor> screenSensors;
 	private Robot robot;
 	private Border readingBorder, lookingBorder, standByBorder;
 	private PokerSimulator pokerSimulator;
-	private ScreenAreas screenAreas;
+	private ShapeAreas screenAreas;
 	DescriptiveStatistics tesseractTime = new DescriptiveStatistics(10);
 	DescriptiveStatistics imageDiffereceTime = new DescriptiveStatistics(10);
 	private Hashtable<String, Integer> blinds;
@@ -75,24 +75,17 @@ public class SensorsArray {
 		this.lookingBorder = new LineBorder(Color.GREEN, 2);
 		this.standByBorder = new LineBorder(new JPanel().getBackground(), 2);
 		this.blinds = new Hashtable<>();
-		this.screenSensors = new Hashtable<>();
+		this.screenSensors = new TreeMap<>();
 	}
 
 	/**
 	 * Return a list of all actions areas
 	 * 
 	 * @see SensorsPanel
-	 * @return list of actions
+	 * @return list of actions public Vector<ScreenSensor> getActionAreas() { Vector<ScreenSensor> vec = new Vector<>();
+	 *         for (ScreenSensor sensor : screenSensors.values()) { if (sensor.isActionArea()) { vec.add(sensor); } }
+	 *         return vec; }
 	 */
-	public Vector<ScreenSensor> getActionAreas() {
-		Vector<ScreenSensor> vec = new Vector<>();
-		for (ScreenSensor sensor : screenSensors.values()) {
-			if (sensor.isActionArea()) {
-				vec.add(sensor);
-			}
-		}
-		return vec;
-	}
 
 	/**
 	 * Return the number of current villans active seats.
@@ -136,8 +129,8 @@ public class SensorsArray {
 	 * @return true if the villan is active
 	 */
 	public boolean isVillanActive(int id) {
-		ScreenSensor vc1 = getScreenSensor("villan" + id + ".card1");
-		ScreenSensor vc2 = getScreenSensor("villan" + id + ".card2");
+		ScreenSensor vc1 = getSensor("villan" + id + ".card1");
+		ScreenSensor vc2 = getSensor("villan" + id + ".card2");
 		return vc1.isEnabled() && vc2.isEnabled();
 	}
 	/**
@@ -148,10 +141,10 @@ public class SensorsArray {
 	public int getDealerButtonPosition() {
 		int vil = getVillans();
 		int bp = -1;
-		String sscol = getScreenSensor("hero.button").getMaxColor();
+		String sscol = getSensor("hero.button").getMaxColor();
 		bp = sscol.equals(DEALER_BUTTON_COLOR) ? 0 : -1;
 		for (int i = 1; i <= vil; i++) {
-			sscol = getScreenSensor("villan" + i + ".button").getMaxColor();
+			sscol = getSensor("villan" + i + ".button").getMaxColor();
 			bp = (sscol.equals(DEALER_BUTTON_COLOR)) ? i : bp;
 		}
 		if (bp == -1) {
@@ -175,28 +168,56 @@ public class SensorsArray {
 	 * 
 	 * @return the screen sensor instance or <code>null</code> if no sensor is found.
 	 */
-	public ScreenSensor getScreenSensor(String sensorName) {
+	public ScreenSensor getSensor(String sensorName) {
 		ScreenSensor ss = screenSensors.get(sensorName);
 		Preconditions.checkNotNull(ss, "No sensor name " + sensorName + " was found.");
 		return ss;
 	}
 
-	public ScreenAreas getSensorDisposition() {
+	public ShapeAreas getSensorDisposition() {
 		return screenAreas;
 	}
 	/**
 	 * retriva an array of sensor.s names acording to the type argument. For example, to retrive all "call" sensors,
-	 * pass to thid method ".call" will return sensor hero.call, villan1.call etc.
+	 * pass to thid method ".call" will return sensor hero.call, villan1.call etc. <code>null</code> argument return all
+	 * configured sensors.
 	 * 
-	 * @param type - type of sensor
+	 * <p>
+	 * the list is sorted
 	 * 
-	 * @return list of sensors full name
+	 * @param type - type of sensor or <code>null</code> for all
+	 * 
+	 * @return list of sensors or empty list if no sensor was found
 	 */
 	public List<ScreenSensor> getSensors(String type) {
-		List<ScreenSensor> list = screenSensors.values().stream().filter(ss -> ss.getName().contains(type))
-				.collect(Collectors.toList());
+		List<ScreenSensor> list;
+		if (type == null)
+			list = screenSensors.values().stream().collect(Collectors.toList());
+		else
+			list = screenSensors.values().stream().filter(ss -> ss.getName().contains(type))
+					.collect(Collectors.toList());
 		return list;
 	}
+
+	/**
+	 * This method return a list of all action sensors currently enables. For example. if a enviorement with 10 binary
+	 * sensors, calling this method return <code>1469</code> means that the sensors 1, 4, 6 and 9 are enabled. all
+	 * others are disabled.
+	 * 
+	 * @return list of binary sensors enabled
+	public String getEnabledActions() {
+		String onlist = "";
+
+		List<ScreenSensor> sslist = screenSensors.values().stream().filter(ScreenSensor::isActionArea)
+				.collect(Collectors.toList());
+		for (int i = 0; i < sslist.size(); i++) {
+			ScreenSensor ss = screenSensors.get("binary.sensor" + i);
+			onlist += ss.isEnabled() ? "" : i;
+		}
+		return onlist;
+	}
+	 */
+
 	/**
 	 * Return the number of villans configurated in this table.
 	 * 
@@ -229,17 +250,27 @@ public class SensorsArray {
 	 * @return numers of villans active seats
 	 */
 	public boolean isSeatActive(int villanId) {
-		ScreenSensor vname = getScreenSensor("villan" + villanId + ".name");
-		ScreenSensor vchip = getScreenSensor("villan" + villanId + ".chips");
+		ScreenSensor vname = getSensor("villan" + villanId + ".name");
+		ScreenSensor vchip = getSensor("villan" + villanId + ".chips");
 		return vname.isEnabled() && vchip.isEnabled();
 	}
+
 	/**
-	 * this metho campture all screeen´s areas without do any ocr operation. Use this mothod to retrive all sensor areas
-	 * and set the enable status for fast comparation.
+	 * Shortcut to get the enable/disable status from a sensor
+	 * 
+	 * @param sensorName - sensor name
+	 * 
+	 * @return <code>true</code> if the sensor is enabled
 	 */
-	public void lookTable() {
-		ArrayList<ScreenSensor> list = new ArrayList<>(screenSensors.values());
-		readSensors(false, list);
+	public boolean isSensorEnabled(String sensorName) {
+		ScreenSensor ss = getSensor(sensorName);
+		return ss.isEnabled();
+	}
+
+	public void lookActionSensors() {
+		List<ScreenSensor> sslist = screenSensors.values().stream().filter(ss -> ss.isActionArea())
+				.collect(Collectors.toList());
+		readSensors(false, sslist);
 	}
 
 	/**
@@ -275,12 +306,12 @@ public class SensorsArray {
 			updateTablePosition();
 			updateCalls();
 			// TODO: Temporal for th: the pot is the previous pot value + all calls
-			int potInt = getScreenSensor("pot").getIntOCR();
+			int potInt = getSensor("pot").getIntOCR();
 			potInt = potInt + blinds.values().stream().mapToInt(iv -> iv.intValue()).sum();
 			pokerSimulator.setPotValue(potInt);
-			pokerSimulator.setCallValue(getScreenSensor("call").getIntOCR());
-			pokerSimulator.setHeroChips(getScreenSensor("hero.chips").getIntOCR());
-			pokerSimulator.setRaiseValue(getScreenSensor("raise").getIntOCR());
+			pokerSimulator.setCallValue(getSensor("call").getIntOCR());
+			pokerSimulator.setHeroChips(getSensor("hero.chips").getIntOCR());
+			pokerSimulator.setRaiseValue(getSensor("raise").getIntOCR());
 			pokerSimulator.setNunOfPlayers(getActiveVillans() + 1);
 
 			pokerSimulator.updateReport();
@@ -426,13 +457,13 @@ public class SensorsArray {
 		pokerSimulator.setTablePosition(tp);
 	}
 	/**
-	 * Create the array of sensors setted in the {@link ScreenAreas}.
+	 * Create the array of sensors setted in the {@link ShapeAreas}.
 	 * <p>
 	 * dont use this method directly. use {@link Trooper#setEnviorement(DrawingPanel)}
 	 * 
 	 * @param areas - the enviorement
 	 */
-	protected void createSensorsArray(ScreenAreas areas) {
+	protected void createSensorsArray(ShapeAreas areas) {
 		this.screenAreas = areas;
 		this.screenSensors.clear();
 		this.blinds.clear();

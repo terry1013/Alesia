@@ -97,8 +97,8 @@ public class GameRecorder {
 		}
 
 		// trooper
-		trooper.card1 = sensorsArray.getScreenSensor("hero.card1").getOCR();
-		trooper.card2 = sensorsArray.getScreenSensor("hero.card2").getOCR();
+		trooper.card1 = sensorsArray.getSensor("hero.card1").getOCR();
+		trooper.card2 = sensorsArray.getSensor("hero.card2").getOCR();
 		if (action != null) {
 			trooper.actions.append(action.substring(0, 1));
 		}

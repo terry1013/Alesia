@@ -11,7 +11,8 @@
 package plugins.hero;
 
 import java.awt.*;
-import java.util.*;
+import java.util.List;
+import java.util.stream.*;
 
 import javax.swing.*;
 
@@ -34,8 +35,7 @@ public class SensorsPanel extends TUIPanel {
 	private TUIPanel sensorsPanelMain;
 	private JPanel sensorsPanel;
 	private JPanel simulationDataPanel;
-
-	private Trooper trooper;
+private SensorsArray sensorsArray;
 	private Action loadAction;
 	// private ActionMap actionMap;
 	private WebComboBox sensorTypeComboBox;
@@ -82,6 +82,8 @@ public class SensorsPanel extends TUIPanel {
 						ss.setVisible(ss.isNumericArea());
 					if (filter.equals("type: cardareas"))
 						ss.setVisible(ss.isCardArea());
+					if (filter.equals("type: actions"))
+						ss.setVisible(ss.isActionArea());
 				} else {
 					boolean vis = TStringUtils.wildCardMacher(ss.getName(), filter);
 					ss.setVisible(vis);
@@ -90,23 +92,20 @@ public class SensorsPanel extends TUIPanel {
 		}
 		sensorsPanel.setVisible(true);
 	}
-	/**
-	 * create the {@link ScreenSensor} array plus all UI components
-	 * 
-	 */
-	public void setEnviorement(Trooper trooper) {
+
+	public void setArray(SensorsArray array) {
 		setVisible(false);
-		this.trooper = trooper;
+		this.sensorsArray = array;
 
 		simulationDataPanel.removeAll();
-		simulationDataPanel.add(trooper.getSensorsArray().getPokerSimulator().getReportPanel(), BorderLayout.CENTER);
+		simulationDataPanel.add(sensorsArray.getPokerSimulator().getReportPanel(), BorderLayout.CENTER);
 		setSensorPanel();
 
 		// list of options to filter sensors
 		sensorTypeComboBox = new WebComboBox();
 		sensorTypeComboBox.addItem(new TEntry("*", "All"));
 		sensorTypeComboBox.addItem(new TEntry("villan*", "Only villans"));
-		int vils = trooper.getSensorsArray().getVillans();
+		int vils = sensorsArray.getVillans();
 		for (int i = 1; i <= vils; i++) {
 			sensorTypeComboBox.addItem(new TEntry("villan" + i + "*", "only villan" + i));
 		}
@@ -115,6 +114,7 @@ public class SensorsPanel extends TUIPanel {
 		sensorTypeComboBox.addItem(new TEntry("type: textareas", "Only OCR text areas"));
 		sensorTypeComboBox.addItem(new TEntry("type: numareas", "Only OCR numeric areas"));
 		sensorTypeComboBox.addItem(new TEntry("type: cardareas", "Only cards areas"));
+		sensorTypeComboBox.addItem(new TEntry("type: actions", "Only Actions areas"));
 		sensorTypeComboBox.addActionListener(evt -> filterSensors());
 
 		// options to show captured or prepared images
@@ -143,40 +143,48 @@ public class SensorsPanel extends TUIPanel {
 	 * @return
 	 */
 	private void setSensorPanel() {
+		// test the panel disposition just sorting the sensors by name
 		sensorsPanel.removeAll();
-
-		// general info
-		sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("pot"));
-		sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("flop1"));
-		sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("flop2"));
-		sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("flop3"));
-		sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("turn"));
-		sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("river"));
-
-		// hero
-		sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("hero.card1"));
-		sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("hero.card2"));
-		sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("hero.button"));
-		sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("hero.call"));
-		sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("hero.chips"));
-
-		// villans
-
-		int tv = trooper.getSensorsArray().getVillans();
-		for (int i = 1; i <= tv; i++) {
-			sensorsPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 4, 4));
-			sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("villan" + i + ".name"));
-			sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("villan" + i + ".card1"));
-			sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("villan" + i + ".card2"));
-			sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("villan" + i + ".button"));
-			sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("villan" + i + ".call"));
-			sensorsPanel.add(trooper.getSensorsArray().getScreenSensor("villan" + i + ".chips"));
+		List<ScreenSensor> ssl = sensorsArray.getSensors(null);
+		List<String> names = ssl.stream().map(ss -> ss.getName()).collect(Collectors.toList());
+		names.sort(null);
+		for (String name : names) {
+			sensorsPanel.add(sensorsArray.getSensor(name));
 		}
 
-		// actions areas
-		Vector<ScreenSensor> btns = trooper.getSensorsArray().getActionAreas();
-		for (ScreenSensor btn : btns) {
-			sensorsPanel.add(btn);
-		}
+		// // general info
+		// sensorsPanel.add(sensorsArray.getSensor("pot"));
+		// sensorsPanel.add(sensorsArray.getSensor("flop1"));
+		// sensorsPanel.add(sensorsArray.getSensor("flop2"));
+		// sensorsPanel.add(sensorsArray.getSensor("flop3"));
+		// sensorsPanel.add(sensorsArray.getSensor("turn"));
+		// sensorsPanel.add(sensorsArray.getSensor("river"));
+		//
+		// // hero
+		// sensorsPanel.add(sensorsArray.getSensor("hero.card1"));
+		// sensorsPanel.add(sensorsArray.getSensor("hero.card2"));
+		// sensorsPanel.add(sensorsArray.getSensor("hero.button"));
+		// sensorsPanel.add(sensorsArray.getSensor("hero.call"));
+		// sensorsPanel.add(sensorsArray.getSensor("hero.chips"));
+		//
+		// // villans
+		//
+		// int tv = sensorsArray.getVillans();
+		// for (int i = 1; i <= tv; i++) {
+		// sensorsPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 4, 4));
+		// sensorsPanel.add(sensorsArray.getSensor("villan" + i + ".name"));
+		// sensorsPanel.add(sensorsArray.getSensor("villan" + i + ".card1"));
+		// sensorsPanel.add(sensorsArray.getSensor("villan" + i + ".card2"));
+		// sensorsPanel.add(sensorsArray.getSensor("villan" + i + ".button"));
+		// sensorsPanel.add(sensorsArray.getSensor("villan" + i + ".call"));
+		// sensorsPanel.add(sensorsArray.getSensor("villan" + i + ".chips"));
+		// }
+		//
+		// // actions and binary areas
+		// List<ScreenSensor> ssl = sensorsArray.getSensors(null);
+		// for (ScreenSensor ss : ssl) {
+		// if (ss.isActionArea() || ss.isBinaryArea())
+		// sensorsPanel.add(ss);
+		// }
 	}
 }

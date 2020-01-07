@@ -23,7 +23,7 @@ public class RobotActuator {
 	private int mouseDelay = 200;
 	private int keyStrokeDelay = 20;
 
-	private ScreenAreas sensorDisposition;
+	private ShapeAreas sensorDisposition;
 
 	public RobotActuator() {
 		this.robot = Hero.getNewRobot();
@@ -78,7 +78,7 @@ public class RobotActuator {
 			Hero.logger.info("Action " + action + " Click= " + clicks + " Text= " + text + " performed.");
 		}
 	}
-	public void setEnviorement(ScreenAreas sDisp) {
+	public void setEnviorement(ShapeAreas sDisp) {
 		this.sensorDisposition = sDisp;
 	}
 

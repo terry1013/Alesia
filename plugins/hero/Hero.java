@@ -58,7 +58,7 @@ public class Hero extends TPlugin {
 		Action load = TActionsFactory.getAction("fileChooserOpen");
 		load.addPropertyChangeListener(evt -> {
 			if (evt.getPropertyName().equals(TActionsFactory.DATA_LOADED)) {
-				Trooper.getInstance().setEnviorement((File) load.getValue(TActionsFactory.DATA_LOADED));
+				Trooper.getInstance().init((File) load.getValue(TActionsFactory.DATA_LOADED));
 			}
 		});
 		return load;
@@ -107,7 +107,7 @@ public class Hero extends TPlugin {
 		Alesia.getMainPanel().setContentPanel(sensorsPanel);
 
 		// temporal
-		Trooper.getInstance().setEnviorement(new File("plugins/hero/resources/th table new.ppt"));
+		Trooper.getInstance().init(new File("plugins/hero/resources/th-test app.ppt"));
 	}
 
 	@org.jdesktop.application.Action
