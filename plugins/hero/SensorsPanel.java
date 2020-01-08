@@ -12,7 +12,6 @@ package plugins.hero;
 
 import java.awt.*;
 import java.util.List;
-import java.util.stream.*;
 
 import javax.swing.*;
 
@@ -35,7 +34,7 @@ public class SensorsPanel extends TUIPanel {
 	private TUIPanel sensorsPanelMain;
 	private JPanel sensorsPanel;
 	private JPanel simulationDataPanel;
-private SensorsArray sensorsArray;
+	private SensorsArray sensorsArray;
 	private Action loadAction;
 	// private ActionMap actionMap;
 	private WebComboBox sensorTypeComboBox;
@@ -47,7 +46,7 @@ private SensorsArray sensorsArray;
 		this.loadAction = Hero.getLoadAction();
 		setToolBar(loadAction);
 		this.sensorsPanel = new JPanel(new GridLayout(0, 2));
-		sensorsPanel.setPreferredSize(new Dimension(10, 2500));
+//		sensorsPanel.setPreferredSize(new Dimension(10, 2500));
 		this.simulationDataPanel = new JPanel(new BorderLayout());
 
 		JScrollPane ajsp = new JScrollPane(sensorsPanel);
@@ -63,43 +62,17 @@ private SensorsArray sensorsArray;
 		setBodyComponent(wtp);
 	}
 
-	private void filterSensors() {
-		sensorsPanel.setVisible(false);
-		String filter = ((TEntry) sensorTypeComboBox.getSelectedItem()).getKey().toString();
-		boolean sCapture = Boolean.parseBoolean(((TEntry) imageTypeComboBox.getSelectedItem()).getKey().toString());
-
-		Component components[] = sensorsPanel.getComponents();
-		for (Component component : components) {
-			if (component instanceof ScreenSensor) {
-				ScreenSensor ss = (ScreenSensor) component;
-				ss.setVisible(false);
-				ss.showCapturedImage(sCapture);
-				// spetial name or wildcard string (the structure type: xxx has noting in spetial, just a name)
-				if (filter.startsWith("type:")) {
-					if (filter.equals("type: textareas"))
-						ss.setVisible(ss.isTextArea());
-					if (filter.equals("type: numareas"))
-						ss.setVisible(ss.isNumericArea());
-					if (filter.equals("type: cardareas"))
-						ss.setVisible(ss.isCardArea());
-					if (filter.equals("type: actions"))
-						ss.setVisible(ss.isActionArea());
-				} else {
-					boolean vis = TStringUtils.wildCardMacher(ss.getName(), filter);
-					ss.setVisible(vis);
-				}
-			}
-		}
-		sensorsPanel.setVisible(true);
-	}
-
 	public void setArray(SensorsArray array) {
 		setVisible(false);
 		this.sensorsArray = array;
 
 		simulationDataPanel.removeAll();
 		simulationDataPanel.add(sensorsArray.getPokerSimulator().getReportPanel(), BorderLayout.CENTER);
-		setSensorPanel();
+		sensorsPanel.removeAll();
+		List<ScreenSensor> ssl = sensorsArray.getSensors(null);
+		for (ScreenSensor ss : ssl) {
+			sensorsPanel.add(ss);
+		}
 
 		// list of options to filter sensors
 		sensorTypeComboBox = new WebComboBox();
@@ -137,54 +110,31 @@ private SensorsArray sensorsArray;
 
 		setVisible(true);
 	}
-	/**
-	 * create the panel whit all sensors
-	 * 
-	 * @return
-	 */
-	private void setSensorPanel() {
-		// test the panel disposition just sorting the sensors by name
+
+	private void filterSensors() {
+		sensorsPanel.setVisible(false);
+		String filter = ((TEntry) sensorTypeComboBox.getSelectedItem()).getKey().toString();
+		boolean sCapture = Boolean.parseBoolean(((TEntry) imageTypeComboBox.getSelectedItem()).getKey().toString());
+
 		sensorsPanel.removeAll();
 		List<ScreenSensor> ssl = sensorsArray.getSensors(null);
-		List<String> names = ssl.stream().map(ss -> ss.getName()).collect(Collectors.toList());
-		names.sort(null);
-		for (String name : names) {
-			sensorsPanel.add(sensorsArray.getSensor(name));
+		for (ScreenSensor ss : ssl) {
+			ss.showCapturedImage(sCapture);
+			// spetial name or wildcard string (the structure type: xxx has noting in spetial, just a name)
+			if (filter.startsWith("type:")) {
+				if (filter.equals("type: textareas") && ss.isTextArea())
+					sensorsPanel.add(ss);
+				if (filter.equals("type: numareas") && ss.isNumericArea())
+					sensorsPanel.add(ss);
+				if (filter.equals("type: cardareas") && ss.isCardArea())
+					sensorsPanel.add(ss);
+				if (filter.equals("type: actions") && ss.isActionArea())
+					sensorsPanel.add(ss);
+			} else {
+				if (TStringUtils.wildCardMacher(ss.getName(), filter))
+					sensorsPanel.add(ss);
+			}
 		}
-
-		// // general info
-		// sensorsPanel.add(sensorsArray.getSensor("pot"));
-		// sensorsPanel.add(sensorsArray.getSensor("flop1"));
-		// sensorsPanel.add(sensorsArray.getSensor("flop2"));
-		// sensorsPanel.add(sensorsArray.getSensor("flop3"));
-		// sensorsPanel.add(sensorsArray.getSensor("turn"));
-		// sensorsPanel.add(sensorsArray.getSensor("river"));
-		//
-		// // hero
-		// sensorsPanel.add(sensorsArray.getSensor("hero.card1"));
-		// sensorsPanel.add(sensorsArray.getSensor("hero.card2"));
-		// sensorsPanel.add(sensorsArray.getSensor("hero.button"));
-		// sensorsPanel.add(sensorsArray.getSensor("hero.call"));
-		// sensorsPanel.add(sensorsArray.getSensor("hero.chips"));
-		//
-		// // villans
-		//
-		// int tv = sensorsArray.getVillans();
-		// for (int i = 1; i <= tv; i++) {
-		// sensorsPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 4, 4));
-		// sensorsPanel.add(sensorsArray.getSensor("villan" + i + ".name"));
-		// sensorsPanel.add(sensorsArray.getSensor("villan" + i + ".card1"));
-		// sensorsPanel.add(sensorsArray.getSensor("villan" + i + ".card2"));
-		// sensorsPanel.add(sensorsArray.getSensor("villan" + i + ".button"));
-		// sensorsPanel.add(sensorsArray.getSensor("villan" + i + ".call"));
-		// sensorsPanel.add(sensorsArray.getSensor("villan" + i + ".chips"));
-		// }
-		//
-		// // actions and binary areas
-		// List<ScreenSensor> ssl = sensorsArray.getSensors(null);
-		// for (ScreenSensor ss : ssl) {
-		// if (ss.isActionArea() || ss.isBinaryArea())
-		// sensorsPanel.add(ss);
-		// }
+		sensorsPanel.setVisible(true);
 	}
 }

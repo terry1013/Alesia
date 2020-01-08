@@ -204,18 +204,11 @@ public class SensorsArray {
 	 * sensors, calling this method return <code>1469</code> means that the sensors 1, 4, 6 and 9 are enabled. all
 	 * others are disabled.
 	 * 
-	 * @return list of binary sensors enabled
-	public String getEnabledActions() {
-		String onlist = "";
-
-		List<ScreenSensor> sslist = screenSensors.values().stream().filter(ScreenSensor::isActionArea)
-				.collect(Collectors.toList());
-		for (int i = 0; i < sslist.size(); i++) {
-			ScreenSensor ss = screenSensors.get("binary.sensor" + i);
-			onlist += ss.isEnabled() ? "" : i;
-		}
-		return onlist;
-	}
+	 * @return list of binary sensors enabled public String getEnabledActions() { String onlist = "";
+	 * 
+	 *         List<ScreenSensor> sslist = screenSensors.values().stream().filter(ScreenSensor::isActionArea)
+	 *         .collect(Collectors.toList()); for (int i = 0; i < sslist.size(); i++) { ScreenSensor ss =
+	 *         screenSensors.get("binary.sensor" + i); onlist += ss.isEnabled() ? "" : i; } return onlist; }
 	 */
 
 	/**
@@ -268,9 +261,25 @@ public class SensorsArray {
 	}
 
 	public void lookActionSensors() {
+		long t1 = System.currentTimeMillis();
 		List<ScreenSensor> sslist = screenSensors.values().stream().filter(ss -> ss.isActionArea())
 				.collect(Collectors.toList());
 		readSensors(false, sslist);
+		System.out.println("lookActionSensors() " + (System.currentTimeMillis() - t1));
+	}
+
+	/**
+	 * this metho campture all screeen´s areas without do any ocr operation. Use this mothod to retrive all sensor areas
+	 * and set the enable status for fast comparation.
+	 * 
+	 * @return the time expended calling this method.
+	 */
+	public long lookTable() {
+		long t1 = System.currentTimeMillis();
+		List<ScreenSensor> sslist = getSensors(null);
+		readSensors(false, sslist);
+		long t2 = System.currentTimeMillis() - t1;
+		return t2;
 	}
 
 	/**

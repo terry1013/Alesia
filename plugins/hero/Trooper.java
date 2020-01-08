@@ -1,5 +1,6 @@
 package plugins.hero;
 
+import java.awt.image.*;
 import java.io.*;
 import java.text.*;
 import java.util.*;
@@ -537,25 +538,47 @@ public class Trooper extends Task {
 	/**
 	 * this metod will try to return to the game table if he detect the current enviorement is in another place. This
 	 * method will try a few times to return to the main gametable. if it not succede return <code>false</code>
-	 * call it again.
 	 * 
 	 * @return <code>true</code> if the enviorement is in the main gametable.
 	 */
-	private boolean ensureGameTable() {
-		int trys = 3;
+	private boolean ensureGameTable() throws Exception {
+		int trys = 5;
 		for (int i = 0; i < trys; i++) {
-			sensorsArray.lookActionSensors();
+			sensorsArray.lookTable();
 			// enviorement is already in the gametable
-			if (isMyTurnToPlay())
+			if (isMyTurnToPlay()) {
 				return true;
+			}
+
+			// continue active and fold inactive. the match is end. clear the internal variables
+			if (sensorsArray.isSensorEnabled("continue") && !sensorsArray.isSensorEnabled("fold")) {
+				if (gameRecorder != null) {
+					gameRecorder.flush();
+				}
+				gameRecorder = new GameRecorder(sensorsArray);
+				robotActuator.perform("continue");
+				clearEnviorement();
+				continue;
+			}
 
 			// enviorement is in main menu? click on play button
-			if (sensorsArray.isSensorEnabled("sensor0"))
+			if (sensorsArray.isSensorEnabled("sensor0")
+					&& !(sensorsArray.isSensorEnabled("fold") && sensorsArray.isSensorEnabled("continue"))) {
 				robotActuator.perform("sensor0");
+				continue;
+			}
 
 			// enviorement is in continue after lost focus? click on continue button
-			if (sensorsArray.isSensorEnabled("sensor2") && sensorsArray.isSensorEnabled("sensor3"))
+			if (sensorsArray.isSensorEnabled("sensor2") && !sensorsArray.isSensorEnabled("fold")) {
 				robotActuator.perform("sensor2");
+				continue;
+			}
+
+			// trooper win the match. clic on ok
+			if (sensorsArray.isSensorEnabled("sensor5") && sensorsArray.isSensorEnabled("continue")) {
+				robotActuator.perform("continue");
+				continue;
+			}
 		}
 		return false;
 	}
@@ -592,19 +615,6 @@ public class Trooper extends Task {
 			}
 
 			// Hero.logger.info("---");
-
-			// look the continue button and perform the action if available.
-			ScreenSensor ss = sensorsArray.getSensor("continue");
-			if (ss.isEnabled()) {
-				if (gameRecorder != null) {
-					gameRecorder.flush();
-				}
-				gameRecorder = new GameRecorder(sensorsArray);
-				robotActuator.perform("continue");
-				clearEnviorement();
-				// setTrooperStatus(ACTIVE);
-				continue;
-			}
 
 			// // i have nothig to do expect wait to the game round complete and press the continue button because i
 			// folded
