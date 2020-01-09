@@ -272,14 +272,13 @@ public class SensorsArray {
 	 * this metho campture all screeen´s areas without do any ocr operation. Use this mothod to retrive all sensor areas
 	 * and set the enable status for fast comparation.
 	 * 
-	 * @return the time expended calling this method.
 	 */
-	public long lookTable() {
+	public void lookTable() {
 		long t1 = System.currentTimeMillis();
 		List<ScreenSensor> sslist = getSensors(null);
 		readSensors(false, sslist);
 		long t2 = System.currentTimeMillis() - t1;
-		return t2;
+//		System.out.println("SensorsArray.lookTable() " + t2);
 	}
 
 	/**
@@ -321,7 +320,6 @@ public class SensorsArray {
 			pokerSimulator.setCallValue(getSensor("call").getIntOCR());
 			pokerSimulator.setHeroChips(getSensor("hero.chips").getIntOCR());
 			pokerSimulator.setRaiseValue(getSensor("raise").getIntOCR());
-			pokerSimulator.setNunOfPlayers(getActiveVillans() + 1);
 
 			pokerSimulator.updateReport();
 		}
@@ -338,6 +336,7 @@ public class SensorsArray {
 						pokerSimulator.getCardsBuffer().put(ss.getName(), ocr);
 				}
 			}
+			pokerSimulator.setNunOfPlayers(getActiveVillans() + 1);
 			pokerSimulator.runSimulation();
 		}
 		Hero.logger.fine("average Tesseract OCR time: " + tesseractTime.getMean());

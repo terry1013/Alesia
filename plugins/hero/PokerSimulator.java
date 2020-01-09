@@ -1,6 +1,7 @@
 package plugins.hero;
 
 import java.awt.*;
+import java.text.*;
 import java.util.*;
 import java.util.function.*;
 import java.util.logging.*;
@@ -41,13 +42,15 @@ public class PokerSimulator {
 	public static int BIG_BLIND = 2;
 	public static int MIDLE = 3;
 	public static int DEALER = 10;
+	public static String STATUS = "Simulator Status";
+	public static String STATUS_OK = "Ok";
 	// Number of simulations, total players
 	private int numSimulations = 100000;
+
 	// temporal storage for incoming cards
 	private Hashtable<String, String> cardsBuffer;
 	// number of players
 	private int numSimPlayers;
-
 	private TreeMap<String, Object> variableList;
 	private PokerProphesierAdapter adapter;
 	private int callValue, raiseValue, potValue;
@@ -63,9 +66,10 @@ public class PokerSimulator {
 	private MyGameStatsHelper myGameStatsHelper;
 	private int heroChips;
 	private int smallBlind;
-	private int bigBlind;
-	private ActionsBarChart actionsBarChart;
 
+	private int bigBlind;
+
+	private ActionsBarChart actionsBarChart;
 	public PokerSimulator() {
 		this.cardsBuffer = new Hashtable<String, String>();
 		// Create an adapter to communicate with the simulator
@@ -99,8 +103,11 @@ public class PokerSimulator {
 		init();
 	}
 
-	public Hashtable<String, String> getCardsBuffer() {
-		return cardsBuffer;
+	public void cleanReport() {
+		variableList.keySet().forEach(key -> variableList.put(key, ""));
+		variableList.put(STATUS, STATUS_OK);
+		actionsBarChart.setDataSet(null);
+		updateReport();
 	}
 	/**
 	 * this mathod act like a buffer betwen {@link SensorsArray} and this class to set the cards based on the name/value
@@ -115,31 +122,27 @@ public class PokerSimulator {
 	public PokerProphesierAdapter getAdapter() {
 		return adapter;
 	}
-
 	public int getBigBlind() {
 		return bigBlind;
 	}
 	public int getCallValue() {
 		return callValue;
 	}
+
+	public Hashtable<String, String> getCardsBuffer() {
+		return cardsBuffer;
+	}
+
 	public CommunityCards getCommunityCards() {
 		return communityCards;
 	}
+
 	public int getCurrentRound() {
 		return currentRound;
 	}
 
 	public int getHeroChips() {
 		return heroChips;
-	}
-
-	/**
-	 * Return the information component whit all values computesd form simulations and game status
-	 * 
-	 * @return information component
-	 */
-	public JComponent getReportPanel() {
-		return reportPanel;
 	}
 
 	public MyGameStatsHelper getMyGameStatsHelper() {
@@ -161,7 +164,6 @@ public class PokerSimulator {
 	public int getNumSimPlayers() {
 		return numSimPlayers;
 	}
-
 	public int getPotValue() {
 		return potValue;
 	}
@@ -169,20 +171,33 @@ public class PokerSimulator {
 	public int getRaiseValue() {
 		return raiseValue;
 	}
+	/**
+	 * Return the information component whit all values computesd form simulations and game status
+	 * 
+	 * @return information component
+	 */
+	public JComponent getReportPanel() {
+		return reportPanel;
+	}
+
 	public int getSmallBlind() {
 		return smallBlind;
 	}
-
 	public int getTablePosition() {
 		return tablePosition;
 	}
+
+	public TreeMap<String, Object> getVariables() {
+		return variableList;
+	}
+
 	/**
 	 * Init the simulation eviorement. Use this metod to clear al component in case of error or start/stop event
 	 * 
 	 */
 	public void init() {
 		this.currentRound = NO_CARDS_DEALT;
-		this.numSimPlayers = 5;
+		this.numSimPlayers = -1;
 		holeCards = null;
 		communityCards = null;
 		variableList.clear();
@@ -196,8 +211,51 @@ public class PokerSimulator {
 		callValue = -1;
 		raiseValue = -1;
 		heroChips = -1;
-		reportJLabel.setText("Poker simulator clean.");
-		actionsBarChart.setDataSet(null);
+		// reportJLabel.setText("Poker simulator clean.");
+		// actionsBarChart.setDataSet(null);
+		cleanReport();
+	}
+
+	/**
+	 * perform the PokerProphesier simulation. Call this method when all the cards on the table has been setted using
+	 * {@link #addCard(String, String)} this method will create the {@link HoleCards} and the {@link CommunityCards} (if
+	 * is available). After the simulation, the adapters are updated and can be consulted and the report are up to date
+	 * 
+	 */
+	public void runSimulation() {
+		try {
+
+			// Set the simulator parameters
+
+			// TODO: check this parameters. maybe is better set off or change it during the game play because not all
+			// the
+			// time are true. for example, in a 6 villans pre flop game, i can.t assume set opp hole card realiytic is
+			// false, but in th turn, if a villan still in the battle, is set to true because maybe he got something
+			//
+			// or use this info comparing with the gameplayer history !!!!!!!!!!!!!
+			adapter.setMyOutsHoleCardSensitive(true);
+			adapter.setOppHoleCardsRealistic(true);
+			adapter.setOppProbMyHandSensitive(true);
+
+			// String c1 = cardsBuffer.get("hero.card1");
+			// String c2 = cardsBuffer.get("hero.card2");
+			// if (c1 == null || c2 == null) {
+			// JOptionPane.showMessageDialog(Alesia.mainFrame, "error");
+			// Trooper.getInstance().cancel(true);
+			// }
+			createHoleCards();
+			createComunityCards();
+
+			adapter.runMySimulations(holeCards, communityCards, numSimPlayers, currentRound);
+			updateReport();
+		} catch (SimulatorException e) {
+			setVariable("Exception", e.getCause());
+			Hero.logger.warning(e.getMessage() + "\n\tCurrent round: " + currentRound + "\n\tHole cards: " + holeCards
+					+ "\n\tComunity cards: " + communityCards);
+		} catch (Exception e) {
+			setVariable("Exception", e.getCause());
+			Hero.logger.log(Level.SEVERE, "", e);
+		}
 	}
 
 	public void setActionsData(String aperformed, Vector<TEntry<String, Double>> actions) {
@@ -205,16 +263,11 @@ public class PokerSimulator {
 		actionsBarChart.setDataSet(actions);
 		updateReport();
 	}
-
 	public void setActionsData(Vector<TEntry<String, Double>> actions) {
 		actionsBarChart.setDataSet(actions);
 		updateReport();
 	}
 
-	public void setVariable(String key, Object value) {
-		variableList.put(key, value);
-		updateReport();
-	}
 	public void setBlinds(int sb, int bb) {
 		this.smallBlind = sb;
 		this.bigBlind = bb;
@@ -236,6 +289,21 @@ public class PokerSimulator {
 	}
 	public void setTablePosition(int tp) {
 		this.tablePosition = tp;
+	}
+	private static DecimalFormat fourDigitFormat = new DecimalFormat("#0.0000");
+
+	public void setVariable(String key, Object value) {
+		variableList.put(key, value);
+		
+		// for trooper variable explanation, i update as much as posible aditional variable information in the console
+		if (Trooper.EXPLANATION.equals(key) && variableList.get(STATUS).equals(STATUS_OK)) {
+			variableList.put("Trooper current hand", getMyHandHelper().getHand().toString());
+			variableList.put("Trooper Hole hand",
+					getMyHoleCards().getFirstCard() + ", " + getMyHoleCards().getSecondCard());
+			variableList.put("Trooper comunity cards", getCommunityCards().toString());
+
+		}
+		updateReport();
 	}
 
 	public void updateReport() {
@@ -337,7 +405,6 @@ public class PokerSimulator {
 
 		return car;
 	}
-
 	/**
 	 * create the comunity cards. This method also set the currnet round of the game based on length of the
 	 * <code>cards</code> parameter.
@@ -371,6 +438,7 @@ public class PokerSimulator {
 		currentRound = ccars.length == 4 ? TURN_CARD_DEALT : currentRound;
 		currentRound = ccars.length == 5 ? RIVER_CARD_DEALT : currentRound;
 	}
+
 	/**
 	 * Create my cards
 	 * 
@@ -384,6 +452,9 @@ public class PokerSimulator {
 		Card ca2 = createCardFromString(c2);
 		holeCards = new HoleCards(ca1, ca2);
 		currentRound = HOLE_CARDS_DEALT;
+	}
+	private String getFormateTable(String helperString) {
+		return getFormateTable(helperString, s -> true);
 	}
 
 	/**
@@ -407,53 +478,5 @@ public class PokerSimulator {
 			}
 		}
 		return "<TABLE>" + res + "</TABLE>";
-	}
-	private String getFormateTable(String helperString) {
-		return getFormateTable(helperString, s -> true);
-	}
-
-	/**
-	 * perform the PokerProphesier simulation. Call this method when all the cards on the table has been setted using
-	 * {@link #addCard(String, String)} this method will create the {@link HoleCards} and the {@link CommunityCards} (if
-	 * is available). After the simulation, the adapters are updated and can be consulted and the report are up to date
-	 * 
-	 */
-	public void runSimulation() {
-		try {
-
-			// Set the simulator parameters
-
-			// TODO: check this parameters. maybe is better set off or change it during the game play because not all
-			// the
-			// time are true. for example, in a 6 villans pre flop game, i can.t assume set opp hole card realiytic is
-			// false, but in th turn, if a villan still in the battle, is set to true because maybe he got something
-			//
-			// or use this info comparing with the gameplayer history !!!!!!!!!!!!!
-			adapter.setMyOutsHoleCardSensitive(true);
-			adapter.setOppHoleCardsRealistic(true);
-			adapter.setOppProbMyHandSensitive(true);
-
-			String c1 = cardsBuffer.get("hero.card1");
-			String c2 = cardsBuffer.get("hero.card2");
-			if (c1 == null || c2 == null) {
-				JOptionPane.showMessageDialog(Alesia.mainFrame, "error");
-				Trooper.getInstance().cancel(true);
-			}
-			createHoleCards();
-			createComunityCards();
-
-			adapter.runMySimulations(holeCards, communityCards, numSimPlayers, currentRound);
-			updateReport();
-		} catch (SimulatorException e) {
-			setVariable("Exception", e);
-			Hero.logger.warning(e.getMessage() + "\n\tCurrent round: " + currentRound + "\n\tHole cards: " + holeCards
-					+ "\n\tComunity cards: " + communityCards);
-		} catch (Exception e) {
-			setVariable("Exception", e);
-			Hero.logger.log(Level.SEVERE, "", e);
-		}
-	}	
-	public Exception getException() {
-		return (Exception) variableList.get("Exception");
 	}
 }

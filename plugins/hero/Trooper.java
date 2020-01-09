@@ -1,6 +1,5 @@
 package plugins.hero;
 
-import java.awt.image.*;
 import java.io.*;
 import java.text.*;
 import java.util.*;
@@ -139,7 +138,7 @@ public class Trooper extends Task {
 
 	public void pause(boolean pause) {
 		this.paused = pause;
-		Hero.logger.info(paused ? "Game paused..." : "Game resumed");
+		setVariableAndLog(STATUS, paused ? "Game paused" : "Game resumed");
 	}
 
 	/**
@@ -173,7 +172,8 @@ public class Trooper extends Task {
 		Hero.logger.fine("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
 	}
 
-	private static String EXPLANATION = "Action explanation";
+	public static String EXPLANATION = "Trooper explanation";
+	public static String STATUS = "Trooper status";
 
 	private void setVariableAndLog(String key, Object value) {
 		String value1 = value.toString();
@@ -188,23 +188,19 @@ public class Trooper extends Task {
 	 * 
 	 */
 	private void decide() {
-		setVariableAndLog(EXPLANATION, "Deciding...");
+		pokerSimulator.cleanReport();
+		setVariableAndLog(STATUS, "Deciding ...");
 
 		sensorsArray.read(SensorsArray.TYPE_CARDS);
 		sensorsArray.read(SensorsArray.TYPE_NUMBERS);
 		availableActions.clear();
 
 		// chek the status of the simulator in case of error. if an error is detected, fold
-		if (pokerSimulator.getException() != null) {
+		if (!pokerSimulator.getVariables().get(PokerSimulator.STATUS).equals(PokerSimulator.STATUS_OK)) {
 			availableActions.add(new TEntry<String, Double>("fold", 1.0));
-			setVariableAndLog(EXPLANATION, "Exception detected " + pokerSimulator.getException().getMessage());
+			setVariableAndLog(EXPLANATION, "Exception detected in poker simulator.");
 			return;
 		}
-
-		setVariableAndLog("Current hand", pokerSimulator.getMyHandHelper().getHand().toString());
-		setVariableAndLog("Hero hand", pokerSimulator.getMyHoleCards().getFirstCard() + ", "
-				+ pokerSimulator.getMyHoleCards().getSecondCard());
-		setVariableAndLog("comunity cards", pokerSimulator.getCommunityCards().toString());
 
 		int currentRound = pokerSimulator.getCurrentRound();
 		int pot = pokerSimulator.getPotValue();
@@ -213,16 +209,16 @@ public class Trooper extends Task {
 		setVariableAndLog(EXPLANATION, "normal pot odds actions");
 		setOddActions("Pot " + pot, pot);
 
+		// check the odd probabilities
+		boolean lp = checkProbabilities();
+		if (lp)
+			setVariableAndLog(EXPLANATION, "lower probability");
+
 		// Exterme cases: Preflop
 		if (availableActions.size() == 0 && currentRound == PokerSimulator.HOLE_CARDS_DEALT) {
 			setVariableAndLog(EXPLANATION, "pre flop action");
 			setPrefloopActions();
 		}
-
-		// Exterme cases: Low probability
-		boolean lp = checkProbabilities();
-		if (lp)
-			setVariableAndLog(EXPLANATION, "lower probability");
 
 		// if the list of available actions are empty, the only posible action todo now is fold
 		if (availableActions.size() == 0)
@@ -262,13 +258,10 @@ public class Trooper extends Task {
 		else
 			totp = inprove > actual ? inprove : actual;
 
-		// just to avoid execiong login
+		// just to avoid excesess login
 		if (totp != logMark) {
 			String pnam = inprove > actual ? "Improve" : "Win";
-			String key = "Trooper selected probability";
-			String val = pnam + " " + fourDigitFormat.format(totp);
-			pokerSimulator.setVariable(key, val);
-			Hero.logger.info(key + "=" + val);
+			setVariableAndLog("Trooper selected probability", pnam + " " + fourDigitFormat.format(totp));
 			logMark = totp;
 		}
 		return totp;
@@ -288,7 +281,7 @@ public class Trooper extends Task {
 		chips.sort(null);
 
 		// TODO: temporal for TH, the sensor some times get error and this function cant detect the stronger villan. in
-		// this case, return 0 kto allow the fight continue
+		// this case, return 0 to allow the fight continue
 		if (chips.isEmpty())
 			return 0;
 
@@ -380,7 +373,7 @@ public class Trooper extends Task {
 	 * 
 	 */
 	private boolean isGoodPreflopHand() {
-		String key = "Hero preflop hand";
+		String key = "Trooper preflop hand";
 		String value = null;
 		// pocket pair
 		if (pokerSimulator.getMyHandHelper().isPocketPair())
@@ -406,8 +399,7 @@ public class Trooper extends Task {
 			ok = false;
 		}
 
-		Hero.logger.info(key + value);
-		pokerSimulator.setVariable(key, value);
+		setVariableAndLog(key, value);
 		return ok;
 	}
 
@@ -477,7 +469,7 @@ public class Trooper extends Task {
 		String val = " " + sourceName + " " + availableActions.stream()
 				.map(te -> te.getKey() + "=" + fourDigitFormat.format(te.getValue())).collect(Collectors.joining(", "));
 		Hero.logger.info(key + " " + val);
-		pokerSimulator.setActionsData(availableActions);
+//		pokerSimulator.setActionsData(availableActions);
 	}
 
 	/**
@@ -520,30 +512,31 @@ public class Trooper extends Task {
 	 * TODO: complete documentation
 	 */
 	protected void act() {
+		setVariableAndLog(STATUS, "Acting ...");
 		String ha = getSubOptimalAction();
 		// pokerSimulator.setActionsData(ha, availableActions);
 		if (gameRecorder != null) {
 			gameRecorder.takeSnapShot(ha);
 		}
-		String key = "Action performed";
+		String key = "Trooper action";
 		pokerSimulator.setVariable(key, ha);
 		// robot actuator perform the log
 		robotActuator.perform(ha);
-		// if my last act was fold
-		if (ha.equals("fold")) {
-			// setTrooperStatus(WAITING);
-		}
 	}
 
 	/**
 	 * this metod will try to return to the game table if he detect the current enviorement is in another place. This
-	 * method will try a few times to return to the main gametable. if it not succede return <code>false</code>
+	 * method will try for an specific amount of time to return to the main gametable. if it not succede return
+	 * <code>false</code>
 	 * 
 	 * @return <code>true</code> if the enviorement is in the main gametable.
 	 */
 	private boolean ensureGameTable() throws Exception {
-		int trys = 5;
-		for (int i = 0; i < trys; i++) {
+		setVariableAndLog(STATUS, "Looking the table ...");
+		// try during 10 seg
+		long tottime = 30 * 1000;
+		long t1 = System.currentTimeMillis();
+		while (System.currentTimeMillis() - t1 < tottime) {
 			sensorsArray.lookTable();
 			// enviorement is already in the gametable
 			if (isMyTurnToPlay()) {
@@ -569,7 +562,7 @@ public class Trooper extends Task {
 			}
 
 			// enviorement is in continue after lost focus? click on continue button
-			if (sensorsArray.isSensorEnabled("sensor2") && !sensorsArray.isSensorEnabled("fold")) {
+			if (sensorsArray.isSensorEnabled("sensor2") && sensorsArray.isSensorEnabled("sensor1")) {
 				robotActuator.perform("sensor2");
 				continue;
 			}
@@ -580,6 +573,7 @@ public class Trooper extends Task {
 				continue;
 			}
 		}
+		// System.out.println(System.currentTimeMillis() - t1);
 		return false;
 	}
 	@Override
@@ -601,28 +595,17 @@ public class Trooper extends Task {
 			// countdown before start
 			if (countdown > 0) {
 				countdown--;
-				setVariableAndLog("Seconds to start: ", countdown);
+				setVariableAndLog(STATUS, "start in " + countdown);
 				Thread.sleep(1000);
 				continue;
 			}
 
-			setVariableAndLog(EXPLANATION, "Checking actions areas");
 			boolean ingt = ensureGameTable();
 			if (!ingt) {
 				// if after a few attemps, the enviorement is not in the gametable, signal error
-				setVariableAndLog(EXPLANATION, "the enviorement is not in the main gametable. Trooper return.");
+				setVariableAndLog(EXPLANATION, "Can.t reach the main gametable. Trooper return.");
 				return null;
 			}
-
-			// Hero.logger.info("---");
-
-			// // i have nothig to do expect wait to the game round complete and press the continue button because i
-			// folded
-			// // the cards
-			// if (trooperStatus.equals(WAITING)) {
-			// Thread.sleep(100);
-			// continue;
-			// }
 
 			// look the standar actions buttons. this standar button indicate that the game is waiting for my move
 			if (isMyTurnToPlay()) {
@@ -636,13 +619,22 @@ public class Trooper extends Task {
 		}
 		return null;
 	}
-
+	private long lastGCCall = -1;
 	/**
 	 * This method is invoked during the idle phase (after {@link #act()} and before {@link #decide()}. use this method
 	 * to perform large computations.
 	 */
 	protected void think() {
-		// update the villans db table
+		setVariableAndLog(STATUS, "Thinking ...");
+
+		// test: call gc to check performance improvement every 10 minutes
+		long time = 10 * 60 * 1000;
+		long t1 = System.currentTimeMillis();
+		if (t1 - lastGCCall > time) {
+			System.gc();
+			lastGCCall = t1;
+			System.out.println("Trooper.think() " + (System.currentTimeMillis() - t1));
+		}
 
 		// 191020: ayer ya la implementacion por omision jugo una partida completa y estuvo a punto de vencer a la
 		// chatarra de Texas poker - poker holdem. A punto de vencer porque jugaba tan lento que me aburri del sueno :D
