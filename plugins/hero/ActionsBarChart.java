@@ -6,8 +6,10 @@ import java.util.*;
 import org.jfree.chart.*;
 import org.jfree.chart.axis.*;
 import org.jfree.chart.plot.*;
+import org.jfree.chart.renderer.xy.*;
 import org.jfree.chart.ui.*;
 import org.jfree.data.category.*;
+import org.jfree.data.statistics.*;
 
 import core.*;
 
@@ -22,6 +24,32 @@ public class ActionsBarChart {
 		this.chart = createChart(dataset);
 		this.chartPanel = new ChartPanel(chart);
 		chartPanel.setPreferredSize(new Dimension(500, 200));
+	}
+
+	public void addDataset(Hashtable<Integer, Integer> histogram, String name) {
+		Set<Integer> keys = histogram.keySet();
+		for (Integer key : keys) {
+			Color col  = new Color(key);
+			String colval = TColorUtils.getRGBColor(col);
+			dataset.addValue(histogram.get(key), name, colval);
+		}
+//		change the color of the bars
+//		XYPlot xYPlot = (XYPlot) chart.getPlot();
+//		XYBarRenderer xYBarRenderer = (XYBarRenderer) xYPlot.getRenderer();
+//		xYBarRenderer.setDrawBarOutline(false);
+//		xYBarRenderer.setBarPainter(new StandardXYBarPainter());
+//		xYBarRenderer.setShadowVisible(false);
+	}
+	
+	/**
+	 * set the dataset for histogram
+	 * 
+	 * @param histogram
+	 * @param name
+	 */
+	public void setDataset(Hashtable<Integer, Integer> histogram, String name) {
+		dataset.clear();
+		addDataset(histogram, name);
 	}
 
 	public ChartPanel getChartPanel() {
@@ -70,6 +98,13 @@ public class ActionsBarChart {
 		categoryPlot.setDomainGridlinesVisible(true);
 		categoryPlot.setRangeCrosshairVisible(true);
 		categoryPlot.setRangeCrosshairPaint(Color.blue);
+		
+		Plot plot = chart.getPlot();
+//		xYPlot.setDomainPannable(true);
+//		xYPlot.setRangePannable(true);
+		plot.setBackgroundPaint(Color.white);
+		plot.setForegroundAlpha(0.85F);
+		
 		CategoryAxis categoryAxis = categoryPlot.getDomainAxis();
 		categoryAxis
 				.setCategoryLabelPositions(CategoryLabelPositions.createUpRotationLabelPositions(0.5235987755982988D));
@@ -77,10 +112,26 @@ public class ActionsBarChart {
 		chart.getLegend().setVisible(false);
 		chart.setBackgroundPaint(Color.WHITE);
 
-		StandardChartTheme sct = new StandardChartTheme("Legacy");
-		sct.apply(chart);
+//		StandardChartTheme sct = new StandardChartTheme("Legacy");
+//		sct.apply(chart);
 		// ChartUtils.applyCurrentTheme(jFreeChart);
 		return chart;
 	}
 
+	private static JFreeChart createChart(HistogramDataset histogramDataset) {
+		JFreeChart jFreeChart = ChartFactory.createHistogram(null, null, null, histogramDataset,
+				PlotOrientation.VERTICAL, true, true, false);
+		XYPlot xYPlot = (XYPlot) jFreeChart.getPlot();
+		xYPlot.setDomainPannable(true);
+		xYPlot.setRangePannable(true);
+		xYPlot.setBackgroundPaint(Color.white);
+		xYPlot.setForegroundAlpha(0.85F);
+		// NumberAxis numberAxis;
+		// numberAxis.setStandardTickUnits((numberAxis = (NumberAxis) xYPlot.getRangeAxis()).createIntegerTickUnits());
+		XYBarRenderer xYBarRenderer = (XYBarRenderer) xYPlot.getRenderer();
+		xYBarRenderer.setDrawBarOutline(false);
+		xYBarRenderer.setBarPainter(new StandardXYBarPainter());
+		xYBarRenderer.setShadowVisible(false);
+		return jFreeChart;
+	}
 }

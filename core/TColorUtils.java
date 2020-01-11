@@ -216,22 +216,7 @@ public class TColorUtils {
 
 		// remove data outside the flood area
 		Rectangle croprec = autoCrop(tmpimage, rgb -> rgb == tocol.getRGB());
-		BufferedImage newimage = image.getSubimage(croprec.x, croprec.y, croprec.width, croprec.height);
-		
-		// cut corners
-		// TODO: temporal: paint rectangles. change to triangles
-		// int dim = 3;
-		// Graphics2D g2d = tmpimage.createGraphics();
-		// g2d.drawImage(tmpimage, 0, 0, null);
-		// g2d.setColor(tocol);
-		// g2d.fillRect(0, 0, dim, dim);
-		// g2d.fillRect(tmpimage.getWidth() - dim, 0, dim, dim);
-		// g2d.fillRect(tmpimage.getWidth() - dim, tmpimage.getHeight() - dim, dim, dim);
-		// g2d.fillRect(0, tmpimage.getHeight() - dim, dim, dim);
-		// g2d.dispose();
-
-		// auto crop to remove excess of background
-		// newimage = autoCrop(newimage, rgb -> rgb != tocol.getRGB());
+		BufferedImage newimage = image.getSubimage(croprec.x, croprec.y, croprec.width, croprec.height);		
 		return newimage;
 	}
 

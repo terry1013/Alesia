@@ -11,7 +11,6 @@ import org.jdesktop.application.*;
 
 import com.javaflair.pokerprophesier.api.adapter.*;
 import com.javaflair.pokerprophesier.api.card.*;
-import com.javaflair.pokerprophesier.api.helper.*;
 import com.jgoodies.common.base.*;
 
 import core.*;
@@ -48,6 +47,8 @@ public class Trooper extends Task {
 	private static Trooper instance;
 	private static DecimalFormat fourDigitFormat = new DecimalFormat("#0.0000");
 
+	public static String EXPLANATION = "trooper.Explanation";
+	public static String STATUS = "trooper.Status";
 	private PokerSimulator pokerSimulator;
 	private RobotActuator robotActuator;
 	private SensorsArray sensorsArray;
@@ -58,13 +59,12 @@ public class Trooper extends Task {
 	private long time1;
 	private DescriptiveStatistics outGameStats;
 	private boolean paused = false;
-	private double logMark = -1;
-
 	/**
 	 * the game recorder is created only after the continue action. this avoid record incomplete sesion
 	 */
 	private GameRecorder gameRecorder;
 
+	private long lastGCCall = -1;
 	public Trooper() {
 		this(null);
 	}
@@ -81,55 +81,31 @@ public class Trooper extends Task {
 			init(clone.file);
 		}
 	}
-
 	public static Trooper getInstance() {
 		return instance;
 	}
-	/**
-	 * Return the expectation of the <code>base</code> argument against the <code>cost</code> argument. to comply with
-	 * rule 1, this method retrive his probability from {@link #getProbability()}
-	 * <h5>MoP page 54</h5>
-	 * 
-	 * @param base - amount to retrive the odds from
-	 * @param cost - cost of call/bet/raise/...
-	 * 
-	 * @return expected utility for the passed argument
-	 */
-	public double getOdds(int base, int cost) {
-		Preconditions.checkArgument(base >= 0 && cost >= 0, "Odd function accept only 0 or positive values.");
 
-		double totp = getProbability();
-
-		// MoP page 54
-		double poto = totp * base - cost;
-
-		return poto;
-	}
-	public RobotActuator getRobotActuator() {
-		return robotActuator;
-	}
 	public SensorsArray getSensorsArray() {
 		return sensorsArray;
 	}
 
-	public boolean isCallEnabled() {
-		return sensorsArray.getSensor("call").isEnabled();
+	/**
+	 * set the enviorement. this method create a new enviorement discarting all previous created objects
+	 * 
+	 */
+	public void init(File file) {
+		ShapeAreas sDisp = new ShapeAreas(file);
+		sDisp.read();
+		this.file = file;
+		this.availableActions.clear();
+		sensorsArray.createSensorsArray(sDisp);
+		robotActuator.setEnviorement(sDisp);
+		// gameRecorder = new GameRecorder(sensorsArray);
+		Hero.sensorsPanel.setArray(sensorsArray);
 	}
 
 	public boolean isPaused() {
 		return paused;
-	}
-
-	public boolean isRaiseDownEnabled() {
-		return sensorsArray.getSensor("raise.down").isEnabled();
-	}
-
-	public boolean isRaiseEnabled() {
-		return sensorsArray.getSensor("raise").isEnabled();
-	}
-
-	public boolean isRaiseUpEnabled() {
-		return sensorsArray.getSensor("raise.up").isEnabled();
 	}
 
 	public boolean isTestMode() {
@@ -141,28 +117,32 @@ public class Trooper extends Task {
 		setVariableAndLog(STATUS, paused ? "Game paused" : "Game resumed");
 	}
 
-	/**
-	 * set the enviorement. this method create a new enviorement discarting all previous created objects
-	 * 
-	 */
-	public void init(File file) {
-		ShapeAreas sDisp = new ShapeAreas(file);
-		sDisp.read();
-		this.file = file;
-		logMark = -1;
-		this.availableActions.clear();
-		sensorsArray.createSensorsArray(sDisp);
-		robotActuator.setEnviorement(sDisp);
-		// gameRecorder = new GameRecorder(sensorsArray);
-		Hero.sensorsPanel.setArray(sensorsArray);
-	}
-
 	public void setTestMode(boolean isTestMode) {
 		this.isTestMode = isTestMode;
 	}
+	/**
+	 * check the win probability. The tendency of the trooper to stay in the game some times make him reach higher
+	 * street with extreme low win probability (spetialy the river) to avoid error on {@link #getSubOptimalAction()},
+	 * this code ensure fold action only for 0 troper probability
+	 * 
+	 * TODO: this variables MUST be ajusted. maybe dinamicaly or based on gamerecording analisis. for now, pot to 10%
+	 * only to aboid drain chips in lost causes
+	 * 
+	 */
+	private boolean checkProbabilities(int currentRound) {
+		double prob = pokerSimulator.getBestProbability();
+		if (currentRound == PokerSimulator.FLOP_CARDS_DEALT && prob < 0.20) {
+			availableActions.clear();
+			setVariableAndLog(EXPLANATION, "Probability on flop < 20%");
+		}
+		if (currentRound > PokerSimulator.FLOP_CARDS_DEALT && prob < 0.15) {
+			availableActions.clear();
+			setVariableAndLog(EXPLANATION, "Probability on turn or river < 15%");
+		}
+		return availableActions.size() == 0;
+	}
 
 	private void clearEnviorement() {
-		logMark = -1;
 		sensorsArray.init();
 		availableActions.clear();
 		// at first time execution, a standar time of 10 second is used
@@ -171,28 +151,17 @@ public class Trooper extends Task {
 		time1 = System.currentTimeMillis();
 		Hero.logger.fine("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
 	}
-
-	public static String EXPLANATION = "Trooper explanation";
-	public static String STATUS = "Trooper status";
-
-	private void setVariableAndLog(String key, Object value) {
-		String value1 = value.toString();
-		if (value instanceof Double)
-			value1 = fourDigitFormat.format(((Double) value).doubleValue());
-		pokerSimulator.setVariable(key, value);
-		Hero.logger.info(key + " " + value1);
-	}
 	/**
 	 * decide de action(s) to perform. This method is called when the {@link Trooper} detect that is my turn to play. At
 	 * this point, the game enviorement is waiting for an accion.
 	 * 
 	 */
 	private void decide() {
-		pokerSimulator.cleanReport();
+//		pokerSimulator.cleanReport();
 		setVariableAndLog(STATUS, "Deciding ...");
 
-		sensorsArray.read(SensorsArray.TYPE_CARDS);
 		sensorsArray.read(SensorsArray.TYPE_NUMBERS);
+		sensorsArray.read(SensorsArray.TYPE_CARDS);
 		availableActions.clear();
 
 		// chek the status of the simulator in case of error. if an error is detected, fold
@@ -210,9 +179,7 @@ public class Trooper extends Task {
 		setOddActions("Pot " + pot, pot);
 
 		// check the odd probabilities
-		boolean lp = checkProbabilities();
-		if (lp)
-			setVariableAndLog(EXPLANATION, "lower probability");
+		checkProbabilities(currentRound);
 
 		// Exterme cases: Preflop
 		if (availableActions.size() == 0 && currentRound == PokerSimulator.HOLE_CARDS_DEALT) {
@@ -226,45 +193,76 @@ public class Trooper extends Task {
 	}
 
 	/**
-	 * check the win probability. The tendency of the trooper to stay in the game some times make him reach higher
-	 * street with extreme low win probability (spetialy the river) to avoid error on {@link #getSubOptimalAction()},
-	 * this code ensure fold action only for 0 troper probability
+	 * this metod will try to return to the game table if he detect the current enviorement is in another place. This
+	 * method will try for an specific amount of time to return to the main gametable. if it not succede return
+	 * <code>false</code>
 	 * 
-	 * TODO: this variables MUST be ajusted. maybe dinamicaly or based on gamerecording analisis. for now, pot to 10%
-	 * only to aboid drain chips in lost causes
-	 * 
+	 * @return <code>true</code> if the enviorement is in the main gametable.
 	 */
-	private boolean checkProbabilities() {
-		double prob = getProbability();
-		if (prob < 0.10) {
-			availableActions.clear();
+	private boolean ensureGameTable() throws Exception {
+		setVariableAndLog(STATUS, "Looking the table ...");
+		// try during 10 seg
+		long tottime = 30 * 1000;
+		long t1 = System.currentTimeMillis();
+		while (System.currentTimeMillis() - t1 < tottime) {
+			sensorsArray.lookTable();
+			// enviorement is already in the gametable
+			if (isMyTurnToPlay()) {
+				return true;
+			}
+
+			// continue active and fold inactive. the match is end. clear the internal variables
+			if (sensorsArray.isSensorEnabled("continue") && !sensorsArray.isSensorEnabled("fold")) {
+				if (gameRecorder != null) {
+					gameRecorder.flush();
+				}
+				gameRecorder = new GameRecorder(sensorsArray);
+				robotActuator.perform("continue");
+				clearEnviorement();
+				continue;
+			}
+
+			// enviorement is in main menu? click on play button
+			if (sensorsArray.isSensorEnabled("sensor0")
+					&& !(sensorsArray.isSensorEnabled("fold") && sensorsArray.isSensorEnabled("continue"))) {
+				robotActuator.perform("sensor0");
+				continue;
+			}
+
+			// enviorement is in continue after lost focus? click on continue button
+			if (sensorsArray.isSensorEnabled("sensor2") && sensorsArray.isSensorEnabled("sensor1")) {
+				robotActuator.perform("sensor2");
+				continue;
+			}
+
+			// trooper win the match. clic on ok
+			if (sensorsArray.isSensorEnabled("sensor5") && sensorsArray.isSensorEnabled("continue")) {
+				robotActuator.perform("continue");
+				continue;
+			}
 		}
-		return availableActions.size() == 0;
+		// System.out.println(System.currentTimeMillis() - t1);
+		return false;
 	}
 	/**
-	 * consult the {@link PokerSimulator} and retrive the hihest probability between gobal win probability or inprove
-	 * probability. When the river card is dealed, this metod only return the win probability
+	 * Return the expectation of the <code>base</code> argument against the <code>cost</code> argument. to comply with
+	 * rule 1, this method retrive his probability from {@link #getProbability()}
+	 * <h5>MoP page 54</h5>
 	 * 
-	 * @see #getOdds(int, String)
-	 * @return the hights probability: win or inmprove hand
+	 * @param base - amount to retrive the odds from
+	 * @param cost - cost of call/bet/raise/...
+	 * 
+	 * @return expected utility for the passed argument
 	 */
-	private double getProbability() {
-		MyHandStatsHelper myhsh = pokerSimulator.getMyHandStatsHelper();
-		float inprove = myhsh == null ? 0 : myhsh.getTotalProb();
-		float actual = pokerSimulator.getMyGameStatsHelper().getWinProb();
-		float totp;
-		if (pokerSimulator.getCurrentRound() == PokerSimulator.RIVER_CARD_DEALT)
-			totp = actual;
-		else
-			totp = inprove > actual ? inprove : actual;
+	private double getOdds(int base, int cost) {
+		Preconditions.checkArgument(base >= 0 && cost >= 0, "Odd function accept only 0 or positive values.");
 
-		// just to avoid excesess login
-		if (totp != logMark) {
-			String pnam = inprove > actual ? "Improve" : "Win";
-			setVariableAndLog("Trooper selected probability", pnam + " " + fourDigitFormat.format(totp));
-			logMark = totp;
-		}
-		return totp;
+		double totp = pokerSimulator.getBestProbability();
+
+		// MoP page 54
+		double poto = totp * base - cost;
+
+		return poto;
 	}
 
 	/**
@@ -288,7 +286,6 @@ public class Trooper extends Task {
 		int wv = chips.get(chips.size() - 1);
 		return wv;
 	}
-
 	/**
 	 * perform a random selection of the available actions. this method build a probability distribution and select
 	 * randmly a variate of that distribution. this is suboptimal because the objetive function already has the optimal
@@ -315,6 +312,7 @@ public class Trooper extends Task {
 		pokerSimulator.setActionsData(selact, tmp);
 		return selact;
 	}
+
 	/**
 	 * invert the list of {@link #availableActions} if the list contain all negative expected values.
 	 * <p>
@@ -373,33 +371,32 @@ public class Trooper extends Task {
 	 * 
 	 */
 	private boolean isGoodPreflopHand() {
-		String key = "Trooper preflop hand";
 		String value = null;
 		// pocket pair
 		if (pokerSimulator.getMyHandHelper().isPocketPair())
-			value = "is pocket pair";
+			value = "preflop hand is a pocket pair";
 
 		// suited
 		if (pokerSimulator.getMyHoleCards().isSuited())
-			value = "is Suited";
+			value = "preflop hand is suited";
 
 		// connected: cernters cards separated only by 1 or 2 cards provides de best probabilities (>6%)
 		double sp = pokerSimulator.getMyHandStatsHelper().getStraightProb();
 		if (sp > 0.059)
-			value = "Posible straight";
+			value = "preflop hand is posible straight";
 
 		// 10 or higher
 		Card[] heroc = pokerSimulator.getMyHoleCards().getCards();
 		if (heroc[0].getRank() > Card.NINE && heroc[1].getRank() > Card.NINE)
-			value = "10 or higher";
+			value = "preflop hand are 10 or higher";
 
 		boolean ok = true;
 		if (value == null) {
-			value = "Not good.";
+			value = "preflop hand are not good";
 			ok = false;
 		}
 
-		setVariableAndLog(key, value);
+		setVariableAndLog(EXPLANATION, value);
 		return ok;
 	}
 
@@ -469,7 +466,7 @@ public class Trooper extends Task {
 		String val = " " + sourceName + " " + availableActions.stream()
 				.map(te -> te.getKey() + "=" + fourDigitFormat.format(te.getValue())).collect(Collectors.joining(", "));
 		Hero.logger.info(key + " " + val);
-//		pokerSimulator.setActionsData(availableActions);
+		// pokerSimulator.setActionsData(availableActions);
 	}
 
 	/**
@@ -493,7 +490,19 @@ public class Trooper extends Task {
 		int herochips = pokerSimulator.getHeroChips();
 		int boss = getStrongerVillan();
 		int base = herochips > boss ? boss : herochips;
+		// in case of error getting hero or boss chips, the hand is still good. ??? what to do?
+		if (base == -1) {
+			setVariableAndLog(EXPLANATION, "Error getting boss chips or hero chip.");
+			return;
+		}
 		setOddActions("Starting hand", base);
+	}
+	private void setVariableAndLog(String key, Object value) {
+		String value1 = value.toString();
+		if (value instanceof Double)
+			value1 = fourDigitFormat.format(((Double) value).doubleValue());
+		pokerSimulator.setVariable(key, value);
+		Hero.logger.info(key + " " + value1);
 	}
 
 	private void upperBound() {
@@ -518,63 +527,10 @@ public class Trooper extends Task {
 		if (gameRecorder != null) {
 			gameRecorder.takeSnapShot(ha);
 		}
-		String key = "Trooper action";
+		String key = "trooper.Action performed";
 		pokerSimulator.setVariable(key, ha);
 		// robot actuator perform the log
 		robotActuator.perform(ha);
-	}
-
-	/**
-	 * this metod will try to return to the game table if he detect the current enviorement is in another place. This
-	 * method will try for an specific amount of time to return to the main gametable. if it not succede return
-	 * <code>false</code>
-	 * 
-	 * @return <code>true</code> if the enviorement is in the main gametable.
-	 */
-	private boolean ensureGameTable() throws Exception {
-		setVariableAndLog(STATUS, "Looking the table ...");
-		// try during 10 seg
-		long tottime = 30 * 1000;
-		long t1 = System.currentTimeMillis();
-		while (System.currentTimeMillis() - t1 < tottime) {
-			sensorsArray.lookTable();
-			// enviorement is already in the gametable
-			if (isMyTurnToPlay()) {
-				return true;
-			}
-
-			// continue active and fold inactive. the match is end. clear the internal variables
-			if (sensorsArray.isSensorEnabled("continue") && !sensorsArray.isSensorEnabled("fold")) {
-				if (gameRecorder != null) {
-					gameRecorder.flush();
-				}
-				gameRecorder = new GameRecorder(sensorsArray);
-				robotActuator.perform("continue");
-				clearEnviorement();
-				continue;
-			}
-
-			// enviorement is in main menu? click on play button
-			if (sensorsArray.isSensorEnabled("sensor0")
-					&& !(sensorsArray.isSensorEnabled("fold") && sensorsArray.isSensorEnabled("continue"))) {
-				robotActuator.perform("sensor0");
-				continue;
-			}
-
-			// enviorement is in continue after lost focus? click on continue button
-			if (sensorsArray.isSensorEnabled("sensor2") && sensorsArray.isSensorEnabled("sensor1")) {
-				robotActuator.perform("sensor2");
-				continue;
-			}
-
-			// trooper win the match. clic on ok
-			if (sensorsArray.isSensorEnabled("sensor5") && sensorsArray.isSensorEnabled("continue")) {
-				robotActuator.perform("continue");
-				continue;
-			}
-		}
-		// System.out.println(System.currentTimeMillis() - t1);
-		return false;
 	}
 	@Override
 	protected Object doInBackground() throws Exception {
@@ -619,7 +575,6 @@ public class Trooper extends Task {
 		}
 		return null;
 	}
-	private long lastGCCall = -1;
 	/**
 	 * This method is invoked during the idle phase (after {@link #act()} and before {@link #decide()}. use this method
 	 * to perform large computations.

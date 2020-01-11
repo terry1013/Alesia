@@ -2,11 +2,9 @@ package plugins.hero;
 
 import java.awt.*;
 import java.awt.image.*;
-import java.io.*;
 import java.util.*;
 import java.util.List;
 
-import javax.imageio.*;
 import javax.swing.*;
 
 import com.alee.utils.*;
@@ -30,7 +28,7 @@ import net.sourceforge.tess4j.util.*;
 public class ScreenSensor extends JPanel {
 
 	public static String IMAGE_CARDS = "plugins/hero/image_cards/";
-	private static Hashtable<String, BufferedImage> cardsTable = ScreenSensor.loadImages(IMAGE_CARDS);
+	private static Hashtable<String, BufferedImage> cardsTable;
 	private Shape shape;
 	private SensorsArray sensorsArray;
 	private int scaledWidth, scaledHeight;
@@ -53,6 +51,7 @@ public class ScreenSensor extends JPanel {
 		this.dataLabel = new JLabel();
 		dataLabel.setFont(new Font("courier new", Font.PLAIN, 12));
 		setName(shape.name);
+		cardsTable = TCVUtils.loadImages(IMAGE_CARDS);
 
 		Dimension sd = TCVUtils.getScaledDimension(shape.bounds.width, shape.bounds.height);
 		this.scaledWidth = sd.width;
@@ -81,49 +80,11 @@ public class ScreenSensor extends JPanel {
 			diference += Math.abs(ia - ib);
 		}
 
-//		int total_pixel = tot_width * tot_height;
-//		double avg_diff = diference / total_pixel;
-//		double percent = avg_diff * 100;
-//		return percent;
+		// int total_pixel = tot_width * tot_height;
+		// double avg_diff = diference / total_pixel;
+		// double percent = avg_diff * 100;
+		// return percent;
 		return diference;
-	}
-
-	/**
-	 * Compare the images <code>imagea</code> and <code>imageg</code> pixel by pixel returning the percentage of
-	 * diference. If the images are equals, return values closer to 0.0, and for complety diferent images, return values
-	 * closer to 100 percent.
-	 * <p>
-	 * this function accept diferent sizes from imagea and b. in this case, this function compare only the common area.
-	 * that is, starting from (0,0) until the dimension of the smaller image
-	 * 
-	 * @see TColorUtils#getRGBColorDistance(Color, Color)
-	 * 
-	 * @param imagea - firts image
-	 * @param imageb - second image
-	 * 
-	 * @return percentaje of diference
-	 */
-	public static double getImageDiferences(BufferedImage imagea, BufferedImage imageb) {
-		double diference = 0;
-
-		int tot_width = imagea.getWidth() < imageb.getWidth() ? imagea.getWidth() : imageb.getWidth();
-		int tot_height = imagea.getHeight() < imageb.getHeight() ? imagea.getHeight() : imageb.getHeight();
-
-		for (int x = 0; x < tot_width; x++) {
-			for (int y = 0; y < tot_height; y++) {
-				int rgba = imagea.getRGB(x, y);
-				int rgbb = imageb.getRGB(x, y);
-				diference += TColorUtils.getRGBColorDistance(new Color(rgba), new Color(rgbb));
-			}
-		}
-
-		// total number of pixels
-		int total_pixel = tot_width * tot_height;
-		// normaliye the value of diferent pixel
-		double avg_diff = diference / total_pixel;
-		// percentage
-		double percent = avg_diff * 100;
-		return percent;
 	}
 
 	/**
@@ -140,24 +101,24 @@ public class ScreenSensor extends JPanel {
 	 * @return a {@link TEntry} where the key is the ocr from the image and the dif is the diference betwen the imagea
 	 *         argument and the most probable image founded.
 	 */
-	public static String getOCRFromImage(BufferedImage imagea, Hashtable<String, BufferedImage> images) {
+	public static String getOCRFromImage(String sName, BufferedImage imagea, Hashtable<String, BufferedImage> images) {
 		String ocr = null;
 		double dif = 100.0;
 		double difThreshold = 30.0;
 		ArrayList<String> names = new ArrayList<>(images.keySet());
 		for (String name : names) {
 			BufferedImage imageb = images.get(name);
-			double s = ScreenSensor.getImageDiferences(imagea, imageb);
+			double s = TCVUtils.getImageDiferences(imagea, imageb);
 			Hero.logger.finer("file name: " + name + " Diference: " + s);
 			if (s < dif) {
 				dif = s;
 				ocr = name;
 			}
 		}
-		Hero.logger.finer("getOCRFromImage: image " + ocr + " found. Diference: " + dif);
+		Hero.logger.finer("getOCRFromImage for sensor " + sName + ": image " + ocr + " found. Diference: " + dif);
 		return ocr == null || dif > difThreshold ? null : ocr;
 	}
-	
+
 	/**
 	 * Return a random {@link Point} selectd inside of the area (0,width) (0,height)
 	 * 
@@ -169,35 +130,6 @@ public class ScreenSensor extends JPanel {
 		int x = (int) Math.random() * width;
 		int y = (int) Math.random() * height;
 		return new Point(x, y);
-	}
-	/**
-	 * Load all images located in the <code>dir</code> parameter and create a {@link Hashtable} where the key is the
-	 * file name (call, Ks, Etc.) and the value parameter is the {@link BufferedImage} loaded from that file
-	 * 
-	 * @param dir - folder source of the images
-	 * 
-	 * @return table of filename and image
-	 */
-	public static Hashtable<String, BufferedImage> loadImages(String dir) {
-		File fdir = new File(dir);
-		String[] imgs = fdir.list();
-		Hero.logger.config("Loading images from " + dir);
-		Hashtable<String, BufferedImage> images = new Hashtable<>();
-		for (String img : imgs) {
-			File f = new File(dir + img);
-			BufferedImage imageb;
-			try {
-				imageb = ImageIO.read(f);
-				String inam = f.getName().split("[.]")[0];
-				BufferedImage old = images.put(inam, imageb);
-				if (old != null) {
-					Hero.logger.warning("image file name " + inam + "duplicated.");
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		return images;
 	}
 
 	/**
@@ -261,6 +193,9 @@ public class ScreenSensor extends JPanel {
 		 */
 		setEnabled(false);
 		if (!(whitePercent > shape.enableWhen)) {
+			// if a sensor is disabled, his ocr is null by default. this avoid previous ocr values if the sensor was
+			// enabled before
+			ocrResult = null;
 			update();
 			return;
 		}
@@ -354,7 +289,7 @@ public class ScreenSensor extends JPanel {
 	public boolean isActionArea() {
 		return shape.isActionArea;
 	}
-	
+
 	public boolean isCardArea() {
 		return shape.isCardArea;
 	}
@@ -449,7 +384,7 @@ public class ScreenSensor extends JPanel {
 			Hero.logger.finer(getName() + ": Not enought area. OCR set to null");
 			return null;
 		}
-		String ocr = getOCRFromImage(imagea, cardsTable);
+		String ocr = getOCRFromImage(getName(), imagea, cardsTable);
 
 		// if the card is the file name is card_facedown, set null for ocr
 		if (ocr != null && ocr.equals("xx")) {
@@ -497,16 +432,16 @@ public class ScreenSensor extends JPanel {
 
 		// cards sensors
 		if (isCardArea()) {
-//			srcocd = srcocd.replaceAll("\\s", "");
-//			// checq the last character looking for the suit.
-//			String tmp = srcocd.substring(srcocd.length() - 1, srcocd.length());
-//			String suit = "c";
-//			suit = tmp.equals("V") ? "h" : suit;
-//			suit = tmp.equals("Q") ? "s" : suit;
-//			suit = tmp.equals("0") ? "d" : suit;
-//			String rank = srcocd.substring(0, 1);
-//			rank = rank.equals("1") ? "10" : rank;
-//			srcocd = rank + suit;
+			// srcocd = srcocd.replaceAll("\\s", "");
+			// // checq the last character looking for the suit.
+			// String tmp = srcocd.substring(srcocd.length() - 1, srcocd.length());
+			// String suit = "c";
+			// suit = tmp.equals("V") ? "h" : suit;
+			// suit = tmp.equals("Q") ? "s" : suit;
+			// suit = tmp.equals("0") ? "d" : suit;
+			// String rank = srcocd.substring(0, 1);
+			// rank = rank.equals("1") ? "10" : rank;
+			// srcocd = rank + suit;
 		}
 		// call sensors
 		if (TStringUtils.wildCardMacher(getName(), "*.call")) {
@@ -546,7 +481,8 @@ public class ScreenSensor extends JPanel {
 
 		if (isCardArea()) {
 			bufimg = TColorUtils.getImageDataRegion(capturedImage);
-//			bufimg = ImageHelper.getScaledInstance(bufimg, scaledWidth, scaledHeight);
+			bufimg = TCVUtils.processCard(bufimg);
+			// bufimg = ImageHelper.getScaledInstance(bufimg, scaledWidth, scaledHeight);
 		}
 
 		// TODO: TEMPORAL jjust for whitePercent variable

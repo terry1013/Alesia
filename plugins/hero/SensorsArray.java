@@ -339,11 +339,8 @@ public class SensorsArray {
 			pokerSimulator.setNunOfPlayers(getActiveVillans() + 1);
 			pokerSimulator.runSimulation();
 		}
-		Hero.logger.fine("average Tesseract OCR time: " + tesseractTime.getMean());
-		pokerSimulator.setVariable("Tesseract OCR time: ", "" + tesseractTime.getMean());
-
-		Hero.logger.fine("average ImageDiference OCR time: " + imageDiffereceTime.getMean());
-		pokerSimulator.setVariable("ImageDiference OCR time: ", "" + imageDiffereceTime.getMean());
+		pokerSimulator.setVariable("sensorArray.Tesseract OCR time: ", "" + tesseractTime.getMean());
+		pokerSimulator.setVariable("sensorArray.ImageDiference OCR time: ", "" + imageDiffereceTime.getMean());
 	}
 
 	/**

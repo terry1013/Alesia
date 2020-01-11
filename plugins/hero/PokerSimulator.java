@@ -9,6 +9,8 @@ import java.util.stream.*;
 
 import javax.swing.*;
 
+import org.apache.commons.math3.ml.neuralnet.*;
+
 import com.alee.laf.combobox.*;
 import com.alee.managers.settings.*;
 import com.javaflair.pokerprophesier.api.adapter.*;
@@ -93,6 +95,7 @@ public class PokerSimulator {
 		reportPanel.getToolBarPanel().add(helperFilterComboBox);
 		this.reportJLabel = new JLabel();
 		reportJLabel.setVerticalAlignment(JLabel.TOP);
+		reportJLabel.setFont(new Font("courier new", Font.PLAIN, 12));
 		this.actionsBarChart = new ActionsBarChart();
 		JPanel jp = new JPanel(new BorderLayout());
 		jp.add(reportJLabel, BorderLayout.CENTER);
@@ -200,7 +203,7 @@ public class PokerSimulator {
 		this.numSimPlayers = -1;
 		holeCards = null;
 		communityCards = null;
-		variableList.clear();
+		// variableList.clear();
 		// 190831: ya el sistema se esta moviendo. por lo menos hace fold !!!! :D estoy en el salon de clases del campo
 		// de refujiados en dresden !!!! ya van 2 meses
 		cardsBuffer.clear();
@@ -211,8 +214,6 @@ public class PokerSimulator {
 		callValue = -1;
 		raiseValue = -1;
 		heroChips = -1;
-		// reportJLabel.setText("Poker simulator clean.");
-		// actionsBarChart.setDataSet(null);
 		cleanReport();
 	}
 
@@ -224,7 +225,8 @@ public class PokerSimulator {
 	 */
 	public void runSimulation() {
 		try {
-
+			variableList.put(STATUS, "Runing ...");
+			updateReport();
 			// Set the simulator parameters
 
 			// TODO: check this parameters. maybe is better set off or change it during the game play because not all
@@ -247,13 +249,18 @@ public class PokerSimulator {
 			createComunityCards();
 
 			adapter.runMySimulations(holeCards, communityCards, numSimPlayers, currentRound);
+			myGameStatsHelper = adapter.getMyGameStatsHelper();
+			myHandStatsHelper = adapter.getMyHandStatsHelper();
+			myHandHelper = adapter.getMyHandHelper();
+			updateProbability();
+			variableList.put(STATUS, STATUS_OK);
 			updateReport();
 		} catch (SimulatorException e) {
-			setVariable("Exception", e.getCause());
+			setVariable(STATUS, "ERROR " + e.getMessage());
 			Hero.logger.warning(e.getMessage() + "\n\tCurrent round: " + currentRound + "\n\tHole cards: " + holeCards
 					+ "\n\tComunity cards: " + communityCards);
 		} catch (Exception e) {
-			setVariable("Exception", e.getCause());
+			setVariable(STATUS, "ERROR " + e.getMessage());
 			Hero.logger.log(Level.SEVERE, "", e);
 		}
 	}
@@ -292,17 +299,46 @@ public class PokerSimulator {
 	}
 	private static DecimalFormat fourDigitFormat = new DecimalFormat("#0.0000");
 
+	/**
+	 * update the {@link #bestProbability} golbal variable. This is the best between gobal win probability or inprove
+	 * probability. When the river card is dealed, this metod only return the win probability
+	 * 
+	 * @return the hights probability: win or inmprove hand
+	 */
+	private void updateProbability() {
+		// MyHandStatsHelper myhsh = getMyHandStatsHelper();
+		float inprove = myHandStatsHelper == null ? 0 : myHandStatsHelper.getTotalProb();
+		float actual = myGameStatsHelper == null ? 0 : myGameStatsHelper.getWinProb();
+		// float actual = getMyGameStatsHelper().getWinProb();
+		if (getCurrentRound() == PokerSimulator.RIVER_CARD_DEALT)
+			bestProbability = actual;
+		else
+			bestProbability = inprove > actual ? inprove : actual;
+
+		String pnam = inprove > actual ? "Improve" : "Win";
+		variableList.put("simulator.Best probability", pnam + " " + fourDigitFormat.format(bestProbability));
+		
+		// variableList.put("Table Position", getTablePosition());
+		variableList.put("simulator.Current round", getCurrentRound());
+		variableList.put("simulator.ammount.Call", getCallValue());
+		variableList.put("simulator.ammount.Raise", getRaiseValue());
+		variableList.put("simulator.ammount.Pot", getPotValue());
+		variableList.put("simulator.Num of players", getNumSimPlayers());
+//		variableList.put("simulator.ammount.Small blind", getSmallBlind());
+//		variableList.put("simulator.ammount.Big blind", getBigBlind());
+		variableList.put("simulator.Current hand", getMyHandHelper().getHand().toString());
+		variableList.put("simulator.Hole hand",
+				getMyHoleCards().getFirstCard() + ", " + getMyHoleCards().getSecondCard());
+		variableList.put("simulator.Comunity cards", getCommunityCards().toString());
+
+	}
+
+	private double bestProbability;
+	public double getBestProbability() {
+		return bestProbability;
+	}
 	public void setVariable(String key, Object value) {
 		variableList.put(key, value);
-		
-		// for trooper variable explanation, i update as much as posible aditional variable information in the console
-		if (Trooper.EXPLANATION.equals(key) && variableList.get(STATUS).equals(STATUS_OK)) {
-			variableList.put("Trooper current hand", getMyHandHelper().getHand().toString());
-			variableList.put("Trooper Hole hand",
-					getMyHoleCards().getFirstCard() + ", " + getMyHoleCards().getSecondCard());
-			variableList.put("Trooper comunity cards", getCommunityCards().toString());
-
-		}
 		updateReport();
 	}
 
@@ -315,14 +351,12 @@ public class PokerSimulator {
 			}
 		};
 		// long t1 = System.currentTimeMillis();
-		reportJLabel.setVisible(false);
+		// reportJLabel.setVisible(false);
 		String selectedHelper = ((TEntry) helperFilterComboBox.getSelectedItem()).getKey().toString();
-		String text = "<HTML>";
-		myHandHelper = adapter.getMyHandHelper();
+		String text = "<html>";
 		if (myHandHelper != null && selectedHelper.equals("MyHandHelper")) {
 			text += getFormateTable(myHandHelper.toString());
 		}
-		myHandStatsHelper = adapter.getMyHandStatsHelper();
 		if (myHandStatsHelper != null && selectedHelper.equals("MyHandStatsHelper")) {
 			String tmp = myHandStatsHelper.toString();
 			tmp = tmp.replaceFirst("[=]", ":");
@@ -336,26 +370,19 @@ public class PokerSimulator {
 		if (oppHandStatsHelper != null && selectedHelper.equals("OppHandStatsHelper")) {
 			text += getFormateTable(oppHandStatsHelper.toString(), valgt0);
 		}
-		myGameStatsHelper = adapter.getMyGameStatsHelper();
 		if (myGameStatsHelper != null && selectedHelper.equals("MyGameStatsHelper")) {
 			text += getFormateTable(myGameStatsHelper.toString());
 		}
 		if (selectedHelper.equals("trooperVariables")) {
-			// variableList.put("Table Position", getTablePosition());
-			variableList.put("Current round", getCurrentRound());
-			variableList.put("Call amount", getCallValue());
-			variableList.put("Raise amount", getRaiseValue());
-			variableList.put("Pot", getPotValue());
-			variableList.put("Small blind", getSmallBlind());
-			variableList.put("Num of players", getNumSimPlayers());
-			variableList.put("Big blind", getBigBlind());
 			String tmp = variableList.keySet().stream().map(key -> key + ": " + variableList.get(key))
 					.collect(Collectors.joining("\n"));
 			text += getFormateTable(tmp);
 		}
 
+		text += "</html>";
 		reportJLabel.setText(text);
-		reportJLabel.setVisible(true);
+		// reportJLabel.setVisible(true);
+		reportJLabel.repaint();
 		// Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
 	}
 
@@ -473,10 +500,10 @@ public class PokerSimulator {
 		for (String lin : hslines) {
 			final String[] k_v = lin.split("[:]");
 			if (valueFilter.test(k_v[1])) {
-				lin = "<TR><TD>" + lin + "</TD></TR>";
-				res += lin.replaceAll(": ", "</TD><TD>");
+				lin = "<tr><td>" + lin + "</td></tr>";
+				res += lin.replaceAll(": ", "</td><td>");
 			}
 		}
-		return "<TABLE>" + res + "</TABLE>";
+		return "<table>" + res + "</table>";
 	}
 }

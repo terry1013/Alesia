@@ -61,7 +61,7 @@ public class GamePlayer {
 		// must be call/check the hero last action
 		// BufferedImage imagea = nameSensor.getPreparedImage();
 		BufferedImage imagea = nameSensor.getCapturedImage();
-		String ocr = ScreenSensor.getOCRFromImage(imagea, GameRecorder.actionsTable);
+		String ocr = ScreenSensor.getOCRFromImage(nameSensor.getName(), imagea, GameRecorder.actionsTable);
 		// values. the unknow or error spetial value -1 is appended too
 		int val = array.getSensor(prefix + ".call").getIntOCR();
 		actions.append(ocr == null ? "c" : ocr.substring(0, 1));
