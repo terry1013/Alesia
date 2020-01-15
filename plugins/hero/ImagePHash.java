@@ -34,7 +34,7 @@ public class ImagePHash {
 		return (img.getRGB(x, y)) & 0xff;
 	}
 
-	public int distance(String s1, String s2) {
+	public static int distance(String s1, String s2) {
 		int counter = 0;
 		for (int k = 0; k < s1.length(); k++) {
 			if (s1.charAt(k) != s2.charAt(k)) {
@@ -155,27 +155,5 @@ public class ImagePHash {
 		g.drawImage(image, 0, 0, width, height, null);
 		g.dispose();
 		return resizedImage;
-	}
-
-	public static void main(String[] args) {
-		String dir = "plugins/hero/image_cards/";
-		File fdir = new File(dir);
-		String[] imgs = fdir.list();
-		Hashtable<String, BufferedImage> images = new Hashtable<>();
-		for (String img : imgs) {
-			File f = new File(dir + img);
-			BufferedImage imageb;
-			try {
-				imageb = ImageIO.read(f);
-				String inam = f.getName().split("[.]")[0];
-				images.put(inam, imageb);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		ImagePHash imagePHash = new ImagePHash();
-		String tc = imagePHash.getHash(images.get("3c"));
-		String fc = imagePHash.getHash(images.get("5c"));
-		System.out.println(imagePHash.distance(tc, fc));
 	}
 }

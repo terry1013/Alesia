@@ -9,8 +9,6 @@ import java.util.stream.*;
 
 import javax.swing.*;
 
-import org.apache.commons.math3.ml.neuralnet.*;
-
 import com.alee.laf.combobox.*;
 import com.alee.managers.settings.*;
 import com.javaflair.pokerprophesier.api.adapter.*;
@@ -317,15 +315,14 @@ public class PokerSimulator {
 
 		String pnam = inprove > actual ? "Improve" : "Win";
 		variableList.put("simulator.Best probability", pnam + " " + fourDigitFormat.format(bestProbability));
-		
 		// variableList.put("Table Position", getTablePosition());
 		variableList.put("simulator.Current round", getCurrentRound());
 		variableList.put("simulator.ammount.Call", getCallValue());
 		variableList.put("simulator.ammount.Raise", getRaiseValue());
 		variableList.put("simulator.ammount.Pot", getPotValue());
 		variableList.put("simulator.Num of players", getNumSimPlayers());
-//		variableList.put("simulator.ammount.Small blind", getSmallBlind());
-//		variableList.put("simulator.ammount.Big blind", getBigBlind());
+		// variableList.put("simulator.ammount.Small blind", getSmallBlind());
+		// variableList.put("simulator.ammount.Big blind", getBigBlind());
 		variableList.put("simulator.Current hand", getMyHandHelper().getHand().toString());
 		variableList.put("simulator.Hole hand",
 				getMyHoleCards().getFirstCard() + ", " + getMyHoleCards().getSecondCard());
@@ -338,7 +335,11 @@ public class PokerSimulator {
 		return bestProbability;
 	}
 	public void setVariable(String key, Object value) {
-		variableList.put(key, value);
+//		format double values
+		Object value1 = value;
+		if(value instanceof Double)
+			value1 = fourDigitFormat.format(((Double)value).doubleValue());
+		variableList.put(key, value1);
 		updateReport();
 	}
 
@@ -376,6 +377,12 @@ public class PokerSimulator {
 		if (selectedHelper.equals("trooperVariables")) {
 			String tmp = variableList.keySet().stream().map(key -> key + ": " + variableList.get(key))
 					.collect(Collectors.joining("\n"));
+
+			// remove the group heather. just for visual purporse
+			tmp = tmp.replace("sensorArray.", "");
+			tmp = tmp.replace("simulator.ammount.", "");
+			tmp = tmp.replace("simulator.", "");
+			tmp = tmp.replace("trooper.", "");
 			text += getFormateTable(tmp);
 		}
 

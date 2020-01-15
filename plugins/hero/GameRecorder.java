@@ -2,11 +2,6 @@ package plugins.hero;
 
 import java.awt.image.*;
 import java.util.*;
-import java.util.stream.*;
-
-import com.javaflair.pokerprophesier.api.card.*;
-
-import core.datasource.model.*;
 
 /**
  * This class record the game secuence and store the result in the games db file. instance of this class are dispached
@@ -24,7 +19,7 @@ import core.datasource.model.*;
 public class GameRecorder {
 
 	public static String IMAGE_ACTIONS = "plugins/hero/image_actions/";
-	public static Hashtable<String, BufferedImage> actionsTable = TCVUtils.loadImages(IMAGE_ACTIONS);
+	public static TreeMap<String, BufferedImage> actionsTable = TCVUtils.loadImages(IMAGE_ACTIONS);
 
 	private int currentRound = PokerSimulator.HOLE_CARDS_DEALT;
 	private SensorsArray sensorsArray;
@@ -43,25 +38,25 @@ public class GameRecorder {
 	 * Call this method before a new enviorement or clean eviorement invocation.
 	 */
 	public void flush() {
-//		// take a last look of the cards in case of showdown
-//		sensorsArray.read(SensorsArray.TYPE_CARDS);
-//		takeSnapShot(null);
-//
-//		// header info
-//		int tp = sensorsArray.getPokerSimulator().getTablePosition();
-//		int vil = sensorsArray.getActiveSeats();
-//		int sb = sensorsArray.getPokerSimulator().getSmallBlind();
-//		// maybe the action finish in pre flop stage. the community card are null
-//		CommunityCards cc = sensorsArray.getPokerSimulator().getCommunityCards();
-//		String scc = cc == null ? "?" : cc.toString();
-//
-//		GamesHistory gh = new GamesHistory();
-//		gh.set("VILLANS", vil, "TABLE_POSITION", tp, "SMALL_BLIND", sb, "COMUNITY_CARDS", scc);
-//		String gf = trooper.toString() + "|"
-//				+ villans.stream().map(GamePlayer::toString).collect(Collectors.joining("|"));
-//		gh.set("GAME_FLOW", gf);
-//		gh.set("WINNINGS", sensorsArray.getPokerSimulator().getPotValue());
-//		gh.save();
+		// // take a last look of the cards in case of showdown
+		// sensorsArray.read(SensorsArray.TYPE_CARDS);
+		// takeSnapShot(null);
+		//
+		// // header info
+		// int tp = sensorsArray.getPokerSimulator().getTablePosition();
+		// int vil = sensorsArray.getActiveSeats();
+		// int sb = sensorsArray.getPokerSimulator().getSmallBlind();
+		// // maybe the action finish in pre flop stage. the community card are null
+		// CommunityCards cc = sensorsArray.getPokerSimulator().getCommunityCards();
+		// String scc = cc == null ? "?" : cc.toString();
+		//
+		// GamesHistory gh = new GamesHistory();
+		// gh.set("VILLANS", vil, "TABLE_POSITION", tp, "SMALL_BLIND", sb, "COMUNITY_CARDS", scc);
+		// String gf = trooper.toString() + "|"
+		// + villans.stream().map(GamePlayer::toString).collect(Collectors.joining("|"));
+		// gh.set("GAME_FLOW", gf);
+		// gh.set("WINNINGS", sensorsArray.getPokerSimulator().getPotValue());
+		// gh.save();
 	}
 
 	/**

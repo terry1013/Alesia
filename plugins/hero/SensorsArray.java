@@ -278,7 +278,7 @@ public class SensorsArray {
 		List<ScreenSensor> sslist = getSensors(null);
 		readSensors(false, sslist);
 		long t2 = System.currentTimeMillis() - t1;
-//		System.out.println("SensorsArray.lookTable() " + t2);
+		// System.out.println("SensorsArray.lookTable() " + t2);
 	}
 
 	/**
@@ -339,8 +339,8 @@ public class SensorsArray {
 			pokerSimulator.setNunOfPlayers(getActiveVillans() + 1);
 			pokerSimulator.runSimulation();
 		}
-		pokerSimulator.setVariable("sensorArray.Tesseract OCR time: ", "" + tesseractTime.getMean());
-		pokerSimulator.setVariable("sensorArray.ImageDiference OCR time: ", "" + imageDiffereceTime.getMean());
+		pokerSimulator.setVariable("sensorArray.Tesseract OCR time", tesseractTime.getMean());
+		pokerSimulator.setVariable("sensorArray.ImageDiference OCR time", imageDiffereceTime.getMean());
 	}
 
 	/**

@@ -157,9 +157,9 @@ public class Trooper extends Task {
 	 * 
 	 */
 	private void decide() {
-//		pokerSimulator.cleanReport();
 		setVariableAndLog(STATUS, "Deciding ...");
-
+		// read first the numbers to update the dashboard whit the numerical values. this allow me some time to inspect.
+		// only for visula purporse
 		sensorsArray.read(SensorsArray.TYPE_NUMBERS);
 		sensorsArray.read(SensorsArray.TYPE_CARDS);
 		availableActions.clear();
@@ -256,13 +256,23 @@ public class Trooper extends Task {
 	 */
 	private double getOdds(int base, int cost) {
 		Preconditions.checkArgument(base >= 0 && cost >= 0, "Odd function accept only 0 or positive values.");
-
-		double totp = pokerSimulator.getBestProbability();
-
+		double prob = pokerSimulator.getBestProbability();
 		// MoP page 54
-		double poto = totp * base - cost;
+		double ev = (prob * base) - cost;
+		return ev;
+	}
 
-		return poto;
+	private double getOddsWhioutRegret(int base, int cost) {
+		Preconditions.checkArgument(base >= 0 && cost >= 0, "Odd function accept only 0 or positive values.");
+		double prob = pokerSimulator.getBestProbability();
+		// normal EV
+		double ev = (prob * base) - cost;
+		if (ev < 0)
+			return ev;
+		// regret
+		double reg = (prob - 0.5) * -1;
+		double ev2 = (prob * base) - (cost * reg);
+		return ev2;
 	}
 
 	/**
@@ -427,10 +437,10 @@ public class Trooper extends Task {
 		int chips = pokerSimulator.getHeroChips();
 
 		if (call >= 0)
-			availableActions.add(new TEntry<String, Double>("call", getOdds(sourceValue, call)));
+			availableActions.add(new TEntry<String, Double>("call", getOddsWhioutRegret(sourceValue, call)));
 
 		if (raise >= 0)
-			availableActions.add(new TEntry<String, Double>("raise", getOdds(sourceValue, raise)));
+			availableActions.add(new TEntry<String, Double>("raise", getOddsWhioutRegret(sourceValue, raise)));
 
 		// TODO: temporal removed for TH because the raise.slider is in the same area
 		// if (getPotOdds(pot, "pot") >= 0) {
@@ -439,7 +449,7 @@ public class Trooper extends Task {
 
 		// TODO: temporal for TH: simulate allin
 		// if (chips >= 0) {
-		// availableActions.add(new TEntry<String, Double>("raise.allin,c=10;raise", getOdds(sourceValue, chips)));
+		// availableActions.add(new TEntry<String, Double>("raise.allin,c=10;raise", getOddsWhioutRegret(sourceValue, chips)));
 		// }
 
 		// TODO: until now i.m goin to implement the slider performing click over the right side of the compoent.
@@ -454,7 +464,7 @@ public class Trooper extends Task {
 			for (int c = 1; c < 11; c++) {
 				int val = tick + (tick * c);
 				availableActions
-						.add(new TEntry<String, Double>("raise.slider,c=" + c + ";raise", getOdds(sourceValue, val)));
+						.add(new TEntry<String, Double>("raise.slider,c=" + c + ";raise", getOddsWhioutRegret(sourceValue, val)));
 			}
 		}
 
