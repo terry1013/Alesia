@@ -10,6 +10,7 @@ import javax.swing.*;
 import com.alee.utils.*;
 
 import core.*;
+import marvin.color.*;
 import marvin.image.*;
 import net.sourceforge.tess4j.*;
 import net.sourceforge.tess4j.util.*;
@@ -68,6 +69,7 @@ public class ScreenSensor extends JPanel {
 		update();
 	}
 
+	@Deprecated
 	public static double getImageDiferences2(BufferedImage imagea, BufferedImage imageb) {
 
 		Hashtable<Integer, Integer> ha = TColorUtils.getHistogram(TColorUtils.convert4(imagea));
@@ -87,43 +89,49 @@ public class ScreenSensor extends JPanel {
 		// return percent;
 		return diference;
 	}
-	/**
-	 * 
-	 * @param sName
-	 * @param imagea
-	 * @param imageHashes
-	 * @return public static String getOCRFromImage(String sName, BufferedImage imagea, TreeMap<String, String>
-	 *         imageHashes) { String s1 = TCVUtils.imagePHash(imagea, null); double minDist = 21; String ocr = null; int
-	 *         dist = Integer.MAX_VALUE; Set<String> keys = imageHashes.keySet(); for (String key : keys) { int d =
-	 *         TCVUtils.getHammingDistance(s1, imageHashes.get(key)); Hero.logger.finer("file name: " + key + "
-	 *         Distance: " + d); if (d < dist) { dist = d; ocr = key; } } Hero.logger.finer("getOCRFromImage for sensor
-	 *         " + sName + ": image " + ocr + " found. Distance: " + dist); return ocr == null || dist > minDist ? null
-	 *         : ocr; }
-	 */
-
-	public static double getImageDiferences(List<MarvinSegment> segments, BufferedImage imagea, BufferedImage imageb) {
-		double dif = 0.0;
-
-		// at this point i.m asumming that segments are retrived in the same way for all images. so, similar images
-		// haben the same segment order inside the list and ovious the same number of segments
-
-		// segments from imageb
-		MarvinImage miB = new MarvinImage(imageb);
-		List<MarvinSegment> segmentsB = TCVUtils.getImageSegments(miB, false, null);
-
-		// nto the same numbers of segments, bust be diferent images
-		if (segments.size() != segmentsB.size())
-			return 100.0;
-
-		for (int i = 0; i < segments.size(); i++) {
-			MarvinSegment segA = segments.get(i);
-			MarvinSegment segB = segmentsB.get(i);
-			BufferedImage subA = imagea.getSubimage(segA.x1, segA.y1, segA.width, segA.height);
-			BufferedImage subB = imageb.getSubimage(segB.x1, segB.y1, segB.width, segB.height);
-			dif += TCVUtils.getImageDiferences(subA, subB);
+	@Deprecated
+	public static String getOCRFromImage2(String sName, BufferedImage imagea, TreeMap<String, String> imageHashes) {
+		String s1 = TCVUtils.imagePHash(imagea, null);
+		double minDist = 21;
+		String ocr = null;
+		int dist = Integer.MAX_VALUE;
+		Set<String> keys = imageHashes.keySet();
+		for (String key : keys) {
+			int d = TCVUtils.getHammingDistance(s1, imageHashes.get(key));
+			Hero.logger.finer("file name: " + key + "Distance: " + d);
+			if (d < dist) {
+				dist = d;
+				ocr = key;
+			}
 		}
-		return dif;
+		Hero.logger.finer("getOCRFromImage for sensor" + sName + ": image " + ocr + " found. Distance: " + dist);
+		return ocr == null || dist > minDist ? null : ocr;
 	}
+
+	// public static double getImageDiferences(List<MarvinSegment> segments, BufferedImage imagea, BufferedImage imageb)
+	// {
+	// double dif = 0.0;
+	//
+	// // at this point i.m asumming that segments are retrived in the same way for all images. so, similar images
+	// // haben the same segment order inside the list and ovious the same number of segments
+	//
+	// // segments from imageb
+	// MarvinImage miB = new MarvinImage(imageb);
+	// List<MarvinSegment> segmentsB = TCVUtils.getImageSegments(miB, false, null);
+	//
+	// // nto the same numbers of segments, bust be diferent images
+	// if (segments.size() != segmentsB.size())
+	// return 100.0;
+	//
+	// for (int i = 0; i < segments.size(); i++) {
+	// MarvinSegment segA = segments.get(i);
+	// MarvinSegment segB = segmentsB.get(i);
+	// BufferedImage subA = imagea.getSubimage(segA.x1, segA.y1, segA.width, segA.height);
+	// BufferedImage subB = imageb.getSubimage(segB.x1, segB.y1, segB.width, segB.height);
+	// dif += TCVUtils.getImageDiferences(subA, subB);
+	// }
+	// return dif;
+	// }
 
 	/**
 	 * utilice the {@link ScreenSensor#getImageDiferences2(BufferedImage, BufferedImage)} to compare the
@@ -144,14 +152,10 @@ public class ScreenSensor extends JPanel {
 		double dif = 100.0;
 		double difThreshold = 30.0;
 
-		// segments from image
-		MarvinImage mi = new MarvinImage(imagea);
-		List<MarvinSegment> segments = TCVUtils.getImageSegments(mi, false, null);
-
 		Set<String> names = images.keySet();
 		for (String name : names) {
 			BufferedImage imageb = images.get(name);
-			double s = getImageDiferences(segments, imagea, imageb);
+			double s = TCVUtils.getImageDiferences(imagea, imageb);
 			Hero.logger.finer("file name: " + name + " Diference: " + s);
 			if (s < dif) {
 				dif = s;
@@ -397,7 +401,8 @@ public class ScreenSensor extends JPanel {
 		exception = null;
 		try {
 			if (isCardArea()) {
-				ocrResult = getImageOCR();
+				ocrResult = getTesseractOCR();
+//				ocrResult = getImageOCR();
 			} else {
 				ocrResult = getTesseractOCR();
 			}
@@ -428,12 +433,8 @@ public class ScreenSensor extends JPanel {
 		}
 		String ocr = getOCRFromImage(getName(), preparedImage, cardsTable);
 
-		if (!showCapturedImage && preparedImage != null) {
-			MarvinImage mi = new MarvinImage(preparedImage);
-			TCVUtils.getImageSegments(mi, true, null);
-			preparedImage = mi.getBufferedImage();
-		}
-
+//		the segments get from the card are draw int prepare image method
+		
 		// if the card is the file name is card_facedown, set null for ocr
 		if (ocr != null && ocr.equals("xx")) {
 			ocr = null;
@@ -529,10 +530,14 @@ public class ScreenSensor extends JPanel {
 
 		if (isCardArea()) {
 			bufimg = TColorUtils.getImageDataRegion(capturedImage);
-			MarvinImage mi = new MarvinImage(bufimg);
-			List<MarvinSegment> segments = TCVUtils.getImageSegments(mi, false, null);
-			mi = TCVUtils.autoCrop(segments, mi);
-			bufimg = mi.getBufferedImage();
+			bufimg = ImageHelper.convertImageToBinary(bufimg);
+			bufimg = TColorUtils.convert24(bufimg);
+
+//			MarvinImage mi = new MarvinImage(bufimg);
+//			List<MarvinSegment> segs = TCVUtils.getImageSegments(mi, false, null);
+//			List<MarvinSegment> segs = TCVUtils.getImageSegments(mi, !showCapturedImage, null);
+//			mi = TCVUtils.uperLeftAutoCrop(segs, mi);
+//			bufimg = mi.getBufferedImage();
 		}
 
 		// TODO: TEMPORAL jjust for whitePercent variable

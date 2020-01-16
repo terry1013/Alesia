@@ -56,7 +56,7 @@ public class TCVUtils {
 		}
 	}
 
-	public static MarvinImage autoCrop(List<MarvinSegment> segments, MarvinImage image) {
+	public static Rectangle getJoinSegments(List<MarvinSegment> segments) {
 		int topY = Integer.MAX_VALUE, topX = Integer.MAX_VALUE;
 		int bottomY = -1, bottomX = -1;
 		for (MarvinSegment segment : segments) {
@@ -70,30 +70,35 @@ public class TCVUtils {
 				bottomY = segment.y2;
 		}
 		Rectangle croprec = new Rectangle(topX, topY, bottomX - topX + 1, bottomY - topY + 1);
+		return croprec;
+	}
+
+	public static MarvinImage autoCrop(List<MarvinSegment> segments, MarvinImage image) {
+		Rectangle croprec = getJoinSegments(segments);
 		MarvinImage clone = image.subimage(croprec.x, croprec.y, croprec.width, croprec.height);
 		clone.update();
 		return clone;
 	}
 	public static MarvinImage uperLeftAutoCrop(List<MarvinSegment> segments, MarvinImage image) {
-		int topY = Integer.MAX_VALUE, topX = Integer.MAX_VALUE;
-		int bottomY = -1, bottomX = -1;
+//		no segments? retrun the same image
+		if(segments.size()==0)
+			return image;
 		
-//		find pivot point
+		Point upLeft = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
+		double dist = Integer.MAX_VALUE;
 		for (MarvinSegment segment : segments) {
-			Point.distance(0, 0, segment.x1*1.0, segment.y1*1.0)
+			Point p = new Point(segment.x1, segment.y1);
+			double d = Point.distance(0, 0, segment.x1 * 1.0, segment.y1 * 1.0);
+			if (d < dist) {
+				upLeft = p;
+				dist = d;
+			}
 		}
 
-		for (MarvinSegment segment : segments) {
-			if (segment.x1 < topX)
-				topX = segment.x1;
-			if (segment.y1 < topY)
-				topY = segment.y1;
-			if (segment.x2 > bottomX)
-				bottomX = segment.x2;
-			if (segment.y2 > bottomY)
-				bottomY = segment.y2;
-		}
-		Rectangle croprec = new Rectangle(topX, topY, bottomX - topX + 1, bottomY - topY + 1);
+		Rectangle croprec = getJoinSegments(segments);
+		Rectangle ulrec = new Rectangle(upLeft.x, upLeft.y, croprec.width, croprec.height);
+		croprec = croprec.intersection(ulrec);
+
 		MarvinImage clone = image.subimage(croprec.x, croprec.y, croprec.width, croprec.height);
 		clone.update();
 		return clone;
@@ -447,8 +452,8 @@ public class TCVUtils {
 
 			// the method i what to test
 			MarvinImage mi = new MarvinImage(image);
-			List<MarvinSegment> segs = getImageSegments(mi, true, parameteres);
-			mi = autoCrop(segs, mi);
+			List<MarvinSegment> segs = getImageSegments(mi, false, parameteres);
+			mi = uperLeftAutoCrop(segs, mi);
 			image = mi.getBufferedImage();
 
 			images.put(key, image);
