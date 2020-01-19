@@ -134,13 +134,13 @@ public class Trooper extends Task {
 	 */
 	private boolean checkProbabilities(int currentRound) {
 		double prob = pokerSimulator.getBestProbability();
-		if (currentRound == PokerSimulator.FLOP_CARDS_DEALT && prob < 0.20) {
+		if (currentRound == PokerSimulator.FLOP_CARDS_DEALT && prob < 0.30) {
 			availableActions.clear();
-			setVariableAndLog(EXPLANATION, "Probability on flop < 20%");
+			setVariableAndLog(EXPLANATION, "Probability on flop < 30%");
 		}
 		if (currentRound > PokerSimulator.FLOP_CARDS_DEALT && prob < 0.15) {
 			availableActions.clear();
-			setVariableAndLog(EXPLANATION, "Probability on turn or river < 15%");
+			setVariableAndLog(EXPLANATION, "Probability on turn or river < 20%");
 		}
 		return availableActions.size() == 0;
 	}
@@ -211,6 +211,7 @@ public class Trooper extends Task {
 		long tottime = 120 * 1000;
 		long t1 = System.currentTimeMillis();
 		while (System.currentTimeMillis() - t1 < tottime) {
+			sensorsArray.lookTable();
 			sensorsArray.readVillan();
 			sensorsArray.read(SensorsArray.TYPE_ACTIONS);
 
@@ -445,17 +446,17 @@ public class Trooper extends Task {
 		int pot = pokerSimulator.getPotValue();
 
 		if (call >= 0)
-			availableActions.add(new TEntry<String, Double>("call", getOddsWhioutRegret(sourceValue, call)));
+			availableActions.add(new TEntry<String, Double>("call", getOdds(sourceValue, call)));
 
 		if (raise >= 0)
-			availableActions.add(new TEntry<String, Double>("raise", getOddsWhioutRegret(sourceValue, raise)));
+			availableActions.add(new TEntry<String, Double>("raise", getOdds(sourceValue, raise)));
 
 		if (pot >= 0)
-			availableActions.add(new TEntry<String, Double>("raise.pot;raise", getOddsWhioutRegret(sourceValue, pot)));
+			availableActions.add(new TEntry<String, Double>("raise.pot;raise", getOdds(sourceValue, pot)));
 
 		if (chips >= 0)
 			availableActions
-					.add(new TEntry<String, Double>("raise.allin;raise", getOddsWhioutRegret(sourceValue, chips)));
+					.add(new TEntry<String, Double>("raise.allin;raise", getOdds(sourceValue, chips)));
 
 		// TODO: until now i.m goin to implement the slider performing click over the right side of the compoent.
 		// TODO: complete implementation of writhe the ammount for Poker star
@@ -473,7 +474,7 @@ public class Trooper extends Task {
 				for (int c = 1; c < 11; c++) {
 					val += (tick * c);
 					availableActions.add(new TEntry<String, Double>("raise.slider,c=" + c + ";raise",
-							getOddsWhioutRegret(sourceValue, val)));
+							getOdds(sourceValue, val)));
 				}
 			}
 		}

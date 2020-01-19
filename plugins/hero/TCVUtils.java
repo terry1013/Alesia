@@ -11,6 +11,7 @@ import java.util.List;
 
 import javax.imageio.*;
 import javax.swing.*;
+import javax.swing.border.*;
 import javax.swing.event.*;
 
 import org.jfree.chart.*;
@@ -31,7 +32,7 @@ public class TCVUtils {
 	 */
 	private Properties parameteres;
 	private TreeMap<String, BufferedImage> images;
-	private Hashtable<String, JLabel> labels;
+	private static Hashtable<String, JLabel> labels;
 
 	private Hashtable<String, String> images2;
 
@@ -157,46 +158,49 @@ public class TCVUtils {
 	 * diference. If the images are equals, return values closer to 0.0, and for complety diferent images, return values
 	 * closer to 100 percent.
 	 * <p>
-	 * this function accept diferent sizes from imagea and b. in this case, this function compare only the common area.
-	 * that is, starting from (0,0) until the dimension of the smaller image
+	 * the ajust parameter indicate what todo whie the images are of diferent size.
+	 * <li><code>true</code> means the image with mayor area will be rescaled to the dimension of the image of the menor
+	 * aresa.
+	 * <li><code>false</code>in this case, this function compare only the common area. that is, starting from (0,0)
+	 * until the dimension of the smaller image
 	 * 
 	 * @see TColorUtils#getRGBColorDistance(Color, Color)
 	 * 
-	 * @param imagea - firts image
-	 * @param imageb - second image
-	 * 
-	 * @return percentaje of diference
+	 * @param imagea
+	 * @param imageb
+	 * @param ajust
+	 * @return
 	 */
-	public static double getImageDiferences(BufferedImage imageA, BufferedImage imageB, boolean ajust) {
+	public static double getImageDiferences(BufferedImage imagea, BufferedImage imageb, boolean ajust) {
 		double diference = 0;
-		BufferedImage imagea = TColorUtils.copy(imageA);
-		BufferedImage imageb = TColorUtils.copy(imageB);
+		BufferedImage buffimg_a = TColorUtils.copy(imagea);
+		BufferedImage buffimg_b = TColorUtils.copy(imageb);
 
 		// ajust the mayor image to the size of the minor image
 		if (ajust) {
-			int areaa = imagea.getWidth() * imagea.getHeight();
-			int areab = imageb.getWidth() * imageb.getHeight();
+			int areaa = buffimg_a.getWidth() * buffimg_a.getHeight();
+			int areab = buffimg_b.getWidth() * buffimg_b.getHeight();
 			if (areaa > areab)
-				imagea = ImageHelper.getScaledInstance(imagea, imageb.getWidth(), imageb.getHeight());
+				buffimg_a = ImageHelper.getScaledInstance(buffimg_a, buffimg_b.getWidth(), buffimg_b.getHeight());
 			else
-				imageb = ImageHelper.getScaledInstance(imageb, imagea.getWidth(), imagea.getHeight());
+				buffimg_b = ImageHelper.getScaledInstance(buffimg_b, buffimg_a.getWidth(), buffimg_a.getHeight());
 		}
 
-		int tot_width = imagea.getWidth() < imageb.getWidth() ? imagea.getWidth() : imageb.getWidth();
-		int tot_height = imagea.getHeight() < imageb.getHeight() ? imagea.getHeight() : imageb.getHeight();
+		int width = buffimg_a.getWidth() < buffimg_b.getWidth() ? buffimg_a.getWidth() : buffimg_b.getWidth();
+		int height = buffimg_a.getHeight() < buffimg_b.getHeight() ? buffimg_a.getHeight() : buffimg_b.getHeight();
 
-		for (int x = 0; x < tot_width; x++) {
-			for (int y = 0; y < tot_height; y++) {
-				int rgba = imagea.getRGB(x, y);
-				int rgbb = imageb.getRGB(x, y);
+		for (int x = 0; x < width; x++) {
+			for (int y = 0; y < height; y++) {
+				int rgba = buffimg_a.getRGB(x, y);
+				int rgbb = buffimg_b.getRGB(x, y);
 				diference += TColorUtils.getRGBColorDistance(new Color(rgba), new Color(rgbb));
 			}
 		}
 
 		// total number of pixels
-		int total_pixel = tot_width * tot_height;
+		int pixels = width * height;
 		// normaliye the value of diferent pixel
-		double avg_diff = diference / total_pixel;
+		double avg_diff = diference / pixels;
 		// percentage
 		double percent = avg_diff * 100;
 		return percent;
@@ -242,14 +246,51 @@ public class TCVUtils {
 		return ih.getHash(image);
 	}
 
-	private static BufferedImage prepareCard(BufferedImage image) {
-		// upper left of the image
-		BufferedImage bufimg = image.getSubimage(0, 0, 20, 40);
+	/**
+	 * perform standar algorithm for card. the incoming argument bust be the image whitout any treatment
+	 * 
+	 * @param image source image
+	 * 
+	 * @return prepared image
+	 */
+	public static BufferedImage prepareCard(BufferedImage image) {
+		BufferedImage bufimg = paintBorder(image, null);
+		bufimg = bufimg.getSubimage(0, 0, 20, 50);
 		MarvinImage mi = new MarvinImage(bufimg);
-		List<MarvinSegment> segs = TCVUtils.getImageSegments(mi, false, null);
-		mi = TCVUtils.uperLeftAutoCrop(segs, mi);
+		List<MarvinSegment> segments = TCVUtils.getImageSegments(mi, false, null);
+		mi = TCVUtils.autoCrop(segments, mi);
 		bufimg = mi.getBufferedImage();
 		return bufimg;
+	}
+
+	/**
+	 * load and prepare the list of cards form the source directory.
+	 * 
+	 * @see #prepareCard(BufferedImage)
+	 * 
+	 * @param dir - source directory
+	 * 
+	 * @return list for filename & images
+	 */
+	public static TreeMap<String, BufferedImage> loadCards(String dir) {
+		File fdir = new File(dir);
+		String[] imgs = fdir.list();
+		TreeMap<String, BufferedImage> images = new TreeMap<>();
+		for (String img : imgs) {
+			File f = new File(dir + img);
+			BufferedImage imageb;
+			try {
+				imageb = ImageIO.read(f);
+
+				imageb = prepareCard(imageb);
+
+				String inam = f.getName().split("[.]")[0];
+				images.put(inam, imageb);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return images;
 	}
 
 	/**
@@ -269,8 +310,6 @@ public class TCVUtils {
 			BufferedImage imageb;
 			try {
 				imageb = ImageIO.read(f);
-				// TODO: test
-				imageb = prepareCard(imageb);
 				String inam = f.getName().split("[.]")[0];
 				images.put(inam, imageb);
 			} catch (IOException e) {
@@ -441,18 +480,22 @@ public class TCVUtils {
 
 	}
 
-	private JPanel createImagesPanel() {
-		JPanel panel = new JPanel(new GridLayout(6, 8, 2, 2));
-		images = loadImages(ScreenSensor.IMAGE_CARDS);
+	public static JPanel createImagesPanel(TreeMap<String, BufferedImage> images) {
+		JPanel panel = new JPanel(new GridLayout(0, 4, 2, 2));
 		labels = new Hashtable<>();
 		Set<String> keys = images.keySet();
 		for (String key : keys) {
 			BufferedImage image1 = images.get(key);
 			JLabel jl = new JLabel();
-			jl.setText(key);
 			jl.setFont(new Font("courier new", Font.PLAIN, 12));
+			jl.setOpaque(true);
+			jl.setBackground(Color.LIGHT_GRAY);
+			jl.setBorder(new LineBorder(Color.LIGHT_GRAY, 2));
 			jl.setVerticalAlignment(JLabel.TOP);
 			jl.setIcon(new ImageIcon(image1));
+			String txt = "<html>" + key + "<br>with " + image1.getWidth() + "<br>height " + image1.getHeight()
+					+ "</html>";
+			jl.setText(txt);
 			labels.put(key, jl);
 			panel.add(jl);
 		}
@@ -490,6 +533,7 @@ public class TCVUtils {
 	}
 
 	private void processImages() {
+		// start from the source
 		images = loadImages(ScreenSensor.IMAGE_CARDS);
 
 		Set<String> keys = images.keySet();
@@ -497,24 +541,12 @@ public class TCVUtils {
 			BufferedImage image = images.get(key);
 
 			// the method i what to test
-			// MarvinImage mi = new MarvinImage(image);
-			// List<MarvinSegment> segs = getImageSegments(mi, false, parameteres);
-			// mi = uperLeftAutoCrop(segs, mi);
-			// image = mi.getBufferedImage();
-
-			image = TColorUtils.convert24(image);
-			image = TColorUtils.getImageDataRegion(image);
-
-			// parameteres.setProperty("color", "ffffff");
-			// image = paintBorder(image, parameteres);
-			// MarvinImage mi = new MarvinImage(image);
-			// List<MarvinSegment> segs = TCVUtils.getImageSegments(mi, false, parameteres);
-			// mi = TCVUtils.uperLeftAutoCrop(segs, mi);
-			// image = mi.getBufferedImage();
+			image = prepareCard(image);
 
 			images.put(key, image);
 			JLabel jl = labels.get(key);
-			String txt = "<html>" + key + "<br> parm1 " + "<br> parm2 " + "</html>";
+			String txt = "<html>" + key + "<br>with " + image.getWidth() + "<br>height " + image.getHeight()
+					+ "</html>";
 			jl.setText(txt);
 			jl.setIcon(new ImageIcon(image));
 			jl.repaint();
@@ -534,7 +566,7 @@ public class TCVUtils {
 				for (int i = 0; i < segments.size(); i++) {
 					MarvinSegment segA = segments.get(i);
 					BufferedImage subA = image.getSubimage(segA.x1, segA.y1, segA.width, segA.height);
-					File f = new File(ScreenSensor.CARD_SEGMENTS + System.currentTimeMillis() + "." + ext);
+					File f = new File("----------" + System.currentTimeMillis() + "." + ext);
 					f.delete();
 					f.createNewFile();
 					ImageIO.write(subA, ext, f);
@@ -564,7 +596,8 @@ public class TCVUtils {
 
 	private void showFrame() {
 		// image panel
-		JPanel imagesPanel = createImagesPanel();
+		images = loadImages(ScreenSensor.IMAGE_CARDS);
+		JPanel imagesPanel = createImagesPanel(images);
 
 		// controls
 		// JSlider slider = getJSlider("size", 10);

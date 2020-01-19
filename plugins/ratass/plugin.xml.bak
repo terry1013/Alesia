@@ -1,0 +1,8 @@
+<PluginInformation>
+    <id>hero</id>
+    <title>Hero</title>
+    <description>porker plugin</description>
+    <version major="1" minor="0" />
+    <disableable>true</disableable>
+    <mainClass>Hero</mainClass>
+</PluginInformation>

@@ -57,6 +57,7 @@ public class SensorsPanel extends TUIPanel {
 		wtp.add(sensorsPanelMain, "Sensor Array");
 		wtp.add(simulationDataPanel, "Simulator data");
 		wtp.add(Hero.consolePanel, "Log console");
+		wtp.add(TCVUtils.createImagesPanel(ScreenSensor.cardsTable), "Cards");
 		wtp.registerSettings(new Configuration<TabbedPaneState>("SensorsPanel.tabbedPanel"));
 
 		setBodyComponent(wtp);

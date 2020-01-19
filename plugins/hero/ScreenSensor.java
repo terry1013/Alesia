@@ -36,8 +36,7 @@ public class ScreenSensor extends JPanel {
 	private String showImage;
 
 	public static String IMAGE_CARDS = "plugins/hero/image_cards/";
-	public static String CARD_SEGMENTS = "plugins/hero/card_segments/";
-	private static TreeMap<String, BufferedImage> cardsTable = TCVUtils.loadImages(IMAGE_CARDS);
+	public static TreeMap<String, BufferedImage> cardsTable = TCVUtils.loadCards(IMAGE_CARDS);
 	private Shape shape;
 	private SensorsArray sensorsArray;
 	private int scaledWidth, scaledHeight;
@@ -245,7 +244,7 @@ public class ScreenSensor extends JPanel {
 		}
 		setEnabled(true);
 
-		if (doOcr) {
+//		if (doOcr) {
 //			double imgdif = 100.0;
 //			if (lastOcrImage != null)
 //				imgdif = TCVUtils.getImageDiferences(lastOcrImage, capturedImage, false);
@@ -253,7 +252,7 @@ public class ScreenSensor extends JPanel {
 				doOCR();
 //				lastOcrImage = capturedImage;
 //			}
-		}
+//		}
 		update();
 		ocrTime = (int) (System.currentTimeMillis() - t1);
 	}
@@ -407,27 +406,22 @@ public class ScreenSensor extends JPanel {
 	 * @return the ocr retrived from the original file name or <code>null</code>
 	 */
 	private String getImageOCR() throws Exception {
-		// // fail safe. if the food function cant detetct enought area is because the card is face down or due noise in
-		// // the table. return null if the captured area is lest than the half of the original shape area
-		// int imagearea = preparedImage.getWidth() * preparedImage.getHeight();
-		// int shapearea = shape.bounds.width * shape.bounds.height;
-		// if (imagearea * 2 < shapearea) {
-		// Hero.logger.finer(getName() + ": Not enought area. OCR set to null");
-		// return null;
-		// }
 		String ocr = getOCRFromImage(preparedImage, cardsTable);
 
 		// only for visual purpose. the regions of interest was already used
 		if (showImage.equals(PREPARED)) {
+			Properties parms = new Properties();
+			parms.put("rgbToBinaryThreshold", "200");
+			parms.put("removeSegmentsWindowSize", "0");
 			MarvinImage mi = new MarvinImage(preparedImage);
-			TCVUtils.getImageSegments(mi, true, null);
+			TCVUtils.getImageSegments(mi, true, parms);
 		}
-
-		// if the card is the file name is card_facedown, set null for ocr
-		if (ocr != null && ocr.equals("xx")) {
-			ocr = null;
-			Hero.logger.finer(getName() + ": card is face down.");
-		}
+//
+//		// if the card is the file name is card_facedown, set null for ocr
+//		if (ocr != null && ocr.equals("xx")) {
+//			ocr = null;
+//			Hero.logger.finer(getName() + ": card is face down.");
+//		}
 		return ocr;
 	}
 	/**
@@ -482,14 +476,14 @@ public class ScreenSensor extends JPanel {
 		}
 
 		// spetial treatmen for call/rise sensors,set the ocr only of the retrive numerical value
-		if (getName().equals("call") || getName().equals("raise")) {
-			String vals[] = srcocd.split("\\n");
-			srcocd = "0";
-			if (vals.length > 1) {
-				srcocd = vals[1];
-				// srcocd = replaceWhitNumbers(vals[1]);
-			}
-		}
+//		if (getName().equals("call") || getName().equals("raise")) {
+//			String vals[] = srcocd.split("\\n");
+//			srcocd = "0";
+//			if (vals.length > 1) {
+//				srcocd = vals[1];
+//				// srcocd = replaceWhitNumbers(vals[1]);
+//			}
+//		}
 
 		// numeric sensors. after call/raise
 		if (isNumericArea()) {
@@ -521,22 +515,12 @@ public class ScreenSensor extends JPanel {
 		images.put(CAPTURED, capturedImage);
 
 		if (isCardArea()) {
-
 			bufimg = TCVUtils.paintBorder(capturedImage, null);
 			MarvinImage mi = new MarvinImage(bufimg);
 			// NOTE: drawing the regions here in the image increase the image diference percent
 			List<MarvinSegment> segs = TCVUtils.getImageSegments(mi, false, null);
-			mi = TCVUtils.uperLeftAutoCrop(segs, mi);
+			mi = TCVUtils.autoCrop(segs, mi);
 			bufimg = mi.getBufferedImage();
-
-			// bufimg = ImageHelper.convertImageToBinary(bufimg);
-			// bufimg = TColorUtils.convert24(bufimg);
-
-			// MarvinImage mi = new MarvinImage(bufimg);
-			// List<MarvinSegment> segs = TCVUtils.getImageSegments(mi, false, null);
-			// List<MarvinSegment> segs = TCVUtils.getImageSegments(mi, !showCapturedImage, null);
-			// mi = TCVUtils.uperLeftAutoCrop(segs, mi);
-			// bufimg = mi.getBufferedImage();
 		}
 
 		// all ocr areas need scaled instance
