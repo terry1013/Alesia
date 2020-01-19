@@ -80,32 +80,44 @@ public class ShapeAreas {
 					if (sh instanceof HSLFAutoShape) {
 						HSLFAutoShape pptshape = (HSLFAutoShape) sh;
 						Rectangle2D anchor = pptshape.getAnchor();
-						String name = pptshape.getShapeName();
+						String shape = pptshape.getShapeName();
 						// TODO: temporal: from 72dpi to 96
 						anchor.setRect(anchor.getX() * 1.3333, anchor.getY() * 1.3333, anchor.getWidth() * 1.3333,
 								anchor.getHeight() * 1.3333);
 						Shape sha = new Shape(anchor.getBounds());
-						Hero.logger.finer("shape found " + name + " Bounds" + "[x=" + sha.bounds.x + ",y="
+						Hero.logger.finer("shape found " + shape + " Bounds" + "[x=" + sha.bounds.x + ",y="
 								+ sha.bounds.y + ",width=" + sha.bounds.width + ",height=" + sha.bounds.height + "]");
-						// mark action areas
-						if (name.startsWith("action.")) {
+						// mark action areas. modify the shape variable
+						if (shape.startsWith("action.")) {
 							sha.isActionArea = true;
-							name = name.replace("action.", "");
+							shape = shape.replace("action.", "");
 						}
-						sha.name = name;
-						sha.isCardArea = isCardArea(name);
-						sha.isOCRTextArea = isOCRTextArea(name);
-						sha.isOCRNumericArea = isOCRNumericArea(name);
-						sha.isButtonArea = name.contains(".button");
+						// enable color. modify the shape variable
+						sha.enableColor = TColorUtils.nameColor.get("white");
+						String prps[] = shape.split(";");
+						if (prps.length > 1)
+							shape = prps[0];
+						for (String prp : prps) {
+							if (prp.startsWith("enaColor")) {
+								String col = prp.split("=")[1];
+								sha.enableColor = TColorUtils.nameColor.get(col);
+							}
+						}
 
-						shapes.put(name, sha);
+						sha.name = shape;
+						sha.isCardArea = isCardArea(shape);
+						sha.isOCRTextArea = isOCRTextArea(shape);
+						sha.isOCRNumericArea = isOCRNumericArea(shape);
+						sha.isButtonArea = shape.contains(".button");
+
+						shapes.put(shape, sha);
 					}
 				}
 			}
 			ppt.close();
-//			Predicate<Shape> pre = (sh -> sh.name.contains(".name"));
-//			checkDimensions(pre, "villan2.name", "Name areas");
-//			checkDimensions((sh -> sh.isCardArea), "hero.card1", "Card areas");
+			// Predicate<Shape> pre = (sh -> sh.name.contains(".name"));
+			// checkDimensions(pre, "villan2.name", "Name areas");
+			// checkDimensions((sh -> sh.isCardArea), "hero.card1", "Card areas");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

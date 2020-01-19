@@ -49,9 +49,9 @@ public class TWebFrame extends WebFrame {
 		v.add(TResources.getIcon("appicon", 32).getImage());
 		setIconImages(v);
 
-		setSize(new Dimension(800, 600));
-		setLocationRelativeTo(null);
-		registerSettings(new Configuration<WindowState>("TWebFrame"));
+//		TODO: comented due ps problems. fix
+//		setSize(new Dimension(800, 600));
+//		setLocationRelativeTo(null);
 
 		WindowAdapter ad = new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
@@ -64,6 +64,9 @@ public class TWebFrame extends WebFrame {
 		AnimatorBuilder.setDefaultTimingSource(ts);
 		frameAnimator = new AnimatorBuilder().setDuration(250, TimeUnit.MILLISECONDS).build();
 		// ts.init();
+		
+		registerSettings(new Configuration<WindowState>("TWebFrame"));
+
 	}
 
 	/**

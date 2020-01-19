@@ -20,6 +20,7 @@ import marvin.color.*;
 import marvin.image.*;
 import marvin.plugin.*;
 import marvin.util.*;
+import net.sourceforge.tess4j.util.*;
 
 public class TCVUtils {
 
@@ -80,10 +81,10 @@ public class TCVUtils {
 		return clone;
 	}
 	public static MarvinImage uperLeftAutoCrop(List<MarvinSegment> segments, MarvinImage image) {
-//		no segments? retrun the same image
-		if(segments.size()==0)
+		// no segments? retrun the same image
+		if (segments.size() == 0)
 			return image;
-		
+
 		Point upLeft = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
 		double dist = Integer.MAX_VALUE;
 		for (MarvinSegment segment : segments) {
@@ -166,8 +167,20 @@ public class TCVUtils {
 	 * 
 	 * @return percentaje of diference
 	 */
-	public static double getImageDiferences(BufferedImage imagea, BufferedImage imageb) {
+	public static double getImageDiferences(BufferedImage imageA, BufferedImage imageB, boolean ajust) {
 		double diference = 0;
+		BufferedImage imagea = TColorUtils.copy(imageA);
+		BufferedImage imageb = TColorUtils.copy(imageB);
+
+		// ajust the mayor image to the size of the minor image
+		if (ajust) {
+			int areaa = imagea.getWidth() * imagea.getHeight();
+			int areab = imageb.getWidth() * imageb.getHeight();
+			if (areaa > areab)
+				imagea = ImageHelper.getScaledInstance(imagea, imageb.getWidth(), imageb.getHeight());
+			else
+				imageb = ImageHelper.getScaledInstance(imageb, imagea.getWidth(), imagea.getHeight());
+		}
 
 		int tot_width = imagea.getWidth() < imageb.getWidth() ? imagea.getWidth() : imageb.getWidth();
 		int tot_height = imagea.getHeight() < imageb.getHeight() ? imagea.getHeight() : imageb.getHeight();
@@ -229,6 +242,16 @@ public class TCVUtils {
 		return ih.getHash(image);
 	}
 
+	private static BufferedImage prepareCard(BufferedImage image) {
+		// upper left of the image
+		BufferedImage bufimg = image.getSubimage(0, 0, 20, 40);
+		MarvinImage mi = new MarvinImage(bufimg);
+		List<MarvinSegment> segs = TCVUtils.getImageSegments(mi, false, null);
+		mi = TCVUtils.uperLeftAutoCrop(segs, mi);
+		bufimg = mi.getBufferedImage();
+		return bufimg;
+	}
+
 	/**
 	 * Load all images located in the <code>dir</code> parameter and create a {@link Hashtable} where the key is the
 	 * file name (call, Ks, Etc.) and the value parameter is the {@link BufferedImage} loaded from that file
@@ -246,6 +269,8 @@ public class TCVUtils {
 			BufferedImage imageb;
 			try {
 				imageb = ImageIO.read(f);
+				// TODO: test
+				imageb = prepareCard(imageb);
 				String inam = f.getName().split("[.]")[0];
 				images.put(inam, imageb);
 			} catch (IOException e) {
@@ -320,7 +345,7 @@ public class TCVUtils {
 		if (parms == null) {
 			parms = new Properties();
 			parms.put("rgbToBinaryThreshold", "200");
-			parms.put("removeSegmentsWindowSize", "5");
+			parms.put("removeSegmentsWindowSize", "1");
 		}
 		int rgbToBinaryThreshold = Integer.parseInt(parms.getProperty("rgbToBinaryThreshold"));
 		int removeSegmentsWindowSize = Integer.parseInt(parms.getProperty("removeSegmentsWindowSize"));
@@ -362,6 +387,26 @@ public class TCVUtils {
 		return list;
 	}
 
+	public static BufferedImage paintBorder(BufferedImage image, Properties parms) {
+		if (parms == null) {
+			parms = new Properties();
+			parms.put("size", "8");
+			parms.put("color", "FFFFFF");
+		}
+		int size = Integer.parseInt(parms.getProperty("size"));
+		Color color = TColorUtils.getRGBColor(parms.getProperty("color"));
+
+		BufferedImage newimagea = new BufferedImage(image.getWidth(), image.getHeight(), image.getType());
+		Graphics2D g2d = newimagea.createGraphics();
+		g2d.drawImage(image, 0, 0, null);
+		BasicStroke bs = new BasicStroke(size);
+		g2d.setStroke(bs);
+		g2d.setColor(color);
+		g2d.drawRect(0, 0, image.getWidth(), image.getHeight());
+		g2d.dispose();
+		return newimagea;
+	}
+
 	private static MarvinImage showCorners(MarvinImage image, MarvinAttributes attr, int rectSize) {
 		MarvinImage ret = image.clone();
 		int[][] cornernessMap = (int[][]) attr.get("cornernessMap");
@@ -384,8 +429,8 @@ public class TCVUtils {
 		Set<String> keys = images.keySet();
 		for (String key : keys) {
 			BufferedImage tmpimg = TColorUtils.convert4(images.get(key));
-			Hashtable<Integer, Integer> histo = TColorUtils.getHistogram(tmpimg);
-			chart.addDataset(histo, key);
+			Hashtable<String, Integer> histo = TColorUtils.getHistogram(tmpimg);
+			// chart.addDataset(histo, key);
 		}
 		ChartPanel cp = chart.getChartPanel();
 		cp.setPreferredSize(new Dimension(600, 200));
@@ -422,7 +467,7 @@ public class TCVUtils {
 		int th = Integer.parseInt(pval);
 
 		JSlider slider = new JSlider(0, max, th);
-		slider.setToolTipText("" + th);
+		slider.setToolTipText(parameter + ": " + th);
 		slider.setName(parameter);
 		ChangeListener cl = new ChangeListener() {
 
@@ -431,8 +476,9 @@ public class TCVUtils {
 				JSlider source = (JSlider) e.getSource();
 				if (!source.getValueIsAdjusting()) {
 					int fps = (int) source.getValue();
-					parameteres.setProperty(source.getName(), "" + fps);
-					slider.setToolTipText("" + fps);
+					String par = source.getName();
+					parameteres.setProperty(par, "" + fps);
+					slider.setToolTipText(par + ": " + fps);
 					processImages();
 				}
 			}
@@ -451,10 +497,20 @@ public class TCVUtils {
 			BufferedImage image = images.get(key);
 
 			// the method i what to test
-			MarvinImage mi = new MarvinImage(image);
-			List<MarvinSegment> segs = getImageSegments(mi, false, parameteres);
-			mi = uperLeftAutoCrop(segs, mi);
-			image = mi.getBufferedImage();
+			// MarvinImage mi = new MarvinImage(image);
+			// List<MarvinSegment> segs = getImageSegments(mi, false, parameteres);
+			// mi = uperLeftAutoCrop(segs, mi);
+			// image = mi.getBufferedImage();
+
+			image = TColorUtils.convert24(image);
+			image = TColorUtils.getImageDataRegion(image);
+
+			// parameteres.setProperty("color", "ffffff");
+			// image = paintBorder(image, parameteres);
+			// MarvinImage mi = new MarvinImage(image);
+			// List<MarvinSegment> segs = TCVUtils.getImageSegments(mi, false, parameteres);
+			// mi = TCVUtils.uperLeftAutoCrop(segs, mi);
+			// image = mi.getBufferedImage();
 
 			images.put(key, image);
 			JLabel jl = labels.get(key);
@@ -509,9 +565,9 @@ public class TCVUtils {
 	private void showFrame() {
 		// image panel
 		JPanel imagesPanel = createImagesPanel();
-		processImages();
 
 		// controls
+		// JSlider slider = getJSlider("size", 10);
 		JSlider slider = getJSlider("rgbToBinaryThreshold", 255);
 		slider.setMajorTickSpacing(25);
 		JSlider slider2 = getJSlider("removeSegmentsWindowSize", 100);
@@ -524,6 +580,9 @@ public class TCVUtils {
 		controlsPanel.add(slider);
 		controlsPanel.add(slider2);
 		controlsPanel.add(save);
+
+		// precess the image after the controls and the properties are set
+		processImages();
 
 		JPanel mainpanel = new JPanel(new BorderLayout());
 		mainpanel.add(imagesPanel, BorderLayout.CENTER);

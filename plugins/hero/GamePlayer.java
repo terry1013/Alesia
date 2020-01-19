@@ -1,6 +1,5 @@
 package plugins.hero;
 
-import java.awt.image.*;
 import java.util.*;
 
 /**
@@ -60,9 +59,10 @@ public class GamePlayer {
 		// because the villan is not spoked yet, hero is in a early table position. So he still alive at this point he
 		// must be call/check the hero last action
 		// BufferedImage imagea = nameSensor.getPreparedImage();
-		BufferedImage imagea = nameSensor.getCapturedImage();
-		String ocr = ScreenSensor.getOCRFromImage(nameSensor.getName(), imagea, GameRecorder.actionsTable);
+		// BufferedImage imagea = nameSensor.getCapturedImage();
+		// String ocr = ScreenSensor.getOCRFromImage(nameSensor.getName(), imagea, GameRecorder.actionsTable);
 		// values. the unknow or error spetial value -1 is appended too
+		String ocr = null;
 		int val = array.getSensor(prefix + ".call").getIntOCR();
 		actions.append(ocr == null ? "c" : ocr.substring(0, 1));
 		actions.append(val);

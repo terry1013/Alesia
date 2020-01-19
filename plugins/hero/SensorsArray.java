@@ -29,11 +29,6 @@ import com.jgoodies.common.base.*;
 public class SensorsArray {
 
 	/**
-	 * this is the color max color on the villanX.button area indicating that i´this area has the dealler button. this
-	 * is uded by {@link #updateTablePosition()} to calculate the Hero.s position in the table
-	 */
-	public static String DEALER_BUTTON_COLOR = "008080";
-	/**
 	 * Read/see only numeric sensors. Numeric sensors are chips, pot, calls Etc
 	 */
 	public final static String TYPE_NUMBERS = "Numbers";
@@ -141,11 +136,9 @@ public class SensorsArray {
 	public int getDealerButtonPosition() {
 		int vil = getVillans();
 		int bp = -1;
-		String sscol = getSensor("hero.button").getMaxColor();
-		bp = sscol.equals(DEALER_BUTTON_COLOR) ? 0 : -1;
+		bp = getSensor("hero.button").isEnabled() ? 0 : -1;
 		for (int i = 1; i <= vil; i++) {
-			sscol = getSensor("villan" + i + ".button").getMaxColor();
-			bp = (sscol.equals(DEALER_BUTTON_COLOR)) ? i : bp;
+			bp = getSensor("villan" + i + ".button").isEnabled() ? i : bp;
 		}
 		if (bp == -1) {
 			Hero.logger.severe("Fail to detect table position.");
@@ -278,7 +271,18 @@ public class SensorsArray {
 		List<ScreenSensor> sslist = getSensors(null);
 		readSensors(false, sslist);
 		long t2 = System.currentTimeMillis() - t1;
-		// System.out.println("SensorsArray.lookTable() " + t2);
+		pokerSimulator.setVariable("sensorArray.Look table time", sslist.size() + " sensors " + t2);
+	}
+
+	private int lastUpdateVillan;
+	public void readVillan() {
+//		read conuterclockwise to retrive max info
+		lastUpdateVillan = lastUpdateVillan < 1 ? getVillans() : lastUpdateVillan - 1;
+		Collection<ScreenSensor> allSensors = screenSensors.values();
+		List<ScreenSensor> slist = allSensors.stream()
+				.filter(ss -> ss.getName().equals("villan" + lastUpdateVillan + ".chips")).collect(Collectors.toList());
+		// .filter(ss -> TStringUtils.wildCardMacher(ss.getName(), "villan*.chips")).collect(Collectors.toList());
+		readSensors(true, slist);
 	}
 
 	/**
@@ -292,30 +296,31 @@ public class SensorsArray {
 	 */
 	public void read(String type) {
 		Collection<ScreenSensor> allSensors = screenSensors.values();
-
-		// TODO: complete implementation
-		if (TYPE_VILLANS.equals(type)) {
-			// List<ScreenSensor> slist = allSensors.stream().filter(ss -> ss.getName().startsWith("villan"))
-			// .collect(Collectors.toList());
-			// readSensors(true, slist);
-		}
-
+		List<ScreenSensor> slist = new ArrayList<ScreenSensor>();
+		
 		// ation areas
 		if (TYPE_ACTIONS.equals(type)) {
-			List<ScreenSensor> slist = allSensors.stream().filter(ss -> ss.isActionArea()).collect(Collectors.toList());
+			slist = allSensors.stream().filter(ss -> ss.isActionArea()).collect(Collectors.toList());
+			slist.add(getSensor("hero.card1"));
+			slist.add(getSensor("hero.card2"));
 			readSensors(true, slist);
 		}
 
 		// numeric types retrive all numers and update poker simulator
 		if (TYPE_NUMBERS.equals(type)) {
-			List<ScreenSensor> slist = allSensors.stream().filter(ss -> ss.isNumericArea())
+			slist = allSensors.stream().filter(ss -> ss.isNumericArea())
 					.collect(Collectors.toList());
+			// remove villas sensor. villans sensor are update calling readVillan method
+			slist.removeIf(ss -> ss.getName().startsWith("villan"));
 			readSensors(true, slist);
 			updateTablePosition();
-			updateCalls();
-			// TODO: Temporal for th: the pot is the previous pot value + all calls
+			// no need to update calls because PS pot contail all information
+			// updateCalls();
 			int potInt = getSensor("pot").getIntOCR();
-			potInt = potInt + blinds.values().stream().mapToInt(iv -> iv.intValue()).sum();
+
+			// the pot is the previous pot value + all calls
+			// potInt = potInt + blinds.values().stream().mapToInt(iv -> iv.intValue()).sum();
+
 			pokerSimulator.setPotValue(potInt);
 			pokerSimulator.setCallValue(getSensor("call").getIntOCR());
 			pokerSimulator.setHeroChips(getSensor("hero.chips").getIntOCR());
@@ -327,7 +332,7 @@ public class SensorsArray {
 		// cards areas sensor will perform a simulation
 		if (TYPE_CARDS.equals(type)) {
 			pokerSimulator.getCardsBuffer().clear();
-			List<ScreenSensor> slist = allSensors.stream().filter(ss -> ss.isCardArea()).collect(Collectors.toList());
+			slist = allSensors.stream().filter(ss -> ss.isCardArea()).collect(Collectors.toList());
 			readSensors(true, slist);
 			for (ScreenSensor ss : slist) {
 				if ((ss.isHoleCard() || ss.isComunityCard())) {
@@ -339,8 +344,9 @@ public class SensorsArray {
 			pokerSimulator.setNunOfPlayers(getActiveVillans() + 1);
 			pokerSimulator.runSimulation();
 		}
-		pokerSimulator.setVariable("sensorArray.Tesseract OCR time", tesseractTime.getMean());
-		pokerSimulator.setVariable("sensorArray.ImageDiference OCR time", imageDiffereceTime.getMean());
+		pokerSimulator.setVariable("sensorArray.Total readed sensors", slist.size());
+		pokerSimulator.setVariable("sensorArray.Tesseract OCR time", ((int) tesseractTime.getMean()));
+		pokerSimulator.setVariable("sensorArray.ImageDiference OCR time", ((int) imageDiffereceTime.getMean()));
 	}
 
 	/**
@@ -356,7 +362,7 @@ public class SensorsArray {
 				if (sn.contains(".name")) {
 					ScreenSensor ss = screenSensors.get(sn);
 					ss.capture(false);
-					BufferedImage bi = ss.getCapturedImage();
+					BufferedImage bi = ss.getImage(ScreenSensor.CAPTURED);
 					String ext = "png";
 					File f = new File(GameRecorder.IMAGE_ACTIONS + "sample_" + System.currentTimeMillis() + "." + ext);
 					f.createNewFile();
@@ -380,7 +386,7 @@ public class SensorsArray {
 				if (ss.isComunityCard() || ss.isHoleCard()) {
 					// if (ss.getName().equals("hero.card2")) {
 					ss.capture(false);
-					BufferedImage image = ss.getCapturedImage();
+					BufferedImage image = ss.getImage(ScreenSensor.CAPTURED);
 					// image = TColorUtils.getImageDataRegion(image);
 					File f = new File(ScreenSensor.IMAGE_CARDS + "sample_" + System.currentTimeMillis() + "." + ext);
 					f.createNewFile();

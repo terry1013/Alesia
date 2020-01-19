@@ -411,6 +411,7 @@ public class PokerSimulator {
 		rank = srank.equals("K") ? Card.KING : rank;
 		rank = srank.equals("Q") ? Card.QUEEN : rank;
 		rank = srank.equals("J") ? Card.JACK : rank;
+		rank = srank.equals("T") ? Card.TEN : rank;
 		if (scard.startsWith("10")) {
 			rank = Card.TEN;
 			scard = scard.substring(1);

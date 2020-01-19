@@ -11,6 +11,47 @@ import javax.swing.*;
 import org.apache.commons.math3.linear.*;
 
 public class TColorUtils {
+	public static Hashtable<Color, String> colorNames;
+	public static Hashtable<String, Color> nameColor;
+
+	static {
+		nameColor = new Hashtable<>();
+		nameColor.put("white", Color.decode("0xffffff"));
+		nameColor.put("cyan", Color.decode("0x00ffff"));
+		nameColor.put("violet", Color.decode("0xff00ff"));
+		nameColor.put("yellow", Color.decode("0xffff00"));
+		nameColor.put("silver", Color.decode("0xc0c0c0"));
+		nameColor.put("red", Color.decode("0xff0000"));
+		nameColor.put("lime", Color.decode("0x00ff00"));
+		nameColor.put("blue", Color.decode("0x0000ff"));
+		nameColor.put("gray", Color.decode("0x808080"));
+		nameColor.put("teal", Color.decode("0x008080"));
+		nameColor.put("purple", Color.decode("0x800080"));
+		nameColor.put("olive", Color.decode("0x808000"));
+		nameColor.put("black", Color.decode("0x000000"));
+		nameColor.put("maroon", Color.decode("0x800000"));
+		nameColor.put("green", Color.decode("0x008000"));
+		nameColor.put("navy", Color.decode("0x000080"));
+
+		colorNames = new Hashtable<>();
+		colorNames.put(Color.decode("0xffffff"), "white");
+		colorNames.put(Color.decode("0x00ffff"), "cyan");
+		colorNames.put(Color.decode("0xff00ff"), "violet");
+		colorNames.put(Color.decode("0xffff00"), "yellow");
+		colorNames.put(Color.decode("0xc0c0c0"), "silver");
+		colorNames.put(Color.decode("0xff0000"), "red");
+		colorNames.put(Color.decode("0x00ff00"), "lime");
+		colorNames.put(Color.decode("0x0000ff"), "blue");
+		colorNames.put(Color.decode("0x808080"), "gray");
+		colorNames.put(Color.decode("0x008080"), "teal");
+		colorNames.put(Color.decode("0x800080"), "purple");
+		colorNames.put(Color.decode("0x808000"), "olive");
+		colorNames.put(Color.decode("0x000000"), "black");
+		colorNames.put(Color.decode("0x800000"), "maroon");
+		colorNames.put(Color.decode("0x008000"), "green");
+		colorNames.put(Color.decode("0x000080"), "navy");
+	}
+
 	public static int argb(int R, int G, int B) {
 		return argb(Byte.MAX_VALUE, R, G, B);
 	}
@@ -20,11 +61,78 @@ public class TColorUtils {
 		return byteArrToInt(colorByteArr);
 	}
 
+	/**
+	 * Perform auto crop operation over the incoming image. The {@link Predicate} argumet is used for evaluation of when
+	 * the crop function need to act. for exaple.
+	 * <li>if a image with white background has a noisy border, use this function passing
+	 * <code>rgb -> rgb == Color.white.getRGB()</code> this will remove all exterior leaving the interior of the image.
+	 * <li>if an image need to be croped to remove excess of background, use
+	 * <code>rgb -> rgb != Color.white.getRGB()</code>
+	 * 
+	 * @see #getImageDataRegion(BufferedImage)
+	 * @param image - image to crop
+	 * @param predicate - predicate
+	 * 
+	 * @return new croped area
+	 */
+	public static Rectangle autoCrop(BufferedImage image, Predicate<Integer> predicate) {
+		Rectangle orgrect = new Rectangle(0, 0, image.getWidth(), image.getHeight());
+		int topY = Integer.MAX_VALUE, topX = Integer.MAX_VALUE;
+		int bottomY = -1, bottomX = -1;
+		for (int y = 0; y < image.getHeight(); y++) {
+			for (int x = 0; x < image.getWidth(); x++) {
+				if (predicate.test(image.getRGB(x, y))) {
+					if (x < topX)
+						topX = x;
+					if (y < topY)
+						topY = y;
+					if (x > bottomX)
+						bottomX = x;
+					if (y > bottomY)
+						bottomY = y;
+				}
+			}
+		}
+
+		// the resulting area must be inside of the original area. if not. no succses predicate was performed and return
+		// the original area
+		Rectangle croprec = new Rectangle(topX, topY, bottomX - topX + 1, bottomY - topY + 1);
+		if (!orgrect.contains(croprec))
+			return orgrect;
+
+		return croprec;
+	}
+
 	public static int byteArrToInt(byte[] colorByteArr) {
 		return (colorByteArr[0] << 24) + ((colorByteArr[1] & 0xFF) << 16) + ((colorByteArr[2] & 0xFF) << 8)
 				+ (colorByteArr[3] & 0xFF);
 	}
+	/**
+	 * change ALL pixel color to the new color keeping only the original alpch chanel intact. This method must be used
+	 * unly with simple monocrome png images. the image returned keep the same transparecy structure whit the RCB values
+	 * changed to the new color.
+	 * 
+	 * @param icon - image icon
+	 * @param toColor - target color
+	 * @return new colored imageicon
+	 */
+	public static ImageIcon changeColor(ImageIcon icon, Color toColor) {
+		final BufferedImage image = new BufferedImage(icon.getIconWidth(), icon.getIconHeight(),
+				BufferedImage.TYPE_INT_ARGB);
+		final Graphics2D g2d = image.createGraphics();
+		icon.paintIcon(null, g2d, 0, 0);
+		g2d.dispose();
 
+		for (int x = 0; x < image.getWidth(); x++) {
+			for (int y = 0; y < image.getHeight(); y++) {
+				int p = image.getRGB(x, y);
+				int a = (p >> 24) & 0xff;
+				Color nc = new Color(toColor.getRed(), toColor.getGreen(), toColor.getBlue(), a);
+				image.setRGB(x, y, nc.getRGB());
+			}
+		}
+		return new ImageIcon(image);
+	}
 	/**
 	 * Converts the source to 1-bit colour depth (monochrome). No transparency.
 	 * 
@@ -44,7 +152,6 @@ public class TColorUtils {
 
 		return dest;
 	}
-
 	/**
 	 * Converts the source image to 24-bit colour (RGB). No transparency.
 	 * 
@@ -105,6 +212,35 @@ public class TColorUtils {
 	}
 
 	/**
+	 * Converts the source image to 4-bit colour using the default 16-colour palette:
+	 * <ul>
+	 * <li>black</li>
+	 * <li>red</li>
+	 * <li>green</li>
+	 * <li>yellow</li>
+	 * <li>blue</li>
+	 * <li>magenta</li>
+	 * <li>cyan</li>
+	 * <li>white</li>
+	 * </ul>
+	 * No transparency.
+	 * 
+	 * @param src the source image to convert
+	 * @return a copy of the source image with a 4-bit colour depth, with the default colour pallette
+	 */
+	public static BufferedImage convert3(BufferedImage src) {			    
+		int[] cmap = new int[]{0x000000, 0x0000FF, 0x00FF00, 0x00FFFF, 0xFF0000, 0xFF00FF,0xFFFF00,0xFFFFFF};
+		
+		IndexColorModel icm = new IndexColorModel(3, cmap.length, cmap, 0, false, Transparency.OPAQUE,
+				DataBuffer.TYPE_BYTE);
+		BufferedImage dest = new BufferedImage(src.getWidth(), src.getHeight(), BufferedImage.TYPE_BYTE_BINARY, icm);
+		ColorConvertOp cco = new ColorConvertOp(src.getColorModel().getColorSpace(),
+				dest.getColorModel().getColorSpace(), null);
+		cco.filter(src, dest);
+		return dest;
+	}
+
+	/**
 	 * Converts the source image to 4-bit colour using the given colour map. No transparency.
 	 * 
 	 * @param src the source image to convert
@@ -119,9 +255,10 @@ public class TColorUtils {
 		ColorConvertOp cco = new ColorConvertOp(src.getColorModel().getColorSpace(),
 				dest.getColorModel().getColorSpace(), null);
 		cco.filter(src, dest);
-
 		return dest;
 	}
+	
+	
 
 	public static BufferedImage convert4to32(BufferedImage src) {
 		BufferedImage bi = convert4(src);
@@ -162,62 +299,13 @@ public class TColorUtils {
 		return newimagea;
 	}
 
-	/**
-	 * Perform auto crop operation over the incoming image. The {@link Predicate} argumet is used for evaluation of when
-	 * the crop function need to act. for exaple.
-	 * <li>if a image with white background has a noisy border, use this function passing
-	 * <code>rgb -> rgb == Color.white.getRGB()</code> this will remove all exterior leaving the interior of the image.
-	 * <li>if an image need to be croped to remove excess of background, use
-	 * <code>rgb -> rgb != Color.white.getRGB()</code>
-	 * 
-	 * @see #getImageDataRegion(BufferedImage)
-	 * @param image - image to crop
-	 * @param predicate - predicate
-	 * 
-	 * @return new croped area
-	 */
-	public static Rectangle autoCrop(BufferedImage image, Predicate<Integer> predicate) {
-		Rectangle orgrect = new Rectangle(0, 0, image.getWidth(), image.getHeight());
-		int topY = Integer.MAX_VALUE, topX = Integer.MAX_VALUE;
-		int bottomY = -1, bottomX = -1;
-		for (int y = 0; y < image.getHeight(); y++) {
-			for (int x = 0; x < image.getWidth(); x++) {
-				if (predicate.test(image.getRGB(x, y))) {
-					if (x < topX)
-						topX = x;
-					if (y < topY)
-						topY = y;
-					if (x > bottomX)
-						bottomX = x;
-					if (y > bottomY)
-						bottomY = y;
-				}
-			}
-		}
-
-		// the resulting area must be inside of the original area. if not. no succses predicate was performed and return
-		// the original area
-		Rectangle croprec = new Rectangle(topX, topY, bottomX - topX + 1, bottomY - topY + 1);
-		if (!orgrect.contains(croprec))
-			return orgrect;
-
-		return croprec;
-	}
-
-	public static BufferedImage getImageDataRegion(BufferedImage image) {
-		BufferedImage tmpimage = copy(image);
-		// anchor point
-		int apx = tmpimage.getWidth() - 8;
-		int apy = 8;
-		Color fromcol = new Color(tmpimage.getRGB(apx, apy));
-		Color tocol = Color.PINK;
-
-		flood(tmpimage, apx, apy, fromcol, tocol, 0.05);
-
-		// remove data outside the flood area
-		Rectangle croprec = autoCrop(tmpimage, rgb -> rgb == tocol.getRGB());
-		BufferedImage newimage = image.getSubimage(croprec.x, croprec.y, croprec.width, croprec.height);		
-		return newimage;
+	public static void drawMassCenterPoint(BufferedImage image) {
+		// 191709: my first modification of hero plugin in refuge camp in germany !!!
+		Point ms = getMassCenter(image);
+		Graphics2D g2d = (Graphics2D) image.getGraphics();
+		g2d.setColor(Color.pink);
+		g2d.drawLine(ms.x - 3, ms.y, ms.x + 3, ms.y);
+		g2d.drawLine(ms.x, ms.y - 3, ms.x, ms.y + 3);
 	}
 
 	public static void flood(BufferedImage image, int x, int y, Color fromcol, Color tocol, double coldif) {
@@ -240,6 +328,42 @@ public class TColorUtils {
 			flood(image, x - 1, y, fromcol, tocol, coldif);
 			flood(image, x, y - 1, fromcol, tocol, coldif);
 		}
+	}
+
+	/**
+	 * Return the {@link Color} that has most presence or is more frequent in the image.
+	 * 
+	 * @param image - Source image
+	 * 
+	 * @return the most frequent color
+	 */
+	public static Color getBackgroundColor(BufferedImage image) {
+		Hashtable<String, Integer> histo = getHistogram(image);
+		return getBackgroundColor(histo);
+	}
+
+	/**
+	 * Count the values inside the histogram argument an return the {@link Color} that is more present. if the histogram
+	 * is empty return <code>null</code>
+	 * 
+	 * @param histogram - histogram to count
+	 * 
+	 * @return color who is more present
+	 */
+	public static Color getBackgroundColor(Hashtable<String, Integer> histogram) {
+		if (histogram.size() == 0)
+			return null;
+		Vector<String> ks = new Vector<>(histogram.keySet());
+		int max = -1;
+		String scol = null;
+		for (String col : ks) {
+			int cnt = histogram.get(col);
+			if (max < cnt) {
+				max = cnt;
+				scol = col;
+			}
+		}
+		return getRGBColor(scol);
 	}
 
 	/**
@@ -277,6 +401,34 @@ public class TColorUtils {
 	}
 
 	/**
+	 * Return the percentage of white color present in the image <code>image</code>
+	 * 
+	 * @param image - image to scan
+	 * @return white color percentage
+	 */
+	public static double getColorPercent(BufferedImage image, Color color) {
+		Hashtable<String, Integer> histo = getHistogram(image);
+		return getColorPercent(histo, color, image.getWidth() * image.getHeight());
+	}
+
+	/**
+	 * Compute the percentege of pure {@link Color#WHITE} present in the histogram argument.
+	 * 
+	 * @param histogram - histogram of the image
+	 * @param imageW - image width
+	 * @param imageH - image height
+	 * 
+	 * @return % of white color present in the image
+	 */
+	public static double getColorPercent(Hashtable<String, Integer> histogram, Color color, int area) {
+		Integer hcol = histogram.get(getRGBColor(color));
+		double colCnt = hcol == null ? 0 : hcol;
+		double d = (colCnt / area)*100; // percentaje
+		int t = (int) (d * 100); // decimal reduction
+		return t / 100d;
+	}
+
+	/**
 	 * Return a {@link Hashtable} where the key is an Integer representing the color and the value the number of pixels
 	 * present whit this color. The key value (the color of pixes) is in AARRGGBB fomrmat.
 	 * <p>
@@ -286,47 +438,18 @@ public class TColorUtils {
 	 * @param image - Source image
 	 * @return Histogram of colors
 	 */
-	public static Hashtable<Integer, Integer> getHistogram(BufferedImage image) {
-		Hashtable<Integer, Integer> histo = new Hashtable<>();
+	public static Hashtable<String, Integer> getHistogram(BufferedImage image) {
+		Hashtable<String, Integer> histo = new Hashtable<>();
 		for (int x = 0; x < image.getWidth(); x++) {
 			for (int y = 0; y < image.getHeight(); y++) {
-				int col = image.getRGB(x, y);
-				// col = col & 0x00ffffff;
-				Integer icnt = histo.get(col);
+				Color col = new Color(image.getRGB(x, y));
+				Integer icnt = histo.get(getRGBColor(col));
 				int cnt = icnt == null ? 1 : icnt.intValue() + 1;
-				histo.put(col, cnt);
+				histo.put(getRGBColor(col), cnt);
 			}
 		}
 		return histo;
 	}
-
-	/**
-	 * change ALL pixel color to the new color keeping only the original alpch chanel intact. This method must be used
-	 * unly with simple monocrome png images. the image returned keep the same transparecy structure whit the RCB values
-	 * changed to the new color.
-	 * 
-	 * @param icon - image icon
-	 * @param toColor - target color
-	 * @return new colored imageicon
-	 */
-	public static ImageIcon changeColor(ImageIcon icon, Color toColor) {
-		final BufferedImage image = new BufferedImage(icon.getIconWidth(), icon.getIconHeight(),
-				BufferedImage.TYPE_INT_ARGB);
-		final Graphics2D g2d = image.createGraphics();
-		icon.paintIcon(null, g2d, 0, 0);
-		g2d.dispose();
-
-		for (int x = 0; x < image.getWidth(); x++) {
-			for (int y = 0; y < image.getHeight(); y++) {
-				int p = image.getRGB(x, y);
-				int a = (p >> 24) & 0xff;
-				Color nc = new Color(toColor.getRed(), toColor.getGreen(), toColor.getBlue(), a);
-				image.setRGB(x, y, nc.getRGB());
-			}
-		}
-		return new ImageIcon(image);
-	}
-
 	public static double getHSBColorDistance(Color c1, Color c2) {
 		float[] hsb1 = Color.RGBtoHSB(c1.getRed(), c1.getGreen(), c1.getBlue(), null);
 		float[] hsb2 = Color.RGBtoHSB(c2.getRed(), c2.getGreen(), c2.getBlue(), null);
@@ -339,49 +462,70 @@ public class TColorUtils {
 		return Math.sqrt(dh * dh + ds * ds + dv * dv);
 	}
 
-	/**
-	 * Return the {@link Color} that has most presence or is more frequent in the image.
-	 * 
-	 * @param image - Source image
-	 * 
-	 * @return the most frequent color
-	 */
-	public static Color getMaxColor(BufferedImage image) {
-		Hashtable<Integer, Integer> histo = getHistogram(image);
-		return getMaxColor(histo);
+	public static BufferedImage getImageDataRegion(BufferedImage image) {
+		BufferedImage tmpimage = copy(image);
+		// anchor point
+		int apx = tmpimage.getWidth() - 8;
+		int apy = 8;
+		Color fromcol = new Color(tmpimage.getRGB(apx, apy));
+		Color tocol = Color.PINK;
+
+		flood(tmpimage, apx, apy, fromcol, tocol, 0.05);
+
+		// remove data outside the flood area
+		Rectangle croprec = autoCrop(tmpimage, rgb -> rgb == tocol.getRGB());
+		BufferedImage newimage = image.getSubimage(croprec.x, croprec.y, croprec.width, croprec.height);
+		return newimage;
+		// return tmpimage;
 	}
 
-	/**
-	 * Count the values inside the histogram argument an return the {@link Color} that is more present.
-	 * 
-	 * @param histogram - histogram to count
-	 * 
-	 * @return color who is more present
-	 */
-	public static Color getMaxColor(Hashtable<Integer, Integer> histogram) {
-		Vector<Integer> ks = new Vector<>(histogram.keySet());
-		int max = -1;
-		int color = Color.pink.getRGB(); // if no color is present, return pink
-		for (Integer col : ks) {
-			int cnt = histogram.get(col);
-			if (max < cnt) {
-				max = cnt;
-				color = col;
+	public static Point getMassCenter(BufferedImage image) {
+		Array2DRowRealMatrix matrix = new Array2DRowRealMatrix(image.getWidth(), image.getHeight());
+		double M = 0;
+
+		for (int x = 0; x < image.getWidth(); x++) {
+			for (int y = 0; y < image.getHeight(); y++) {
+				int rgb = image.getRGB(x, y);
+				double dif = getRGBColorDistance(Color.white, new Color(rgb));
+				M += dif;
+				matrix.setEntry(x, y, dif);
 			}
 		}
-		return new Color(color);
+
+		Point2D.Double center = new Point2D.Double();
+		for (int x = 0; x < image.getWidth(); x++) {
+			for (int y = 0; y < image.getHeight(); y++) {
+				center.x += x * matrix.getEntry(x, y);
+			}
+		}
+		for (int y = 0; y < image.getHeight(); y++) {
+			for (int x = 0; x < image.getWidth(); x++) {
+				center.y += y * matrix.getEntry(x, y);
+			}
+		}
+
+		double prob = 1 / M;
+		center.x = center.x * prob;
+		center.y = center.y * prob;
+		Point p = new Point((int) center.x, (int) center.y);
+		return p;
 	}
 
 	/**
 	 * Return the string representation of the color argument. The input parameter is expected be a color value in
 	 * format AARRGGBB and this method ignore the alpha section.
 	 * 
-	 * @return color representation in format RRGGBB
+	 * @return color representation in format RRGGBB (opaque color)
 	 */
 	public static String getRGBColor(Color col) {
 		int c = col.getRGB();
 		String mc = Integer.toHexString(c).substring(2);
 		return mc;
+	}
+
+	public static Color getRGBColor(String col) {
+		String ncol = col.length() == 8 ? col.substring(2) : col;
+		return Color.decode("0x"+ncol);
 	}
 
 	/**
@@ -410,34 +554,6 @@ public class TColorUtils {
 
 		// terry: diference based on the max diference detected by direct comparation betwenn balck and white
 		return dif / maxdif;
-	}
-
-	/**
-	 * Return the percentage of white color present in the image <code>image</code>
-	 * 
-	 * @param image - image to scan
-	 * @return white color percentage
-	 */
-	public static double getWhitePercent(BufferedImage image) {
-		Hashtable<Integer, Integer> histo = getHistogram(image);
-		return getWhitePercent(histo, image.getWidth(), image.getHeight());
-	}
-
-	/**
-	 * Compute the percentege of pure {@link Color#WHITE} present in the histogram argument.
-	 * 
-	 * @param histogram - histogram of the image
-	 * @param imageW - image width
-	 * @param imageH - image height
-	 * 
-	 * @return % of white color present in the image
-	 */
-	public static double getWhitePercent(Hashtable<Integer, Integer> histogram, int imageW, int imageH) {
-		float tot = imageW * imageH;
-		int wcnt = histogram.get(0xFFFFFFFF) == null ? 0 : histogram.get(0xFFFFFFFF); // pure white WHIT ALPHA
-		double d = (wcnt / tot * 100);
-		int t = (int) (d * 100); // decimal reduction
-		return t / 100d;
 	}
 
 	/**
@@ -554,46 +670,5 @@ public class TColorUtils {
 		Kernel kernel = new Kernel(3, 3, elements);
 		ConvolveOp op = new ConvolveOp(kernel);
 		return op.filter(image, null);
-	}
-
-	public static Point getMassCenter(BufferedImage image) {
-		Array2DRowRealMatrix matrix = new Array2DRowRealMatrix(image.getWidth(), image.getHeight());
-		double M = 0;
-
-		for (int x = 0; x < image.getWidth(); x++) {
-			for (int y = 0; y < image.getHeight(); y++) {
-				int rgb = image.getRGB(x, y);
-				double dif = getRGBColorDistance(Color.white, new Color(rgb));
-				M += dif;
-				matrix.setEntry(x, y, dif);
-			}
-		}
-
-		Point2D.Double center = new Point2D.Double();
-		for (int x = 0; x < image.getWidth(); x++) {
-			for (int y = 0; y < image.getHeight(); y++) {
-				center.x += x * matrix.getEntry(x, y);
-			}
-		}
-		for (int y = 0; y < image.getHeight(); y++) {
-			for (int x = 0; x < image.getWidth(); x++) {
-				center.y += y * matrix.getEntry(x, y);
-			}
-		}
-
-		double prob = 1 / M;
-		center.x = center.x * prob;
-		center.y = center.y * prob;
-		Point p = new Point((int) center.x, (int) center.y);
-		return p;
-	}
-
-	public static void drawMassCenterPoint(BufferedImage image) {
-		// 191709: my first modification of hero plugin in refuge camp in germany !!!
-		Point ms = getMassCenter(image);
-		Graphics2D g2d = (Graphics2D) image.getGraphics();
-		g2d.setColor(Color.pink);
-		g2d.drawLine(ms.x - 3, ms.y, ms.x + 3, ms.y);
-		g2d.drawLine(ms.x, ms.y - 3, ms.x, ms.y + 3);
 	}
 }

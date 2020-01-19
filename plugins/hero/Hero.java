@@ -107,7 +107,7 @@ public class Hero extends TPlugin {
 		Alesia.getMainPanel().setContentPanel(sensorsPanel);
 
 		// temporal
-		Trooper.getInstance().init(new File("plugins/hero/resources/th-test app.ppt"));
+		Trooper.getInstance().init(new File("plugins/hero/resources/ps-poker stars.ppt"));
 	}
 
 	@org.jdesktop.application.Action
@@ -115,7 +115,7 @@ public class Hero extends TPlugin {
 		actionMap.get("testTrooper").setEnabled(true);
 		actionMap.get("runTrooper").setEnabled(true);
 		actionMap.get("pauseTrooper").setEnabled(true);
-		Trooper.getInstance().cancel(true);
+		Trooper.getInstance().cancelTrooper(true);
 	}
 
 	@org.jdesktop.application.Action

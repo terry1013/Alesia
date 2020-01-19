@@ -64,7 +64,6 @@ public class Trooper extends Task {
 	 */
 	private GameRecorder gameRecorder;
 
-	private long lastGCCall = -1;
 	public Trooper() {
 		this(null);
 	}
@@ -112,9 +111,13 @@ public class Trooper extends Task {
 		return isTestMode;
 	}
 
+	public void cancelTrooper(boolean interrupt) {
+		setVariableAndLog(STATUS, "Trooper Canceled.");
+		super.cancel(interrupt);
+	}
 	public void pause(boolean pause) {
 		this.paused = pause;
-		setVariableAndLog(STATUS, paused ? "Game paused" : "Game resumed");
+		setVariableAndLog(STATUS, paused ? "Trooper paused" : "Trooper resumed");
 	}
 
 	public void setTestMode(boolean isTestMode) {
@@ -187,11 +190,14 @@ public class Trooper extends Task {
 			setPrefloopActions();
 		}
 
+		// TODO: cehck PS. sometimes fold action is not available
 		// if the list of available actions are empty, the only posible action todo now is fold
 		if (availableActions.size() == 0)
 			availableActions.add(new TEntry<String, Double>("fold", 1.0));
 	}
 
+	// This variable is ONLY used and cleaned by ensuregametable method
+	private String lastHoleCards = "";
 	/**
 	 * this metod will try to return to the game table if he detect the current enviorement is in another place. This
 	 * method will try for an specific amount of time to return to the main gametable. if it not succede return
@@ -201,43 +207,43 @@ public class Trooper extends Task {
 	 */
 	private boolean ensureGameTable() throws Exception {
 		setVariableAndLog(STATUS, "Looking the table ...");
-		// try during 10 seg
-		long tottime = 30 * 1000;
+		// try during x seg. Some round on PS long like foreeeeveeerr
+		long tottime = 120 * 1000;
 		long t1 = System.currentTimeMillis();
 		while (System.currentTimeMillis() - t1 < tottime) {
-			sensorsArray.lookTable();
+			sensorsArray.readVillan();
+			sensorsArray.read(SensorsArray.TYPE_ACTIONS);
+
+			// if the hero current hand is diferent to the last measure, clear the enviorement.
+			String hc1 = sensorsArray.getSensor("hero.card1").getOCR();
+			String hc2 = sensorsArray.getSensor("hero.card2").getOCR();
+			String hch = hc1 == null ? "" : hc1;
+			hch += hc2 == null ? "" : hc2;
+			if (!lastHoleCards.equals(hch)) {
+				lastHoleCards = hch;
+				clearEnviorement();
+				setVariableAndLog(STATUS, "Looking the table ...");
+				continue;
+			}
+
+			// pause or cancel
+			if ((paused || isCancelled()))
+				return true;
+
 			// enviorement is already in the gametable
 			if (isMyTurnToPlay()) {
 				return true;
 			}
 
-			// continue active and fold inactive. the match is end. clear the internal variables
-			if (sensorsArray.isSensorEnabled("continue") && !sensorsArray.isSensorEnabled("fold")) {
-				if (gameRecorder != null) {
-					gameRecorder.flush();
-				}
-				gameRecorder = new GameRecorder(sensorsArray);
-				robotActuator.perform("continue");
-				clearEnviorement();
+			// if any of this are active, do nothig
+			if (sensorsArray.isSensorEnabled("sensor0") || sensorsArray.isSensorEnabled("sensor1")
+					|| sensorsArray.isSensorEnabled("sensor2")) {
 				continue;
 			}
 
-			// enviorement is in main menu? click on play button
-			if (sensorsArray.isSensorEnabled("sensor0")
-					&& !(sensorsArray.isSensorEnabled("fold") && sensorsArray.isSensorEnabled("continue"))) {
-				robotActuator.perform("sensor0");
-				continue;
-			}
-
-			// enviorement is in continue after lost focus? click on continue button
-			if (sensorsArray.isSensorEnabled("sensor2") && sensorsArray.isSensorEnabled("sensor1")) {
-				robotActuator.perform("sensor2");
-				continue;
-			}
-
-			// trooper win the match. clic on ok
-			if (sensorsArray.isSensorEnabled("sensor5") && sensorsArray.isSensorEnabled("continue")) {
-				robotActuator.perform("continue");
+			// the i.m back button is active (but sensor0, sensor1 and sensor2 are all disables)
+			if (sensorsArray.isSensorEnabled("imBack")) {
+				robotActuator.perform("imBack");
 				continue;
 			}
 		}
@@ -265,8 +271,8 @@ public class Trooper extends Task {
 	private double getOddsWhioutRegret(int base, int cost) {
 		Preconditions.checkArgument(base >= 0 && cost >= 0, "Odd function accept only 0 or positive values.");
 		double prob = pokerSimulator.getBestProbability();
-		// normal EV
-		double ev = (prob * base) - cost;
+		// normal EV.
+		double ev = getOdds(base, cost);
 		if (ev < 0)
 			return ev;
 		// regret
@@ -288,8 +294,8 @@ public class Trooper extends Task {
 		chips.removeIf(i -> i.intValue() < 0);
 		chips.sort(null);
 
-		// TODO: temporal for TH, the sensor some times get error and this function cant detect the stronger villan. in
-		// this case, return 0 to allow the fight continue
+		// fail safe in case of error reading sensor: , the sensor some times get error and this function cant detect
+		// the stronger villan. in this case, return 0 to allow the fight continue
 		if (chips.isEmpty())
 			return 0;
 
@@ -359,7 +365,7 @@ public class Trooper extends Task {
 	 * </code>
 	 * 
 	 */
-	private void invertNegativeEV() {
+	protected void invertNegativeEV() {
 		// remove positive values. just in case
 		availableActions.removeIf(te -> te.getValue().doubleValue() > 0);
 		if (availableActions.isEmpty())
@@ -424,8 +430,9 @@ public class Trooper extends Task {
 	 * actions violate the main purporse of this implementation. so, until now, i just remove them.
 	 * 
 	 * 
-	 * TODO: maybe implement some kind of threshold to alow 1 more action (bluff) TODO: the extreme values: fold=-1 and
-	 * allin=x must be agree whit mathematical poker model to allow bluff.
+	 * TODO: maybe implement some kind of threshold to alow 1 more action (bluff)
+	 * <p>
+	 * TODO: the extreme values: fold=-1 and allin=x must be agree whit mathematical poker model to allow bluff.
 	 * 
 	 * @param sourceName - the name of the source
 	 * @param sourceValue - the value
@@ -435,6 +442,7 @@ public class Trooper extends Task {
 		int call = pokerSimulator.getCallValue();
 		int raise = pokerSimulator.getRaiseValue();
 		int chips = pokerSimulator.getHeroChips();
+		int pot = pokerSimulator.getPotValue();
 
 		if (call >= 0)
 			availableActions.add(new TEntry<String, Double>("call", getOddsWhioutRegret(sourceValue, call)));
@@ -442,29 +450,31 @@ public class Trooper extends Task {
 		if (raise >= 0)
 			availableActions.add(new TEntry<String, Double>("raise", getOddsWhioutRegret(sourceValue, raise)));
 
-		// TODO: temporal removed for TH because the raise.slider is in the same area
-		// if (getPotOdds(pot, "pot") >= 0) {
-		// addAction("raise.pot;raise");
-		// }
+		if (pot >= 0)
+			availableActions.add(new TEntry<String, Double>("raise.pot;raise", getOddsWhioutRegret(sourceValue, pot)));
 
-		// TODO: temporal for TH: simulate allin
-		// if (chips >= 0) {
-		// availableActions.add(new TEntry<String, Double>("raise.allin,c=10;raise", getOddsWhioutRegret(sourceValue, chips)));
-		// }
+		if (chips >= 0)
+			availableActions
+					.add(new TEntry<String, Double>("raise.allin;raise", getOddsWhioutRegret(sourceValue, chips)));
 
 		// TODO: until now i.m goin to implement the slider performing click over the right side of the compoent.
 		// TODO: complete implementation of writhe the ammount for Poker star
-		int sb = pokerSimulator.getSmallBlind();
-		int bb = pokerSimulator.getBigBlind();
+		// int sb = pokerSimulator.getSmallBlind();
+		// int bb = pokerSimulator.getBigBlind();
+		int bb = 100;
 
-		// TODO: temporal for TH: the tick is the raise value ?
-		// int tick = raise > 0 ? raise : call;
-		int tick = raise;
-		if (tick > 0) {
-			for (int c = 1; c < 11; c++) {
-				int val = tick + (tick * c);
-				availableActions
-						.add(new TEntry<String, Double>("raise.slider,c=" + c + ";raise", getOddsWhioutRegret(sourceValue, val)));
+		// TH: the tick is the raise value
+		// PS: the tick is the big blind
+		// TODO: temporal check if slider is active
+		if (sensorsArray.getSensor("raise.slider").isEnabled()) {
+			int tick = bb;
+			if (tick > 0) {
+				int val = raise;
+				for (int c = 1; c < 11; c++) {
+					val += (tick * c);
+					availableActions.add(new TEntry<String, Double>("raise.slider,c=" + c + ";raise",
+							getOddsWhioutRegret(sourceValue, val)));
+				}
 			}
 		}
 
@@ -515,20 +525,9 @@ public class Trooper extends Task {
 		Hero.logger.info(key + " " + value1);
 	}
 
-	private void upperBound() {
-		// double max = availableActions.stream().mapToDouble(te -> te.getValue().doubleValue()).max().orElse(0);
-		// double min = availableActions.stream().mapToDouble(te -> te.getValue().doubleValue()).min().orElse(0);
-		if (availableActions.size() < 3)
-			return;
-
-		availableActions.sort(null);
-		Double ub = availableActions.get(availableActions.size() - 2).getValue();
-		availableActions.removeIf(te -> te.getValue() > ub);
-	}
 	/**
 	 * perform the action. At this point, the game table is waiting for the hero action.
 	 * 
-	 * TODO: complete documentation
 	 */
 	protected void act() {
 		setVariableAndLog(STATUS, "Acting ...");
@@ -575,9 +574,6 @@ public class Trooper extends Task {
 
 			// look the standar actions buttons. this standar button indicate that the game is waiting for my move
 			if (isMyTurnToPlay()) {
-				// TODO: temporal for TH. some times the piece of shit app show the action bar before complete deal the
-				// cards. wait a couple of millis until start reading the table.
-				Thread.sleep(200);
 				decide();
 				act();
 			}
@@ -590,17 +586,8 @@ public class Trooper extends Task {
 	 * to perform large computations.
 	 */
 	protected void think() {
-		setVariableAndLog(STATUS, "Thinking ...");
-
-		// test: call gc to check performance improvement every 10 minutes
-		long time = 10 * 60 * 1000;
-		long t1 = System.currentTimeMillis();
-		if (t1 - lastGCCall > time) {
-			System.gc();
-			lastGCCall = t1;
-			System.out.println("Trooper.think() " + (System.currentTimeMillis() - t1));
-		}
-
+		setVariableAndLog(STATUS, "Reading villans ...");
+		sensorsArray.readVillan();
 		// 191020: ayer ya la implementacion por omision jugo una partida completa y estuvo a punto de vencer a la
 		// chatarra de Texas poker - poker holdem. A punto de vencer porque jugaba tan lento que me aburri del sueno :D
 	}

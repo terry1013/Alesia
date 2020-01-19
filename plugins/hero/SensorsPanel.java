@@ -92,8 +92,9 @@ public class SensorsPanel extends TUIPanel {
 
 		// options to show captured or prepared images
 		this.imageTypeComboBox = new WebComboBox();
-		imageTypeComboBox.addItem(new TEntry("true", "show captured images"));
-		imageTypeComboBox.addItem(new TEntry("false", "show prepared images"));
+		imageTypeComboBox.addItem(new TEntry(ScreenSensor.CAPTURED, "show captured images"));
+		imageTypeComboBox.addItem(new TEntry(ScreenSensor.PREPARED, "show prepared images"));
+		imageTypeComboBox.addItem(new TEntry(ScreenSensor.COLORED, "show colored images"));
 		imageTypeComboBox.addActionListener(evt -> filterSensors());
 
 		// set tool bar clear al previous toolbar components
@@ -114,12 +115,12 @@ public class SensorsPanel extends TUIPanel {
 	private void filterSensors() {
 		sensorsPanel.setVisible(false);
 		String filter = ((TEntry) sensorTypeComboBox.getSelectedItem()).getKey().toString();
-		boolean sCapture = Boolean.parseBoolean(((TEntry) imageTypeComboBox.getSelectedItem()).getKey().toString());
+		String sCapture = ((TEntry) imageTypeComboBox.getSelectedItem()).getKey().toString();
 
 		sensorsPanel.removeAll();
 		List<ScreenSensor> ssl = sensorsArray.getSensors(null);
 		for (ScreenSensor ss : ssl) {
-			ss.showCapturedImage(sCapture);
+			ss.showImage(sCapture);
 			// spetial name or wildcard string (the structure type: xxx has noting in spetial, just a name)
 			if (filter.startsWith("type:")) {
 				if (filter.equals("type: textareas") && ss.isTextArea())

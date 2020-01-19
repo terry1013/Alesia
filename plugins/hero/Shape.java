@@ -30,11 +30,11 @@ public class Shape {
 	private Point center = new Point();
 
 	/**
-	 * Property: enable.when <br>
-	 * Range: 0-100 <br>
-	 * Description: indicate the % of white color that must be present to cosider an area as enabled.
+	 * Property: enaColor<br>
+	 * Description: indicate the color name that must be present to indicate a sensor is enabled. If the sensor has.t
+	 * this property, the white color is used
 	 */
-	public int enableWhen = 1;
+	public Color enableColor;
 
 	/**
 	 * An action area is an area that is clicable by the aplication. this kind of area is of interest because it can has
