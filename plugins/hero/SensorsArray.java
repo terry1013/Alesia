@@ -277,7 +277,7 @@ public class SensorsArray {
 	private int lastUpdateVillan;
 	public void readVillan() {
 //		read conuterclockwise to retrive max info
-		lastUpdateVillan = lastUpdateVillan < 1 ? getVillans() : lastUpdateVillan - 1;
+		lastUpdateVillan = lastUpdateVillan == 1 ? getVillans() : lastUpdateVillan - 1;
 		Collection<ScreenSensor> allSensors = screenSensors.values();
 		List<ScreenSensor> slist = allSensors.stream()
 				.filter(ss -> ss.getName().equals("villan" + lastUpdateVillan + ".chips")).collect(Collectors.toList());
@@ -322,9 +322,9 @@ public class SensorsArray {
 			// potInt = potInt + blinds.values().stream().mapToInt(iv -> iv.intValue()).sum();
 
 			pokerSimulator.setPotValue(potInt);
-			pokerSimulator.setCallValue(getSensor("call").getIntOCR());
+			pokerSimulator.setCallValue(getSensor("hero.call").getIntOCR());
 			pokerSimulator.setHeroChips(getSensor("hero.chips").getIntOCR());
-			pokerSimulator.setRaiseValue(getSensor("raise").getIntOCR());
+			pokerSimulator.setRaiseValue(getSensor("hero.raise").getIntOCR());
 
 			pokerSimulator.updateReport();
 		}

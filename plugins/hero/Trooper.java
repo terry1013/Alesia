@@ -46,6 +46,7 @@ public class Trooper extends Task {
 
 	private static Trooper instance;
 	private static DecimalFormat fourDigitFormat = new DecimalFormat("#0.0000");
+	private static DecimalFormat twoDigitFormat = new DecimalFormat("#0.00");
 
 	public static String EXPLANATION = "trooper.Explanation";
 	public static String STATUS = "trooper.Status";
@@ -134,15 +135,19 @@ public class Trooper extends Task {
 	 */
 	private boolean checkProbabilities(int currentRound) {
 		double prob = pokerSimulator.getBestProbability();
+		// i use a bolean because the available action my be emptey already
+		boolean ok = true;
 		if (currentRound == PokerSimulator.FLOP_CARDS_DEALT && prob < 0.30) {
 			availableActions.clear();
 			setVariableAndLog(EXPLANATION, "Probability on flop < 30%");
+			ok = false;
 		}
 		if (currentRound > PokerSimulator.FLOP_CARDS_DEALT && prob < 0.15) {
 			availableActions.clear();
 			setVariableAndLog(EXPLANATION, "Probability on turn or river < 20%");
+			ok = false;
 		}
-		return availableActions.size() == 0;
+		return ok;
 	}
 
 	private void clearEnviorement() {
@@ -211,7 +216,6 @@ public class Trooper extends Task {
 		long tottime = 120 * 1000;
 		long t1 = System.currentTimeMillis();
 		while (System.currentTimeMillis() - t1 < tottime) {
-			sensorsArray.lookTable();
 			sensorsArray.readVillan();
 			sensorsArray.read(SensorsArray.TYPE_ACTIONS);
 
@@ -277,7 +281,7 @@ public class Trooper extends Task {
 		if (ev < 0)
 			return ev;
 		// regret
-		double reg = (prob - 0.5) * -1;
+		double reg = (prob - 0.6) * -1;
 		double ev2 = (prob * base) - (cost * reg);
 		return ev2;
 	}
@@ -321,8 +325,10 @@ public class Trooper extends Task {
 		double[] probabilities = new double[elements];
 		for (int i = 0; i < elements; i++) {
 			singletos[i] = i;
-			probabilities[i] = availableActions.get(i).getValue() / denom;
-			tmp.add(new TEntry<>(availableActions.get(i).getKey(), probabilities[i]));
+			double evVal = availableActions.get(i).getValue();
+			probabilities[i] = evVal / denom;
+			String valStr = twoDigitFormat.format(evVal) + " " + availableActions.get(i).getKey().substring(0, 4);
+			tmp.add(new TEntry<>(valStr, probabilities[i]));
 		}
 		EnumeratedIntegerDistribution dist = new EnumeratedIntegerDistribution(singletos, probabilities);
 		String selact = availableActions.get(dist.sample()).getKey();
@@ -446,17 +452,16 @@ public class Trooper extends Task {
 		int pot = pokerSimulator.getPotValue();
 
 		if (call >= 0)
-			availableActions.add(new TEntry<String, Double>("call", getOdds(sourceValue, call)));
+			availableActions.add(new TEntry<String, Double>("call", getOddsWhioutRegret(sourceValue, call)));
 
 		if (raise >= 0)
-			availableActions.add(new TEntry<String, Double>("raise", getOdds(sourceValue, raise)));
+			availableActions.add(new TEntry<String, Double>("raise", getOddsWhioutRegret(sourceValue, raise)));
 
 		if (pot >= 0)
-			availableActions.add(new TEntry<String, Double>("raise.pot;raise", getOdds(sourceValue, pot)));
+			availableActions.add(new TEntry<String, Double>("raise.pot;raise", getOddsWhioutRegret(sourceValue, pot)));
 
 		if (chips >= 0)
-			availableActions
-					.add(new TEntry<String, Double>("raise.allin;raise", getOdds(sourceValue, chips)));
+			availableActions.add(new TEntry<String, Double>("raise.allin;raise", getOddsWhioutRegret(sourceValue, chips)));
 
 		// TODO: until now i.m goin to implement the slider performing click over the right side of the compoent.
 		// TODO: complete implementation of writhe the ammount for Poker star
@@ -466,15 +471,14 @@ public class Trooper extends Task {
 
 		// TH: the tick is the raise value
 		// PS: the tick is the big blind
-		// TODO: temporal check if slider is active
-		if (sensorsArray.getSensor("raise.slider").isEnabled()) {
+		if (sensorsArray.getSensor("raise.slider").isEnabled() && sensorsArray.getSensor("raise").isEnabled()) {
 			int tick = bb;
 			if (tick > 0) {
 				int val = raise;
 				for (int c = 1; c < 11; c++) {
 					val += (tick * c);
-					availableActions.add(new TEntry<String, Double>("raise.slider,c=" + c + ";raise",
-							getOdds(sourceValue, val)));
+					availableActions.add(
+							new TEntry<String, Double>("raise.slider,c=" + c + ";raise", getOddsWhioutRegret(sourceValue, val)));
 				}
 			}
 		}
@@ -487,7 +491,6 @@ public class Trooper extends Task {
 		String val = " " + sourceName + " " + availableActions.stream()
 				.map(te -> te.getKey() + "=" + fourDigitFormat.format(te.getValue())).collect(Collectors.joining(", "));
 		Hero.logger.info(key + " " + val);
-		// pokerSimulator.setActionsData(availableActions);
 	}
 
 	/**
@@ -546,12 +549,12 @@ public class Trooper extends Task {
 	protected Object doInBackground() throws Exception {
 
 		// ensure db connection on the current thread.
-		try {
-			Alesia.openDB();
-		} catch (Exception e) {
-			// just a warning log because reiterated pause/stop/play can generate error re opening the connection
-			Hero.logger.warning(e.getMessage());
-		}
+//		try {
+//			Alesia.openDB();
+//		} catch (Exception e) {
+//			// just a warning log because reiterated pause/stop/play can generate error re opening the connection
+//			Hero.logger.warning(e.getMessage());
+//		}
 
 		while (!isCancelled()) {
 			if (paused) {

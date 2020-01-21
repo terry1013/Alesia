@@ -38,11 +38,6 @@ public class ShapeAreas {
 		return name.contains(".card") || name.startsWith("flop") || name.equals("turn") || name.equals("river");
 	}
 
-	private boolean isOCRNumericArea(String name) {
-		return name.equals("pot") || name.equals("call") || name.equals("raise")
-				|| TStringUtils.wildCardMacher(name, "*.call") || TStringUtils.wildCardMacher(name, "*.chips");
-	}
-
 	private boolean isOCRTextArea(String name) {
 		return TStringUtils.wildCardMacher(name, "*.name");
 	}
@@ -92,6 +87,11 @@ public class ShapeAreas {
 							sha.isActionArea = true;
 							shape = shape.replace("action.", "");
 						}
+						// numeric area. modify the shape variable
+						if (shape.startsWith("numeric.")) {
+							sha.isOCRNumericArea = true;
+							shape = shape.replace("numeric.", "");
+						}
 						// enable color. modify the shape variable
 						sha.enableColor = TColorUtils.nameColor.get("white");
 						String prps[] = shape.split(";");
@@ -107,7 +107,6 @@ public class ShapeAreas {
 						sha.name = shape;
 						sha.isCardArea = isCardArea(shape);
 						sha.isOCRTextArea = isOCRTextArea(shape);
-						sha.isOCRNumericArea = isOCRNumericArea(shape);
 						sha.isButtonArea = shape.contains(".button");
 
 						shapes.put(shape, sha);

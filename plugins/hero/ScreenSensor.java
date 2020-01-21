@@ -475,17 +475,7 @@ public class ScreenSensor extends JPanel {
 			// srcocd = rank + suit;
 		}
 
-		// spetial treatmen for call/rise sensors,set the ocr only of the retrive numerical value
-//		if (getName().equals("call") || getName().equals("raise")) {
-//			String vals[] = srcocd.split("\\n");
-//			srcocd = "0";
-//			if (vals.length > 1) {
-//				srcocd = vals[1];
-//				// srcocd = replaceWhitNumbers(vals[1]);
-//			}
-//		}
-
-		// numeric sensors. after call/raise
+		// standar procedure for numeric sensors
 		if (isNumericArea()) {
 			srcocd = srcocd.replaceAll("[^.1234567890]", "");
 			// srcocd = replaceWhitNumbers(srcocd);
