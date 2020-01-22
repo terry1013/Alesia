@@ -330,16 +330,23 @@ public class PokerSimulator {
 
 	}
 
+	private long lastStepMillis;
+
 	private double bestProbability;
 	public double getBestProbability() {
 		return bestProbability;
 	}
 	public void setVariable(String key, Object value) {
-//		format double values
+		// format double values
 		Object value1 = value;
-		if(value instanceof Double)
-			value1 = fourDigitFormat.format(((Double)value).doubleValue());
+		if (value instanceof Double)
+			value1 = fourDigitFormat.format(((Double) value).doubleValue());
 		variableList.put(key, value1);
+		if (Trooper.STATUS.equals(key)) {
+			variableList.put("trooper.Status time", (System.currentTimeMillis() - lastStepMillis));
+			lastStepMillis = System.currentTimeMillis();
+		}
+
 		updateReport();
 	}
 

@@ -159,6 +159,8 @@ public class Trooper extends Task {
 		time1 = System.currentTimeMillis();
 		Hero.logger.fine("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
 	}
+	long stepMillis;
+
 	/**
 	 * decide de action(s) to perform. This method is called when the {@link Trooper} detect that is my turn to play. At
 	 * this point, the game enviorement is waiting for an accion.
@@ -216,7 +218,9 @@ public class Trooper extends Task {
 		long tottime = 120 * 1000;
 		long t1 = System.currentTimeMillis();
 		while (System.currentTimeMillis() - t1 < tottime) {
+			setVariableAndLog(STATUS, "Reading villan ...");
 			sensorsArray.readVillan();
+			setVariableAndLog(STATUS, "Chacking action areas ...");
 			sensorsArray.read(SensorsArray.TYPE_ACTIONS);
 
 			// if the hero current hand is diferent to the last measure, clear the enviorement.
@@ -240,13 +244,13 @@ public class Trooper extends Task {
 				return true;
 			}
 
-			// if any of this are active, do nothig
-			if (sensorsArray.isSensorEnabled("sensor0") || sensorsArray.isSensorEnabled("sensor1")
+			// if any of this are active, do nothig. raise.text in this case, is wachit a chackbok for check
+			if (sensorsArray.isSensorEnabled("raise.text") || sensorsArray.isSensorEnabled("sensor1")
 					|| sensorsArray.isSensorEnabled("sensor2")) {
 				continue;
 			}
 
-			// the i.m back button is active (but sensor0, sensor1 and sensor2 are all disables)
+			// the i.m back button is active (but raise.text, sensor1 and sensor2 are all disables)
 			if (sensorsArray.isSensorEnabled("imBack")) {
 				robotActuator.perform("imBack");
 				continue;
@@ -461,7 +465,8 @@ public class Trooper extends Task {
 			availableActions.add(new TEntry<String, Double>("raise.pot;raise", getOddsWhioutRegret(sourceValue, pot)));
 
 		if (chips >= 0)
-			availableActions.add(new TEntry<String, Double>("raise.allin;raise", getOddsWhioutRegret(sourceValue, chips)));
+			availableActions
+					.add(new TEntry<String, Double>("raise.allin;raise", getOddsWhioutRegret(sourceValue, chips)));
 
 		// TODO: until now i.m goin to implement the slider performing click over the right side of the compoent.
 		// TODO: complete implementation of writhe the ammount for Poker star
@@ -469,17 +474,20 @@ public class Trooper extends Task {
 		// int bb = pokerSimulator.getBigBlind();
 		int bb = 100;
 
+		// the initial value is call value
+		int iniVal = call;
+
 		// TH: the tick is the raise value
 		// PS: the tick is the big blind
-		if (sensorsArray.getSensor("raise.slider").isEnabled() && sensorsArray.getSensor("raise").isEnabled()) {
+		if (iniVal > 0 && sensorsArray.getSensor("raise").isEnabled()
+				&& sensorsArray.getSensor("raise.text").isEnabled()) {
+			System.out.println("raise " +sensorsArray.getSensor("raise").isEnabled() );
+			System.out.println("raise.text " +sensorsArray.getSensor("raise.text").isEnabled() );
 			int tick = bb;
-			if (tick > 0) {
-				int val = raise;
-				for (int c = 1; c < 11; c++) {
-					val += (tick * c);
-					availableActions.add(
-							new TEntry<String, Double>("raise.slider,c=" + c + ";raise", getOddsWhioutRegret(sourceValue, val)));
-				}
+			for (int c = 1; c < 11; c++) {
+				iniVal += (tick * c);
+				availableActions.add(new TEntry<String, Double>("raise.slider,c=" + c + ";raise",
+						getOddsWhioutRegret(sourceValue, iniVal)));
 			}
 		}
 
@@ -526,7 +534,9 @@ public class Trooper extends Task {
 		if (value instanceof Double)
 			value1 = fourDigitFormat.format(((Double) value).doubleValue());
 		pokerSimulator.setVariable(key, value);
-		Hero.logger.info(key + " " + value1);
+		// TODO: temporal : don.t log the status
+		if (!STATUS.equals(key))
+			Hero.logger.info(key + " " + value1);
 	}
 
 	/**
@@ -549,12 +559,12 @@ public class Trooper extends Task {
 	protected Object doInBackground() throws Exception {
 
 		// ensure db connection on the current thread.
-//		try {
-//			Alesia.openDB();
-//		} catch (Exception e) {
-//			// just a warning log because reiterated pause/stop/play can generate error re opening the connection
-//			Hero.logger.warning(e.getMessage());
-//		}
+		// try {
+		// Alesia.openDB();
+		// } catch (Exception e) {
+		// // just a warning log because reiterated pause/stop/play can generate error re opening the connection
+		// Hero.logger.warning(e.getMessage());
+		// }
 
 		while (!isCancelled()) {
 			if (paused) {
@@ -590,8 +600,8 @@ public class Trooper extends Task {
 	 * to perform large computations.
 	 */
 	protected void think() {
-		setVariableAndLog(STATUS, "Reading villans ...");
-		sensorsArray.readVillan();
+		// setVariableAndLog(STATUS, "Reading villans ...");
+		// sensorsArray.readVillan();
 		// 191020: ayer ya la implementacion por omision jugo una partida completa y estuvo a punto de vencer a la
 		// chatarra de Texas poker - poker holdem. A punto de vencer porque jugaba tan lento que me aburri del sueno :D
 	}

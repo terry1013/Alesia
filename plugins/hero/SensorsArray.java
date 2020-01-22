@@ -274,9 +274,10 @@ public class SensorsArray {
 		pokerSimulator.setVariable("sensorArray.Look table time", sslist.size() + " sensors " + t2);
 	}
 
-	private int lastUpdateVillan;
+	// init value=1
+	private int lastUpdateVillan = 1;
 	public void readVillan() {
-//		read conuterclockwise to retrive max info
+		// read conuterclockwise to retrive max info
 		lastUpdateVillan = lastUpdateVillan == 1 ? getVillans() : lastUpdateVillan - 1;
 		Collection<ScreenSensor> allSensors = screenSensors.values();
 		List<ScreenSensor> slist = allSensors.stream()
@@ -297,7 +298,7 @@ public class SensorsArray {
 	public void read(String type) {
 		Collection<ScreenSensor> allSensors = screenSensors.values();
 		List<ScreenSensor> slist = new ArrayList<ScreenSensor>();
-		
+
 		// ation areas
 		if (TYPE_ACTIONS.equals(type)) {
 			slist = allSensors.stream().filter(ss -> ss.isActionArea()).collect(Collectors.toList());
@@ -308,8 +309,7 @@ public class SensorsArray {
 
 		// numeric types retrive all numers and update poker simulator
 		if (TYPE_NUMBERS.equals(type)) {
-			slist = allSensors.stream().filter(ss -> ss.isNumericArea())
-					.collect(Collectors.toList());
+			slist = allSensors.stream().filter(ss -> ss.isNumericArea()).collect(Collectors.toList());
 			// remove villas sensor. villans sensor are update calling readVillan method
 			slist.removeIf(ss -> ss.getName().startsWith("villan"));
 			readSensors(true, slist);
@@ -413,7 +413,8 @@ public class SensorsArray {
 		for (ScreenSensor ss : list) {
 			ss.setBorder(read ? readingBorder : lookingBorder);
 			ss.capture(read);
-			if (ss.getOCRPerformanceTime() > 0) {
+//			mesure only efective lecture
+			if (ss.isEnabled() && ss.getOCRPerformanceTime() > 0) {
 				if (ss.isCardArea()) {
 					imageDiffereceTime.addValue(ss.getOCRPerformanceTime());
 				} else {

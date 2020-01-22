@@ -44,7 +44,9 @@ public class Hero extends TPlugin {
 
 		// DON:T SET THE PAGEMODE VAR: THIS DESTROY THE ACURACY OF THE OCR OPERATION. i don.t know why but it is
 		// iTesseract.setPageSegMode(3); //
-
+		
+		iTesseract.setTessVariable("classify_enable_learning", "0");
+		iTesseract.setTessVariable("OMP_THREAD_LIMIT", "1");
 		// TODO: recheck performanece. no visible performance improve setting this variable
 		// iTesseract.setOcrEngineMode(0); // Run Tesseract only - fastest
 
