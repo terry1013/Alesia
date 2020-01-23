@@ -177,6 +177,7 @@ public class TCVUtils {
 		BufferedImage buffimg_b = TColorUtils.copy(imageb);
 
 		// ajust the mayor image to the size of the minor image
+
 		if (ajust) {
 			int areaa = buffimg_a.getWidth() * buffimg_a.getHeight();
 			int areab = buffimg_b.getWidth() * buffimg_b.getHeight();
@@ -255,7 +256,7 @@ public class TCVUtils {
 	 */
 	public static BufferedImage prepareCard(BufferedImage image) {
 		BufferedImage bufimg = paintBorder(image, null);
-		bufimg = bufimg.getSubimage(0, 0, 20, 50);
+		bufimg = bufimg.getSubimage(0, 0, 25, 50);
 		MarvinImage mi = new MarvinImage(bufimg);
 		List<MarvinSegment> segments = TCVUtils.getImageSegments(mi, false, null);
 		mi = TCVUtils.autoCrop(segments, mi);

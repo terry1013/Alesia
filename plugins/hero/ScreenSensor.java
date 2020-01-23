@@ -70,6 +70,8 @@ public class ScreenSensor extends JPanel {
 		double ratio = (float) shape.bounds.width / (float) shape.bounds.height;
 		add(imageLabel, ratio > 2 ? BorderLayout.NORTH : BorderLayout.WEST);
 		add(dataLabel, BorderLayout.CENTER);
+
+		init();
 		update();
 	}
 
@@ -244,6 +246,7 @@ public class ScreenSensor extends JPanel {
 		}
 		setEnabled(true);
 
+//		TODO: IMPLEMEEEEEEETTTTTTTTTTTTTTTTTTTTTTTTTTTT
 //		if (doOcr) {
 //			double imgdif = 100.0;
 //			if (lastOcrImage != null)

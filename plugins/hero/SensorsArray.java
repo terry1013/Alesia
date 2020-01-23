@@ -62,6 +62,7 @@ public class SensorsArray {
 	DescriptiveStatistics tesseractTime = new DescriptiveStatistics(10);
 	DescriptiveStatistics imageDiffereceTime = new DescriptiveStatistics(10);
 	private Hashtable<String, Integer> blinds;
+	private ArrayList<String> chipsSensors;
 
 	public SensorsArray() {
 		this.pokerSimulator = new PokerSimulator();
@@ -70,6 +71,7 @@ public class SensorsArray {
 		this.lookingBorder = new LineBorder(Color.GREEN, 2);
 		this.standByBorder = new LineBorder(new JPanel().getBackground(), 2);
 		this.blinds = new Hashtable<>();
+		this.chipsSensors = new ArrayList();
 		this.screenSensors = new TreeMap<>();
 	}
 
@@ -222,6 +224,13 @@ public class SensorsArray {
 		screenSensors.values().forEach((ss) -> ss.init());
 		pokerSimulator.init();
 		blinds.clear();
+
+		// information readed during idle time
+		Collection<ScreenSensor> allSensors = screenSensors.values();
+		chipsSensors = new ArrayList<>();
+		List<String> slist = allSensors.stream().filter(ss -> ss.getName().contains(".chips"))
+				.map(ScreenSensor::getName).collect(Collectors.toList());
+		chipsSensors.addAll(slist);
 	}
 
 	/**
@@ -236,9 +245,14 @@ public class SensorsArray {
 	 * @return numers of villans active seats
 	 */
 	public boolean isSeatActive(int villanId) {
-		ScreenSensor vname = getSensor("villan" + villanId + ".name");
+		// ScreenSensor vname = getSensor("villan" + villanId + ".name");
+		// ScreenSensor vchip = getSensor("villan" + villanId + ".chips");
+		// return vname.isEnabled() && vchip.isEnabled();
+
+		// TODO: temporal until now, i.m not using the name sensor for nothing. so, an active seat is when the chip
+		// sensor is enabled
 		ScreenSensor vchip = getSensor("villan" + villanId + ".chips");
-		return vname.isEnabled() && vchip.isEnabled();
+		return vchip.isEnabled();
 	}
 
 	/**
@@ -274,16 +288,21 @@ public class SensorsArray {
 		pokerSimulator.setVariable("sensorArray.Look table time", sslist.size() + " sensors " + t2);
 	}
 
-	// init value=1
-	private int lastUpdateVillan = 1;
-	public void readVillan() {
-		// read conuterclockwise to retrive max info
-		lastUpdateVillan = lastUpdateVillan == 1 ? getVillans() : lastUpdateVillan - 1;
-		Collection<ScreenSensor> allSensors = screenSensors.values();
-		List<ScreenSensor> slist = allSensors.stream()
-				.filter(ss -> ss.getName().equals("villan" + lastUpdateVillan + ".chips")).collect(Collectors.toList());
-		// .filter(ss -> TStringUtils.wildCardMacher(ss.getName(), "villan*.chips")).collect(Collectors.toList());
-		readSensors(true, slist);
+	/**
+	 * read one unit of information. This method is intented to retrive information from the enviorement in small amount
+	 * to avoid exces of time comsumption. the information already processed is rotate back to the end of the list to
+	 * allow the rest of the sensor be readed.
+	 * 
+	 * @param restar - <code>true</code> indicate the internal list must be reordener to the initial status.
+	 *        <code>false</code> indicate normal rotation reading
+	 */
+	public void readChipsSensor(boolean restar) {
+		if (restar)
+			chipsSensors.sort(null);
+		ArrayList<ScreenSensor> tmp = new ArrayList<>(1);
+		tmp.add(getSensor(chipsSensors.get(0)));
+		Collections.rotate(chipsSensors, 1);
+		readSensors(true, tmp);
 	}
 
 	/**
@@ -313,7 +332,10 @@ public class SensorsArray {
 			// remove villas sensor. villans sensor are update calling readVillan method
 			slist.removeIf(ss -> ss.getName().startsWith("villan"));
 			readSensors(true, slist);
-			updateTablePosition();
+
+			// TODO: until now, i.m not using table position for any calculation.
+			// updateTablePosition();
+
 			// no need to update calls because PS pot contail all information
 			// updateCalls();
 			int potInt = getSensor("pot").getIntOCR();
@@ -413,7 +435,7 @@ public class SensorsArray {
 		for (ScreenSensor ss : list) {
 			ss.setBorder(read ? readingBorder : lookingBorder);
 			ss.capture(read);
-//			mesure only efective lecture
+			// mesure only efective lecture
 			if (ss.isEnabled() && ss.getOCRPerformanceTime() > 0) {
 				if (ss.isCardArea()) {
 					imageDiffereceTime.addValue(ss.getOCRPerformanceTime());

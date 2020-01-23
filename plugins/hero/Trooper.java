@@ -177,7 +177,7 @@ public class Trooper extends Task {
 		// chek the status of the simulator in case of error. if an error is detected, fold
 		if (!pokerSimulator.getVariables().get(PokerSimulator.STATUS).equals(PokerSimulator.STATUS_OK)) {
 			availableActions.add(new TEntry<String, Double>("fold", 1.0));
-			setVariableAndLog(EXPLANATION, "Exception detected in poker simulator.");
+			setVariableAndLog(EXPLANATION, "Error detected in simulator.");
 			return;
 		}
 
@@ -206,40 +206,49 @@ public class Trooper extends Task {
 	// This variable is ONLY used and cleaned by ensuregametable method
 	private String lastHoleCards = "";
 	/**
-	 * this metod will try to return to the game table if he detect the current enviorement is in another place. This
-	 * method will try for an specific amount of time to return to the main gametable. if it not succede return
-	 * <code>false</code>
+	 * This metod check all the sensor areas and perform the corrections to get the troper into the fight. The
+	 * conbination of enabled/disabled status of the sensor determine the action to perform. If the enviorement request
+	 * the trooper to play, this method return <code>true</code>, else this method will try to reach the gametable until
+	 * an fix amount of time is reached. In that case, this method return <code>false</code>
 	 * 
-	 * @return <code>true</code> if the enviorement is in the main gametable.
+	 * @return <code>true</code> if the enviorement is waiting for the troper to {@link #decide()} and {@link #act()}.
 	 */
-	private boolean ensureGameTable() throws Exception {
+	private boolean wachtEnviorement() throws Exception {
 		setVariableAndLog(STATUS, "Looking the table ...");
 		// try during x seg. Some round on PS long like foreeeeveeerr
 		long tottime = 120 * 1000;
 		long t1 = System.currentTimeMillis();
+	boolean restarChips = true;
 		while (System.currentTimeMillis() - t1 < tottime) {
-			setVariableAndLog(STATUS, "Reading villan ...");
-			sensorsArray.readVillan();
+			// pause ?
+			if (paused) {
+				Thread.sleep(100);
+				continue;
+			}
+			// canceled ?
+			if (isCancelled())
+				return false;
+
+			setVariableAndLog(STATUS, "Reading Chip ...");
+			sensorsArray.readChipsSensor(restarChips);
+			restarChips = false;
+			
 			setVariableAndLog(STATUS, "Chacking action areas ...");
 			sensorsArray.read(SensorsArray.TYPE_ACTIONS);
 
-			// if the hero current hand is diferent to the last measure, clear the enviorement.
+			// NEW ROUND: if the hero current hand is diferent to the last measure, clear the enviorement.
 			String hc1 = sensorsArray.getSensor("hero.card1").getOCR();
 			String hc2 = sensorsArray.getSensor("hero.card2").getOCR();
 			String hch = hc1 == null ? "" : hc1;
 			hch += hc2 == null ? "" : hc2;
 			if (!lastHoleCards.equals(hch)) {
 				lastHoleCards = hch;
+				setVariableAndLog(STATUS, "Cleanin the enviorement ...");
 				clearEnviorement();
-				setVariableAndLog(STATUS, "Looking the table ...");
 				continue;
 			}
 
-			// pause or cancel
-			if ((paused || isCancelled()))
-				return true;
-
-			// enviorement is already in the gametable
+			// enviorement is in the gametable
 			if (isMyTurnToPlay()) {
 				return true;
 			}
@@ -250,13 +259,14 @@ public class Trooper extends Task {
 				continue;
 			}
 
-			// the i.m back button is active (but raise.text, sensor1 and sensor2 are all disables)
+			// the i.m back button is active (at this point, the enviorement must only being showing the i.m back
+			// button)
 			if (sensorsArray.isSensorEnabled("imBack")) {
 				robotActuator.perform("imBack");
 				continue;
 			}
 		}
-		// System.out.println(System.currentTimeMillis() - t1);
+		// times is up.
 		return false;
 	}
 	/**
@@ -477,12 +487,8 @@ public class Trooper extends Task {
 		// the initial value is call value
 		int iniVal = call;
 
-		// TH: the tick is the raise value
-		// PS: the tick is the big blind
-		if (iniVal > 0 && sensorsArray.getSensor("raise").isEnabled()
-				&& sensorsArray.getSensor("raise.text").isEnabled()) {
-			System.out.println("raise " +sensorsArray.getSensor("raise").isEnabled() );
-			System.out.println("raise.text " +sensorsArray.getSensor("raise.text").isEnabled() );
+		// the slider action must be enabled and the call sensor enabled too (value > 0)
+		if (iniVal > 0 && sensorsArray.getSensor("raise.slider").isEnabled()) {
 			int tick = bb;
 			for (int c = 1; c < 11; c++) {
 				iniVal += (tick * c);
@@ -566,9 +572,11 @@ public class Trooper extends Task {
 		// Hero.logger.warning(e.getMessage());
 		// }
 
+		clearEnviorement();
+
 		while (!isCancelled()) {
 			if (paused) {
-				Thread.sleep(1000);
+				Thread.sleep(100);
 				continue;
 			}
 			// countdown before start
@@ -579,19 +587,17 @@ public class Trooper extends Task {
 				continue;
 			}
 
-			boolean ingt = ensureGameTable();
+			boolean ingt = wachtEnviorement();
+
+			// if i can reach the gametable, dismiss the troper
 			if (!ingt) {
-				// if after a few attemps, the enviorement is not in the gametable, signal error
 				setVariableAndLog(EXPLANATION, "Can.t reach the main gametable. Trooper return.");
 				return null;
 			}
 
-			// look the standar actions buttons. this standar button indicate that the game is waiting for my move
-			if (isMyTurnToPlay()) {
-				decide();
-				act();
-			}
-			think();
+			// at this point i must decide and act
+			decide();
+			act();
 		}
 		return null;
 	}

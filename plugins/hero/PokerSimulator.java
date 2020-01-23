@@ -254,12 +254,12 @@ public class PokerSimulator {
 			variableList.put(STATUS, STATUS_OK);
 			updateReport();
 		} catch (SimulatorException e) {
-			setVariable(STATUS, "ERROR " + e.getMessage());
+			setVariable(STATUS, e.getClass().getSimpleName() + e.getMessage());
 			Hero.logger.warning(e.getMessage() + "\n\tCurrent round: " + currentRound + "\n\tHole cards: " + holeCards
 					+ "\n\tComunity cards: " + communityCards);
 		} catch (Exception e) {
-			setVariable(STATUS, "ERROR " + e.getMessage());
-			Hero.logger.log(Level.SEVERE, "", e);
+			setVariable(STATUS, e.getClass().getSimpleName()+" " + e.getMessage());
+			Hero.logger.log(Level.SEVERE, e.getMessage(), e);
 		}
 	}
 
