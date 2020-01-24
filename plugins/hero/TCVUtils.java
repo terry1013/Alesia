@@ -77,7 +77,12 @@ public class TCVUtils {
 
 	public static MarvinImage autoCrop(List<MarvinSegment> segments, MarvinImage image) {
 		Rectangle croprec = getJoinSegments(segments);
-		MarvinImage clone = image.subimage(croprec.x, croprec.y, croprec.width, croprec.height);
+		MarvinImage clone;
+		// if there is no area to crop, return a copy of the original
+		if (croprec.getWidth() > 0 &&  croprec.getHeight() > 0)
+			clone = image.subimage(croprec.x, croprec.y, croprec.width, croprec.height);
+		else
+			clone = image.clone();
 		clone.update();
 		return clone;
 	}
@@ -153,6 +158,42 @@ public class TCVUtils {
 		return ht;
 	}
 
+	public static double getImageDiferences2(BufferedImage imagea, BufferedImage imageb, boolean ajust) {
+		double diference = 0;
+		BufferedImage buffimg_a = TColorUtils.convert3(imagea);
+		BufferedImage buffimg_b = TColorUtils.convert3(imageb);
+
+		// ajust the mayor image to the size of the minor image
+		if (ajust) {
+			int areaa = buffimg_a.getWidth() * buffimg_a.getHeight();
+			int areab = buffimg_b.getWidth() * buffimg_b.getHeight();
+			if (areaa > areab)
+				buffimg_a = ImageHelper.getScaledInstance(buffimg_a, buffimg_b.getWidth(), buffimg_b.getHeight());
+			else
+				buffimg_b = ImageHelper.getScaledInstance(buffimg_b, buffimg_a.getWidth(), buffimg_a.getHeight());
+		}
+		Hashtable<String, Integer> ha = TColorUtils.getHistogram(buffimg_a);
+		Hashtable<String, Integer> hb = TColorUtils.getHistogram(buffimg_b);
+
+		int width = buffimg_a.getWidth() < buffimg_b.getWidth() ? buffimg_a.getWidth() : buffimg_b.getWidth();
+		int height = buffimg_a.getHeight() < buffimg_b.getHeight() ? buffimg_a.getHeight() : buffimg_b.getHeight();
+		Set<String> keys = ha.size() > hb.size() ? ha.keySet() : hb.keySet();
+
+		for (String key : keys) {
+			int ia = ha.get(key) != null ? ha.get(key).intValue() : 0;
+			int ib = hb.get(key) != null ? hb.get(key).intValue() : 0;
+			diference += Math.abs(ia - ib);
+		}
+
+		// total number of pixels
+		int pixels = width * height;
+		// normaliye the value of diferent pixel
+		double avg_diff = diference / pixels;
+		// percentage
+		double percent = avg_diff * 100;
+		return percent;
+	}
+
 	/**
 	 * Compare the images <code>imagea</code> and <code>imageg</code> pixel by pixel returning the percentage of
 	 * diference. If the images are equals, return values closer to 0.0, and for complety diferent images, return values
@@ -177,7 +218,6 @@ public class TCVUtils {
 		BufferedImage buffimg_b = TColorUtils.copy(imageb);
 
 		// ajust the mayor image to the size of the minor image
-
 		if (ajust) {
 			int areaa = buffimg_a.getWidth() * buffimg_a.getHeight();
 			int areab = buffimg_b.getWidth() * buffimg_b.getHeight();
@@ -254,9 +294,17 @@ public class TCVUtils {
 	 * 
 	 * @return prepared image
 	 */
-	public static BufferedImage prepareCard(BufferedImage image) {
-		BufferedImage bufimg = paintBorder(image, null);
-		bufimg = bufimg.getSubimage(0, 0, 25, 50);
+	public static BufferedImage prepareCard(BufferedImage image, boolean src) {
+		BufferedImage bufimg = TColorUtils.convert8(image);
+		Hashtable<String, Integer> histo = TColorUtils.getHistogram(bufimg);
+		Color backgroundColor = TColorUtils.getBackgroundColor(histo);
+
+		Properties parms = new Properties();
+		parms.setProperty("color", TColorUtils.getRGBColor(backgroundColor));
+		parms.setProperty("size", "8");
+		bufimg = TCVUtils.paintBorder(bufimg, parms);
+		if (src)
+			bufimg = bufimg.getSubimage(0, 0, 28, 35);
 		MarvinImage mi = new MarvinImage(bufimg);
 		List<MarvinSegment> segments = TCVUtils.getImageSegments(mi, false, null);
 		mi = TCVUtils.autoCrop(segments, mi);
@@ -283,7 +331,7 @@ public class TCVUtils {
 			try {
 				imageb = ImageIO.read(f);
 
-				imageb = prepareCard(imageb);
+				imageb = prepareCard(imageb, true);
 
 				String inam = f.getName().split("[.]")[0];
 				images.put(inam, imageb);
@@ -542,7 +590,7 @@ public class TCVUtils {
 			BufferedImage image = images.get(key);
 
 			// the method i what to test
-			image = prepareCard(image);
+			image = prepareCard(image, true);
 
 			images.put(key, image);
 			JLabel jl = labels.get(key);

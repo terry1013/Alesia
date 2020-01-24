@@ -137,14 +137,14 @@ public class Trooper extends Task {
 		double prob = pokerSimulator.getBestProbability();
 		// i use a bolean because the available action my be emptey already
 		boolean ok = true;
-		if (currentRound == PokerSimulator.FLOP_CARDS_DEALT && prob < 0.30) {
+		if (currentRound == PokerSimulator.FLOP_CARDS_DEALT && prob < 0.35) {
 			availableActions.clear();
-			setVariableAndLog(EXPLANATION, "Probability on flop < 30%");
+			setVariableAndLog(EXPLANATION, "Probability on flop &lt 30%");
 			ok = false;
 		}
-		if (currentRound > PokerSimulator.FLOP_CARDS_DEALT && prob < 0.15) {
+		if (currentRound > PokerSimulator.FLOP_CARDS_DEALT && prob < 0.25) {
 			availableActions.clear();
-			setVariableAndLog(EXPLANATION, "Probability on turn or river < 20%");
+			setVariableAndLog(EXPLANATION, "Probability on turn or river &lt 20%");
 			ok = false;
 		}
 		return ok;
@@ -197,10 +197,14 @@ public class Trooper extends Task {
 			setPrefloopActions();
 		}
 
-		// TODO: cehck PS. sometimes fold action is not available
 		// if the list of available actions are empty, the only posible action todo now is fold
-		if (availableActions.size() == 0)
-			availableActions.add(new TEntry<String, Double>("fold", 1.0));
+		if (availableActions.size() == 0) {
+			// PS: some times the fold action is not available. in this case, the check is (call = 0)
+			if (sensorsArray.getSensor("fold").isEnabled())
+				availableActions.add(new TEntry<String, Double>("fold", 1.0));
+			else
+				availableActions.add(new TEntry<String, Double>("call", 1.0));
+		}
 	}
 
 	// This variable is ONLY used and cleaned by ensuregametable method
@@ -216,9 +220,9 @@ public class Trooper extends Task {
 	private boolean wachtEnviorement() throws Exception {
 		setVariableAndLog(STATUS, "Looking the table ...");
 		// try during x seg. Some round on PS long like foreeeeveeerr
-		long tottime = 120 * 1000;
+		long tottime = 200 * 1000;
 		long t1 = System.currentTimeMillis();
-	boolean restarChips = true;
+		boolean restarChips = true;
 		while (System.currentTimeMillis() - t1 < tottime) {
 			// pause ?
 			if (paused) {
@@ -232,7 +236,7 @@ public class Trooper extends Task {
 			setVariableAndLog(STATUS, "Reading Chip ...");
 			sensorsArray.readChipsSensor(restarChips);
 			restarChips = false;
-			
+
 			setVariableAndLog(STATUS, "Chacking action areas ...");
 			sensorsArray.read(SensorsArray.TYPE_ACTIONS);
 

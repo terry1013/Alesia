@@ -76,26 +76,6 @@ public class ScreenSensor extends JPanel {
 	}
 
 	@Deprecated
-	public static double getImageDiferences2(BufferedImage imagea, BufferedImage imageb) {
-
-		Hashtable<String, Integer> ha = TColorUtils.getHistogram(TColorUtils.convert4(imagea));
-		Hashtable<String, Integer> hb = TColorUtils.getHistogram(TColorUtils.convert4(imageb));
-
-		Set<String> keys = ha.size() > hb.size() ? ha.keySet() : hb.keySet();
-		double diference = 0.0;
-		for (String key : keys) {
-			int ia = ha.get(key) != null ? ha.get(key).intValue() : 0;
-			int ib = hb.get(key) != null ? hb.get(key).intValue() : 0;
-			diference += Math.abs(ia - ib);
-		}
-
-		// int total_pixel = tot_width * tot_height;
-		// double avg_diff = diference / total_pixel;
-		// double percent = avg_diff * 100;
-		// return percent;
-		return diference;
-	}
-	@Deprecated
 	public static String getOCRFromImage2(String sName, BufferedImage imagea, TreeMap<String, String> imageHashes) {
 		String s1 = TCVUtils.imagePHash(imagea, null);
 		double minDist = 21;
@@ -508,12 +488,7 @@ public class ScreenSensor extends JPanel {
 		images.put(CAPTURED, capturedImage);
 
 		if (isCardArea()) {
-			bufimg = TCVUtils.paintBorder(capturedImage, null);
-			MarvinImage mi = new MarvinImage(bufimg);
-			// NOTE: drawing the regions here in the image increase the image diference percent
-			List<MarvinSegment> segs = TCVUtils.getImageSegments(mi, false, null);
-			mi = TCVUtils.autoCrop(segs, mi);
-			bufimg = mi.getBufferedImage();
+			bufimg = TCVUtils.prepareCard(capturedImage, false);
 		}
 
 		// all ocr areas need scaled instance
