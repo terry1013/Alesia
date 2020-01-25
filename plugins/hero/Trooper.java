@@ -7,6 +7,7 @@ import java.util.stream.*;
 
 import org.apache.commons.math3.distribution.*;
 import org.apache.commons.math3.stat.descriptive.*;
+import org.apache.poi.hsmf.parsers.*;
 import org.jdesktop.application.*;
 
 import com.javaflair.pokerprophesier.api.adapter.*;
@@ -133,18 +134,15 @@ public class Trooper extends Task {
 	 * only to aboid drain chips in lost causes
 	 * 
 	 */
-	private boolean checkProbabilities(int currentRound) {
+	private boolean checkProbabilities() {
 		double prob = pokerSimulator.getBestProbability();
+		int currentRound = pokerSimulator.getCurrentRound();
 		// i use a bolean because the available action my be emptey already
 		boolean ok = true;
-		if (currentRound == PokerSimulator.FLOP_CARDS_DEALT && prob < 0.35) {
+		if (currentRound > PokerSimulator.HOLE_CARDS_DEALT && prob < PokerSimulator.probabilityThreshold) {
 			availableActions.clear();
-			setVariableAndLog(EXPLANATION, "Probability on flop &lt 30%");
-			ok = false;
-		}
-		if (currentRound > PokerSimulator.FLOP_CARDS_DEALT && prob < 0.25) {
-			availableActions.clear();
-			setVariableAndLog(EXPLANATION, "Probability on turn or river &lt 20%");
+			setVariableAndLog(EXPLANATION,
+					"Probability &lt " + (int) (PokerSimulator.probabilityThreshold * 100.0) + "%");
 			ok = false;
 		}
 		return ok;
@@ -181,29 +179,35 @@ public class Trooper extends Task {
 			return;
 		}
 
-		int currentRound = pokerSimulator.getCurrentRound();
-		int pot = pokerSimulator.getPotValue();
 		// int chips = pokerSimulator.getHeroChips();
 
-		setVariableAndLog(EXPLANATION, "normal pot odds actions");
+		setVariableAndLog(EXPLANATION, "Normal pot odds actions");
+		int pot = pokerSimulator.getPotValue();
 		setOddActions("Pot " + pot, pot);
 
 		// check the odd probabilities
-		checkProbabilities(currentRound);
+		checkProbabilities();
 
-		// Exterme cases: Preflop
-		if (availableActions.size() == 0 && currentRound == PokerSimulator.HOLE_CARDS_DEALT) {
+		// preflop: if normal pot odd action has no action todo, check the preflopcards.
+		if (availableActions.size() == 0 && pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
 			setVariableAndLog(EXPLANATION, "pre flop action");
 			setPrefloopActions();
 		}
 
+		// if the list of available actions are empty, i habe no option but fold/check
+		// in concordance whit rule1: if i can keep checking until i get a luck card. i will do. this behabior also
+		// allow for example getpreflop action continue because some times, the enviorement is too fast and the trooper
+		// is unable to retribe all information
+		if (availableActions.size() == 0 && sensorsArray.getSensor("call").isEnabled()
+				&& pokerSimulator.getCallValue() <= 0) {
+			setVariableAndLog(EXPLANATION, "Empty list. Checking");
+			availableActions.add(new TEntry<String, Double>("call", 1.0));
+		}
+
 		// if the list of available actions are empty, the only posible action todo now is fold
 		if (availableActions.size() == 0) {
-			// PS: some times the fold action is not available. in this case, the check is (call = 0)
-			if (sensorsArray.getSensor("fold").isEnabled())
-				availableActions.add(new TEntry<String, Double>("fold", 1.0));
-			else
-				availableActions.add(new TEntry<String, Double>("call", 1.0));
+			setVariableAndLog(EXPLANATION, "Empty list. Folding");
+			availableActions.add(new TEntry<String, Double>("fold", 1.0));
 		}
 	}
 
@@ -217,10 +221,10 @@ public class Trooper extends Task {
 	 * 
 	 * @return <code>true</code> if the enviorement is waiting for the troper to {@link #decide()} and {@link #act()}.
 	 */
-	private boolean wachtEnviorement() throws Exception {
+	private boolean watchEnviorement() throws Exception {
 		setVariableAndLog(STATUS, "Looking the table ...");
 		// try during x seg. Some round on PS long like foreeeeveeerr
-		long tottime = 200 * 1000;
+		long tottime = 300 * 1000;
 		long t1 = System.currentTimeMillis();
 		boolean restarChips = true;
 		while (System.currentTimeMillis() - t1 < tottime) {
@@ -233,11 +237,9 @@ public class Trooper extends Task {
 			if (isCancelled())
 				return false;
 
-			setVariableAndLog(STATUS, "Reading Chip ...");
 			sensorsArray.readChipsSensor(restarChips);
 			restarChips = false;
 
-			setVariableAndLog(STATUS, "Chacking action areas ...");
 			sensorsArray.read(SensorsArray.TYPE_ACTIONS);
 
 			// NEW ROUND: if the hero current hand is diferent to the last measure, clear the enviorement.
@@ -249,6 +251,7 @@ public class Trooper extends Task {
 				lastHoleCards = hch;
 				setVariableAndLog(STATUS, "Cleanin the enviorement ...");
 				clearEnviorement();
+				setVariableAndLog(STATUS, "Looking the table ...");
 				continue;
 			}
 
@@ -270,7 +273,7 @@ public class Trooper extends Task {
 				continue;
 			}
 		}
-		// times is up.
+		setVariableAndLog(EXPLANATION, "Can.t reach the main gametable. Trooper return.");
 		return false;
 	}
 	/**
@@ -291,7 +294,7 @@ public class Trooper extends Task {
 		return ev;
 	}
 
-	private double getOddsWhioutRegret(int base, int cost) {
+	private double getOddsWithoutRegret(int base, int cost) {
 		Preconditions.checkArgument(base >= 0 && cost >= 0, "Odd function accept only 0 or positive values.");
 		double prob = pokerSimulator.getBestProbability();
 		// normal EV.
@@ -299,7 +302,7 @@ public class Trooper extends Task {
 		if (ev < 0)
 			return ev;
 		// regret
-		double reg = (prob - 0.6) * -1;
+		double reg = (prob - PokerSimulator.probabilityThreshold) * -1;
 		double ev2 = (prob * base) - (cost * reg);
 		return ev2;
 	}
@@ -431,14 +434,11 @@ public class Trooper extends Task {
 		if (heroc[0].getRank() > Card.NINE && heroc[1].getRank() > Card.NINE)
 			value = "preflop hand are 10 or higher";
 
-		boolean ok = true;
-		if (value == null) {
-			value = "preflop hand are not good";
-			ok = false;
-		}
-
-		setVariableAndLog(EXPLANATION, value);
-		return ok;
+		if (value == null)
+			setVariableAndLog(EXPLANATION, "preflop hand is not good");
+		else
+			setVariableAndLog(EXPLANATION, value);
+		return value != null;
 	}
 
 	private boolean isMyTurnToPlay() {
@@ -470,17 +470,17 @@ public class Trooper extends Task {
 		int pot = pokerSimulator.getPotValue();
 
 		if (call >= 0)
-			availableActions.add(new TEntry<String, Double>("call", getOddsWhioutRegret(sourceValue, call)));
+			availableActions.add(new TEntry<String, Double>("call", getOddsWithoutRegret(sourceValue, call)));
 
 		if (raise >= 0)
-			availableActions.add(new TEntry<String, Double>("raise", getOddsWhioutRegret(sourceValue, raise)));
+			availableActions.add(new TEntry<String, Double>("raise", getOddsWithoutRegret(sourceValue, raise)));
 
 		if (pot >= 0)
-			availableActions.add(new TEntry<String, Double>("raise.pot;raise", getOddsWhioutRegret(sourceValue, pot)));
+			availableActions.add(new TEntry<String, Double>("raise.pot;raise", getOddsWithoutRegret(sourceValue, pot)));
 
 		if (chips >= 0)
 			availableActions
-					.add(new TEntry<String, Double>("raise.allin;raise", getOddsWhioutRegret(sourceValue, chips)));
+					.add(new TEntry<String, Double>("raise.allin;raise", getOddsWithoutRegret(sourceValue, chips)));
 
 		// TODO: until now i.m goin to implement the slider performing click over the right side of the compoent.
 		// TODO: complete implementation of writhe the ammount for Poker star
@@ -491,13 +491,17 @@ public class Trooper extends Task {
 		// the initial value is call value
 		int iniVal = call;
 
+		// fail safe: some times the slider sensor look enabled (i dont know way) so, i check the slider.text. both must
+		// be enabled
+		boolean sl = sensorsArray.getSensor("raise.slider").isEnabled()
+				&& sensorsArray.getSensor("raise.text").isEnabled();
 		// the slider action must be enabled and the call sensor enabled too (value > 0)
-		if (iniVal > 0 && sensorsArray.getSensor("raise.slider").isEnabled()) {
+		if (iniVal > 0 && sl) {
 			int tick = bb;
 			for (int c = 1; c < 11; c++) {
 				iniVal += (tick * c);
 				availableActions.add(new TEntry<String, Double>("raise.slider,c=" + c + ";raise",
-						getOddsWhioutRegret(sourceValue, iniVal)));
+						getOddsWithoutRegret(sourceValue, iniVal)));
 			}
 		}
 
@@ -532,8 +536,14 @@ public class Trooper extends Task {
 		int herochips = pokerSimulator.getHeroChips();
 		int boss = getStrongerVillan();
 		int base = herochips > boss ? boss : herochips;
-		// in case of error getting hero or boss chips, the hand is still good. ??? what to do?
-		if (base == -1) {
+		String bn = herochips > boss ? "boss" : "herochips";
+		setVariableAndLog("trooper.Troper preflop base", bn + " " + base);
+
+		// TODO: in case of error getting hero or boss chips, the hand is still good. ??? what to do? how to inprove
+		// acuracion in for the numeric values ??
+		// TODO: test. in case of error, this metod just notify the event. the final desicion of the decide method try
+		// to keep the troper in fight selectin check action instead of fold action.
+		if (base < 0) {
 			setVariableAndLog(EXPLANATION, "Error getting boss chips or hero chip.");
 			return;
 		}
@@ -591,11 +601,10 @@ public class Trooper extends Task {
 				continue;
 			}
 
-			boolean ingt = wachtEnviorement();
+			boolean ingt = watchEnviorement();
 
 			// if i can reach the gametable, dismiss the troper
 			if (!ingt) {
-				setVariableAndLog(EXPLANATION, "Can.t reach the main gametable. Trooper return.");
 				return null;
 			}
 

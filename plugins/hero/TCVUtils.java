@@ -25,6 +25,7 @@ import net.sourceforge.tess4j.util.*;
 
 public class TCVUtils {
 
+	private static Hashtable<String, JLabel> labels;
 	private JFrame frame;
 	private String prpfile = "plugins/hero/marvinproperties.properties";
 	/**
@@ -32,7 +33,6 @@ public class TCVUtils {
 	 */
 	private Properties parameteres;
 	private TreeMap<String, BufferedImage> images;
-	private static Hashtable<String, JLabel> labels;
 
 	private Hashtable<String, String> images2;
 
@@ -58,23 +58,6 @@ public class TCVUtils {
 		}
 	}
 
-	public static Rectangle getJoinSegments(List<MarvinSegment> segments) {
-		int topY = Integer.MAX_VALUE, topX = Integer.MAX_VALUE;
-		int bottomY = -1, bottomX = -1;
-		for (MarvinSegment segment : segments) {
-			if (segment.x1 < topX)
-				topX = segment.x1;
-			if (segment.y1 < topY)
-				topY = segment.y1;
-			if (segment.x2 > bottomX)
-				bottomX = segment.x2;
-			if (segment.y2 > bottomY)
-				bottomY = segment.y2;
-		}
-		Rectangle croprec = new Rectangle(topX, topY, bottomX - topX + 1, bottomY - topY + 1);
-		return croprec;
-	}
-
 	public static MarvinImage autoCrop(List<MarvinSegment> segments, MarvinImage image) {
 		Rectangle croprec = getJoinSegments(segments);
 		MarvinImage clone;
@@ -86,31 +69,28 @@ public class TCVUtils {
 		clone.update();
 		return clone;
 	}
-	public static MarvinImage uperLeftAutoCrop(List<MarvinSegment> segments, MarvinImage image) {
-		// no segments? retrun the same image
-		if (segments.size() == 0)
-			return image;
 
-		Point upLeft = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
-		double dist = Integer.MAX_VALUE;
-		for (MarvinSegment segment : segments) {
-			Point p = new Point(segment.x1, segment.y1);
-			double d = Point.distance(0, 0, segment.x1 * 1.0, segment.y1 * 1.0);
-			if (d < dist) {
-				upLeft = p;
-				dist = d;
-			}
+	public static JPanel createImagesPanel(TreeMap<String, BufferedImage> images) {
+		JPanel panel = new JPanel(new GridLayout(0, 4, 2, 2));
+		labels = new Hashtable<>();
+		Set<String> keys = images.keySet();
+		for (String key : keys) {
+			BufferedImage image1 = images.get(key);
+			JLabel jl = new JLabel();
+			jl.setFont(new Font("courier new", Font.PLAIN, 12));
+			jl.setOpaque(true);
+			jl.setBackground(Color.LIGHT_GRAY);
+			jl.setBorder(new LineBorder(Color.LIGHT_GRAY, 2));
+			jl.setVerticalAlignment(JLabel.TOP);
+			jl.setIcon(new ImageIcon(image1));
+			String txt = "<html>" + key + "<br>with " + image1.getWidth() + "<br>height " + image1.getHeight()
+					+ "</html>";
+			jl.setText(txt);
+			labels.put(key, jl);
+			panel.add(jl);
 		}
-
-		Rectangle croprec = getJoinSegments(segments);
-		Rectangle ulrec = new Rectangle(upLeft.x, upLeft.y, croprec.width, croprec.height);
-		croprec = croprec.intersection(ulrec);
-
-		MarvinImage clone = image.subimage(croprec.x, croprec.y, croprec.width, croprec.height);
-		clone.update();
-		return clone;
+		return panel;
 	}
-
 	/**
 	 * test method: draw the segments in the image
 	 * 
@@ -122,11 +102,11 @@ public class TCVUtils {
 			image.drawRect(segment.x1, segment.y1, segment.width, segment.height, Color.BLUE);
 		image.update();
 	}
+
 	public static MarvinImage findText(MarvinImage image) {
 		return findText(image, 15, 8, 30, 150);
 
 	}
-
 	public static MarvinImage findText(MarvinImage image, int maxWhiteSpace, int maxFontLineWidth, int minTextWidth,
 			int grayScaleThreshold) {
 		List<MarvinSegment> segments = findTextRegions(image, maxWhiteSpace, maxFontLineWidth, minTextWidth,
@@ -156,42 +136,6 @@ public class TCVUtils {
 	public static String getHightLight(String key, Object val) {
 		String ht = "<br><FONT style= \"background-color: #808080\">" + key + val + "</FONT>";
 		return ht;
-	}
-
-	public static double getImageDiferences2(BufferedImage imagea, BufferedImage imageb, boolean ajust) {
-		double diference = 0;
-		BufferedImage buffimg_a = TColorUtils.convert3(imagea);
-		BufferedImage buffimg_b = TColorUtils.convert3(imageb);
-
-		// ajust the mayor image to the size of the minor image
-		if (ajust) {
-			int areaa = buffimg_a.getWidth() * buffimg_a.getHeight();
-			int areab = buffimg_b.getWidth() * buffimg_b.getHeight();
-			if (areaa > areab)
-				buffimg_a = ImageHelper.getScaledInstance(buffimg_a, buffimg_b.getWidth(), buffimg_b.getHeight());
-			else
-				buffimg_b = ImageHelper.getScaledInstance(buffimg_b, buffimg_a.getWidth(), buffimg_a.getHeight());
-		}
-		Hashtable<String, Integer> ha = TColorUtils.getHistogram(buffimg_a);
-		Hashtable<String, Integer> hb = TColorUtils.getHistogram(buffimg_b);
-
-		int width = buffimg_a.getWidth() < buffimg_b.getWidth() ? buffimg_a.getWidth() : buffimg_b.getWidth();
-		int height = buffimg_a.getHeight() < buffimg_b.getHeight() ? buffimg_a.getHeight() : buffimg_b.getHeight();
-		Set<String> keys = ha.size() > hb.size() ? ha.keySet() : hb.keySet();
-
-		for (String key : keys) {
-			int ia = ha.get(key) != null ? ha.get(key).intValue() : 0;
-			int ib = hb.get(key) != null ? hb.get(key).intValue() : 0;
-			diference += Math.abs(ia - ib);
-		}
-
-		// total number of pixels
-		int pixels = width * height;
-		// normaliye the value of diferent pixel
-		double avg_diff = diference / pixels;
-		// percentage
-		double percent = avg_diff * 100;
-		return percent;
 	}
 
 	/**
@@ -246,6 +190,76 @@ public class TCVUtils {
 		double percent = avg_diff * 100;
 		return percent;
 	}
+
+	public static double getImageDiferences2(BufferedImage imagea, BufferedImage imageb, boolean ajust) {
+		double diference = 0;
+		BufferedImage buffimg_a = TColorUtils.convert3(imagea);
+		BufferedImage buffimg_b = TColorUtils.convert3(imageb);
+
+		// ajust the mayor image to the size of the minor image
+		if (ajust) {
+			int areaa = buffimg_a.getWidth() * buffimg_a.getHeight();
+			int areab = buffimg_b.getWidth() * buffimg_b.getHeight();
+			if (areaa > areab)
+				buffimg_a = ImageHelper.getScaledInstance(buffimg_a, buffimg_b.getWidth(), buffimg_b.getHeight());
+			else
+				buffimg_b = ImageHelper.getScaledInstance(buffimg_b, buffimg_a.getWidth(), buffimg_a.getHeight());
+		}
+		Hashtable<String, Integer> ha = TColorUtils.getHistogram(buffimg_a);
+		Hashtable<String, Integer> hb = TColorUtils.getHistogram(buffimg_b);
+
+		int width = buffimg_a.getWidth() < buffimg_b.getWidth() ? buffimg_a.getWidth() : buffimg_b.getWidth();
+		int height = buffimg_a.getHeight() < buffimg_b.getHeight() ? buffimg_a.getHeight() : buffimg_b.getHeight();
+		Set<String> keys = ha.size() > hb.size() ? ha.keySet() : hb.keySet();
+
+		for (String key : keys) {
+			int ia = ha.get(key) != null ? ha.get(key).intValue() : 0;
+			int ib = hb.get(key) != null ? hb.get(key).intValue() : 0;
+			diference += Math.abs(ia - ib);
+		}
+
+		// total number of pixels
+		int pixels = width * height;
+		// normaliye the value of diferent pixel
+		double avg_diff = diference / pixels;
+		// percentage
+		double percent = avg_diff * 100;
+		return percent;
+	}
+
+	public static List<MarvinSegment> getImageSegments(MarvinImage mImage, boolean drawSegments, Properties parms) {
+		if (parms == null) {
+			parms = new Properties();
+			parms.put("rgbToBinaryThreshold", "200");
+			parms.put("removeSegmentsWindowSize", "1");
+		}
+		int rgbToBinaryThreshold = Integer.parseInt(parms.getProperty("rgbToBinaryThreshold"));
+		int removeSegmentsWindowSize = Integer.parseInt(parms.getProperty("removeSegmentsWindowSize"));
+		// MarvinImage mImage = new MarvinImage(image);
+		List<MarvinSegment> segments = segment(mImage, rgbToBinaryThreshold);
+		removeSegments(segments, mImage, removeSegmentsWindowSize);
+		if (drawSegments) {
+			drawSegments(mImage, segments);
+		}
+		return segments;
+	}
+	public static Rectangle getJoinSegments(List<MarvinSegment> segments) {
+		int topY = Integer.MAX_VALUE, topX = Integer.MAX_VALUE;
+		int bottomY = -1, bottomX = -1;
+		for (MarvinSegment segment : segments) {
+			if (segment.x1 < topX)
+				topX = segment.x1;
+			if (segment.y1 < topY)
+				topY = segment.y1;
+			if (segment.x2 > bottomX)
+				bottomX = segment.x2;
+			if (segment.y2 > bottomY)
+				bottomY = segment.y2;
+		}
+		Rectangle croprec = new Rectangle(topX, topY, bottomX - topX + 1, bottomY - topY + 1);
+		return croprec;
+	}
+
 	public static BufferedImage getScaledBufferedImage(BufferedImage image) {
 		Dimension ndim = getScaledDimension(image.getWidth(), image.getHeight());
 		int type = (image.getTransparency() == Transparency.OPAQUE)
@@ -285,31 +299,6 @@ public class TCVUtils {
 		int smallSize = Integer.parseInt(parms.getProperty("imagePhash.smallSize"));
 		ImagePHash ih = new ImagePHash(size, smallSize);
 		return ih.getHash(image);
-	}
-
-	/**
-	 * perform standar algorithm for card. the incoming argument bust be the image whitout any treatment
-	 * 
-	 * @param image source image
-	 * 
-	 * @return prepared image
-	 */
-	public static BufferedImage prepareCard(BufferedImage image, boolean src) {
-		BufferedImage bufimg = TColorUtils.convert8(image);
-		Hashtable<String, Integer> histo = TColorUtils.getHistogram(bufimg);
-		Color backgroundColor = TColorUtils.getBackgroundColor(histo);
-
-		Properties parms = new Properties();
-		parms.setProperty("color", TColorUtils.getRGBColor(backgroundColor));
-		parms.setProperty("size", "8");
-		bufimg = TCVUtils.paintBorder(bufimg, parms);
-		if (src)
-			bufimg = bufimg.getSubimage(0, 0, 28, 35);
-		MarvinImage mi = new MarvinImage(bufimg);
-		List<MarvinSegment> segments = TCVUtils.getImageSegments(mi, false, null);
-		mi = TCVUtils.autoCrop(segments, mi);
-		bufimg = mi.getBufferedImage();
-		return bufimg;
 	}
 
 	/**
@@ -395,9 +384,12 @@ public class TCVUtils {
 	}
 
 	public static void main(String[] args) {
-		TCVUtils demo = new TCVUtils();
-		demo.parameteres.put("imagesDir", "plugins/hero/image_cards/");
-		demo.showFrame();
+		boolean a  = false;
+		int val = 1;
+	System.out.println(val > 0 && a);
+//		TCVUtils demo = new TCVUtils();
+//		demo.parameteres.put("imagesDir", "plugins/hero/image_cards/");
+//		demo.showFrame();
 	}
 	public static BufferedImage MoravecCorners(BufferedImage image, boolean drawCorners, Properties parms) {
 		if (parms == null) {
@@ -429,21 +421,49 @@ public class TCVUtils {
 		return mImage.getBufferedImage();
 	}
 
-	public static List<MarvinSegment> getImageSegments(MarvinImage mImage, boolean drawSegments, Properties parms) {
+	public static BufferedImage paintBorder(BufferedImage image, Properties parms) {
 		if (parms == null) {
 			parms = new Properties();
-			parms.put("rgbToBinaryThreshold", "200");
-			parms.put("removeSegmentsWindowSize", "1");
+			parms.put("size", "8");
+			parms.put("color", "FFFFFF");
 		}
-		int rgbToBinaryThreshold = Integer.parseInt(parms.getProperty("rgbToBinaryThreshold"));
-		int removeSegmentsWindowSize = Integer.parseInt(parms.getProperty("removeSegmentsWindowSize"));
-		// MarvinImage mImage = new MarvinImage(image);
-		List<MarvinSegment> segments = segment(mImage, rgbToBinaryThreshold);
-		removeSegments(segments, mImage, removeSegmentsWindowSize);
-		if (drawSegments) {
-			drawSegments(mImage, segments);
-		}
-		return segments;
+		int size = Integer.parseInt(parms.getProperty("size"));
+		Color color = TColorUtils.getRGBColor(parms.getProperty("color"));
+
+		BufferedImage newimagea = new BufferedImage(image.getWidth(), image.getHeight(), image.getType());
+		Graphics2D g2d = newimagea.createGraphics();
+		g2d.drawImage(image, 0, 0, null);
+		BasicStroke bs = new BasicStroke(size);
+		g2d.setStroke(bs);
+		g2d.setColor(color);
+		g2d.drawRect(0, 0, image.getWidth(), image.getHeight());
+		g2d.dispose();
+		return newimagea;
+	}
+
+	/**
+	 * perform standar algorithm for card. the incoming argument bust be the image whitout any treatment
+	 * 
+	 * @param image source image
+	 * 
+	 * @return prepared image
+	 */
+	public static BufferedImage prepareCard(BufferedImage image, boolean src) {
+		BufferedImage bufimg = TColorUtils.convert8(image);
+		Hashtable<String, Integer> histo = TColorUtils.getHistogram(bufimg);
+		Color backgroundColor = TColorUtils.getBackgroundColor(histo);
+
+		Properties parms = new Properties();
+		parms.setProperty("color", TColorUtils.getRGBColor(backgroundColor));
+		parms.setProperty("size", "8");
+		bufimg = TCVUtils.paintBorder(bufimg, parms);
+		if (src)
+			bufimg = bufimg.getSubimage(0, 0, 28, 35);
+		MarvinImage mi = new MarvinImage(bufimg);
+		List<MarvinSegment> segments = TCVUtils.getImageSegments(mi, false, null);
+		mi = TCVUtils.autoCrop(segments, mi);
+		bufimg = mi.getBufferedImage();
+		return bufimg;
 	}
 
 	/**
@@ -475,26 +495,30 @@ public class TCVUtils {
 		return list;
 	}
 
-	public static BufferedImage paintBorder(BufferedImage image, Properties parms) {
-		if (parms == null) {
-			parms = new Properties();
-			parms.put("size", "8");
-			parms.put("color", "FFFFFF");
+	public static MarvinImage uperLeftAutoCrop(List<MarvinSegment> segments, MarvinImage image) {
+		// no segments? retrun the same image
+		if (segments.size() == 0)
+			return image;
+
+		Point upLeft = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
+		double dist = Integer.MAX_VALUE;
+		for (MarvinSegment segment : segments) {
+			Point p = new Point(segment.x1, segment.y1);
+			double d = Point.distance(0, 0, segment.x1 * 1.0, segment.y1 * 1.0);
+			if (d < dist) {
+				upLeft = p;
+				dist = d;
+			}
 		}
-		int size = Integer.parseInt(parms.getProperty("size"));
-		Color color = TColorUtils.getRGBColor(parms.getProperty("color"));
 
-		BufferedImage newimagea = new BufferedImage(image.getWidth(), image.getHeight(), image.getType());
-		Graphics2D g2d = newimagea.createGraphics();
-		g2d.drawImage(image, 0, 0, null);
-		BasicStroke bs = new BasicStroke(size);
-		g2d.setStroke(bs);
-		g2d.setColor(color);
-		g2d.drawRect(0, 0, image.getWidth(), image.getHeight());
-		g2d.dispose();
-		return newimagea;
+		Rectangle croprec = getJoinSegments(segments);
+		Rectangle ulrec = new Rectangle(upLeft.x, upLeft.y, croprec.width, croprec.height);
+		croprec = croprec.intersection(ulrec);
+
+		MarvinImage clone = image.subimage(croprec.x, croprec.y, croprec.width, croprec.height);
+		clone.update();
+		return clone;
 	}
-
 	private static MarvinImage showCorners(MarvinImage image, MarvinAttributes attr, int rectSize) {
 		MarvinImage ret = image.clone();
 		int[][] cornernessMap = (int[][]) attr.get("cornernessMap");
@@ -512,6 +536,7 @@ public class TCVUtils {
 
 		return ret;
 	}
+
 	public void showHistogram(Hashtable<String, BufferedImage> images) {
 		ActionsBarChart chart = new ActionsBarChart();
 		Set<String> keys = images.keySet();
@@ -527,28 +552,6 @@ public class TCVUtils {
 		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
 
-	}
-
-	public static JPanel createImagesPanel(TreeMap<String, BufferedImage> images) {
-		JPanel panel = new JPanel(new GridLayout(0, 4, 2, 2));
-		labels = new Hashtable<>();
-		Set<String> keys = images.keySet();
-		for (String key : keys) {
-			BufferedImage image1 = images.get(key);
-			JLabel jl = new JLabel();
-			jl.setFont(new Font("courier new", Font.PLAIN, 12));
-			jl.setOpaque(true);
-			jl.setBackground(Color.LIGHT_GRAY);
-			jl.setBorder(new LineBorder(Color.LIGHT_GRAY, 2));
-			jl.setVerticalAlignment(JLabel.TOP);
-			jl.setIcon(new ImageIcon(image1));
-			String txt = "<html>" + key + "<br>with " + image1.getWidth() + "<br>height " + image1.getHeight()
-					+ "</html>";
-			jl.setText(txt);
-			labels.put(key, jl);
-			panel.add(jl);
-		}
-		return panel;
 	}
 
 	private JSlider getJSlider(String parameter, int max) {
@@ -602,6 +605,22 @@ public class TCVUtils {
 		}
 	}
 
+	private void saveResult() {
+		try {
+			String ext = "png";
+			Set<String> keys = images.keySet();
+			for (String key : keys) {
+				BufferedImage image = images.get(key);
+				File f = new File(ScreenSensor.IMAGE_CARDS + key + "." + ext);
+				f.delete();
+				f.createNewFile();
+				ImageIO.write(image, ext, f);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
 	private void saveSegments() {
 		try {
 			images = loadImages(ScreenSensor.IMAGE_CARDS);
@@ -622,22 +641,6 @@ public class TCVUtils {
 				}
 			}
 
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	private void saveResult() {
-		try {
-			String ext = "png";
-			Set<String> keys = images.keySet();
-			for (String key : keys) {
-				BufferedImage image = images.get(key);
-				File f = new File(ScreenSensor.IMAGE_CARDS + key + "." + ext);
-				f.delete();
-				f.createNewFile();
-				ImageIO.write(image, ext, f);
-			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

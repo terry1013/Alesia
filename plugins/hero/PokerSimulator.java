@@ -44,9 +44,11 @@ public class PokerSimulator {
 	public static int DEALER = 10;
 	public static String STATUS = "Simulator Status";
 	public static String STATUS_OK = "Ok";
+	private static DecimalFormat fourDigitFormat = new DecimalFormat("#0.0000");
+
+	public static double probabilityThreshold = 0.50;
 	// Number of simulations, total players
 	private int numSimulations = 100000;
-
 	// temporal storage for incoming cards
 	private Hashtable<String, String> cardsBuffer;
 	// number of players
@@ -64,12 +66,14 @@ public class PokerSimulator {
 	private MyHandHelper myHandHelper;
 	private MyHandStatsHelper myHandStatsHelper;
 	private MyGameStatsHelper myGameStatsHelper;
+
 	private int heroChips;
 	private int smallBlind;
-
 	private int bigBlind;
 
 	private ActionsBarChart actionsBarChart;
+	private long lastStepMillis;
+	private double bestProbability;
 	public PokerSimulator() {
 		this.cardsBuffer = new Hashtable<String, String>();
 		// Create an adapter to communicate with the simulator
@@ -110,6 +114,7 @@ public class PokerSimulator {
 		actionsBarChart.setDataSet(null);
 		updateReport();
 	}
+
 	/**
 	 * this mathod act like a buffer betwen {@link SensorsArray} and this class to set the cards based on the name/value
 	 * of the {@link ScreenSensor} component while the cards arrive at the game table. For example durin a reading
@@ -123,9 +128,15 @@ public class PokerSimulator {
 	public PokerProphesierAdapter getAdapter() {
 		return adapter;
 	}
+
+	public double getBestProbability() {
+		return bestProbability;
+	}
+
 	public int getBigBlind() {
 		return bigBlind;
 	}
+
 	public int getCallValue() {
 		return callValue;
 	}
@@ -145,7 +156,6 @@ public class PokerSimulator {
 	public int getHeroChips() {
 		return heroChips;
 	}
-
 	public MyGameStatsHelper getMyGameStatsHelper() {
 		return myGameStatsHelper;
 	}
@@ -153,7 +163,6 @@ public class PokerSimulator {
 	public MyHandHelper getMyHandHelper() {
 		return myHandHelper;
 	}
-
 	public MyHandStatsHelper getMyHandStatsHelper() {
 		return myHandStatsHelper;
 	}
@@ -161,10 +170,10 @@ public class PokerSimulator {
 	public HoleCards getMyHoleCards() {
 		return holeCards;
 	}
-
 	public int getNumSimPlayers() {
 		return numSimPlayers;
 	}
+
 	public int getPotValue() {
 		return potValue;
 	}
@@ -172,6 +181,7 @@ public class PokerSimulator {
 	public int getRaiseValue() {
 		return raiseValue;
 	}
+
 	/**
 	 * Return the information component whit all values computesd form simulations and game status
 	 * 
@@ -191,7 +201,6 @@ public class PokerSimulator {
 	public TreeMap<String, Object> getVariables() {
 		return variableList;
 	}
-
 	/**
 	 * Init the simulation eviorement. Use this metod to clear al component in case of error or start/stop event
 	 * 
@@ -214,7 +223,6 @@ public class PokerSimulator {
 		heroChips = -1;
 		cleanReport();
 	}
-
 	/**
 	 * perform the PokerProphesier simulation. Call this method when all the cards on the table has been setted using
 	 * {@link #addCard(String, String)} this method will create the {@link HoleCards} and the {@link CommunityCards} (if
@@ -250,7 +258,7 @@ public class PokerSimulator {
 			myGameStatsHelper = adapter.getMyGameStatsHelper();
 			myHandStatsHelper = adapter.getMyHandStatsHelper();
 			myHandHelper = adapter.getMyHandHelper();
-			updateProbability();
+			updateSimulationResults();
 			variableList.put(STATUS, STATUS_OK);
 			updateReport();
 		} catch (SimulatorException e) {
@@ -258,11 +266,10 @@ public class PokerSimulator {
 			Hero.logger.warning(e.getMessage() + "\n\tCurrent round: " + currentRound + "\n\tHole cards: " + holeCards
 					+ "\n\tComunity cards: " + communityCards);
 		} catch (Exception e) {
-			setVariable(STATUS, e.getClass().getSimpleName()+" " + e.getMessage());
+			setVariable(STATUS, e.getClass().getSimpleName() + " " + e.getMessage());
 			Hero.logger.log(Level.SEVERE, e.getMessage(), e);
 		}
 	}
-
 	public void setActionsData(String aperformed, Vector<TEntry<String, Double>> actions) {
 		actionsBarChart.setCategoryMarker(aperformed);
 		actionsBarChart.setDataSet(actions);
@@ -272,7 +279,6 @@ public class PokerSimulator {
 		actionsBarChart.setDataSet(actions);
 		updateReport();
 	}
-
 	public void setBlinds(int sb, int bb) {
 		this.smallBlind = sb;
 		this.bigBlind = bb;
@@ -283,58 +289,20 @@ public class PokerSimulator {
 	public void setHeroChips(int heroChips) {
 		this.heroChips = heroChips;
 	}
+
 	public void setNunOfPlayers(int p) {
 		this.numSimPlayers = p;
 	}
+
 	public void setPotValue(int potValue) {
 		this.potValue = potValue;
 	}
+
 	public void setRaiseValue(int raiseValue) {
 		this.raiseValue = raiseValue;
 	}
 	public void setTablePosition(int tp) {
 		this.tablePosition = tp;
-	}
-	private static DecimalFormat fourDigitFormat = new DecimalFormat("#0.0000");
-
-	/**
-	 * update the {@link #bestProbability} golbal variable. This is the best between gobal win probability or inprove
-	 * probability. When the river card is dealed, this metod only return the win probability
-	 * 
-	 * @return the hights probability: win or inmprove hand
-	 */
-	private void updateProbability() {
-		// MyHandStatsHelper myhsh = getMyHandStatsHelper();
-		float inprove = myHandStatsHelper == null ? 0 : myHandStatsHelper.getTotalProb();
-		float actual = myGameStatsHelper == null ? 0 : myGameStatsHelper.getWinProb();
-		// float actual = getMyGameStatsHelper().getWinProb();
-		if (getCurrentRound() == PokerSimulator.RIVER_CARD_DEALT)
-			bestProbability = actual;
-		else
-			bestProbability = inprove > actual ? inprove : actual;
-
-		String pnam = inprove > actual ? "Improve" : "Win";
-		variableList.put("simulator.Best probability", pnam + " " + fourDigitFormat.format(bestProbability));
-		// variableList.put("Table Position", getTablePosition());
-		variableList.put("simulator.Current round", getCurrentRound());
-		variableList.put("simulator.ammount.Call", getCallValue());
-		variableList.put("simulator.ammount.Raise", getRaiseValue());
-		variableList.put("simulator.ammount.Pot", getPotValue());
-		variableList.put("simulator.Num of players", getNumSimPlayers());
-		// variableList.put("simulator.ammount.Small blind", getSmallBlind());
-		// variableList.put("simulator.ammount.Big blind", getBigBlind());
-		variableList.put("simulator.Current hand", getMyHandHelper().getHand().toString());
-		variableList.put("simulator.Hole hand",
-				getMyHoleCards().getFirstCard() + ", " + getMyHoleCards().getSecondCard());
-		variableList.put("simulator.Comunity cards", getCommunityCards().toString());
-
-	}
-
-	private long lastStepMillis;
-
-	private double bestProbability;
-	public double getBestProbability() {
-		return bestProbability;
 	}
 	public void setVariable(String key, Object value) {
 		// format double values
@@ -343,13 +311,12 @@ public class PokerSimulator {
 			value1 = fourDigitFormat.format(((Double) value).doubleValue());
 		variableList.put(key, value1);
 		if (Trooper.STATUS.equals(key)) {
-			variableList.put("trooper.Status time", (System.currentTimeMillis() - lastStepMillis));
+			// variableList.put("trooper.Performance Step time", (System.currentTimeMillis() - lastStepMillis));
 			lastStepMillis = System.currentTimeMillis();
 		}
 
 		updateReport();
 	}
-
 	public void updateReport() {
 		Predicate<String> valgt0 = new Predicate<String>() {
 			@Override
@@ -447,6 +414,7 @@ public class PokerSimulator {
 
 		return car;
 	}
+
 	/**
 	 * create the comunity cards. This method also set the currnet round of the game based on length of the
 	 * <code>cards</code> parameter.
@@ -480,7 +448,6 @@ public class PokerSimulator {
 		currentRound = ccars.length == 4 ? TURN_CARD_DEALT : currentRound;
 		currentRound = ccars.length == 5 ? RIVER_CARD_DEALT : currentRound;
 	}
-
 	/**
 	 * Create my cards
 	 * 
@@ -495,10 +462,10 @@ public class PokerSimulator {
 		holeCards = new HoleCards(ca1, ca2);
 		currentRound = HOLE_CARDS_DEALT;
 	}
+
 	private String getFormateTable(String helperString) {
 		return getFormateTable(helperString, s -> true);
 	}
-
 	/**
 	 * return a HTML table based on the <code>helperString</code> argument. the <code>only</code> paratemeter indicate a
 	 * filter of elemenst. If any line form helperstring argument star with a word form this list, the line is include
@@ -520,5 +487,38 @@ public class PokerSimulator {
 			}
 		}
 		return "<table>" + res + "</table>";
+	}
+
+	/**
+	 * update the simulation result to the console
+	 */
+	private void updateSimulationResults() {
+		// TODO: temporal check working only whit win probability. inprove probability was before to the preflopaction
+		// metods
+		// float inprove = myHandStatsHelper == null ? 0 : myHandStatsHelper.getTotalProb();
+		float inprove = -1;
+		float actual = myGameStatsHelper == null ? 0 : myGameStatsHelper.getWinProb() + myGameStatsHelper.getTieProb();
+
+		// float actual = getMyGameStatsHelper().getWinProb();
+		if (getCurrentRound() == PokerSimulator.RIVER_CARD_DEALT)
+			bestProbability = actual;
+		else
+			bestProbability = inprove > actual ? inprove : actual;
+
+		String pnam = inprove > actual ? "Improve" : "Win";
+		variableList.put("simulator.Troper probability", pnam + " " + fourDigitFormat.format(bestProbability));
+		variableList.put("simulator.Trooper Current hand", getMyHandHelper().getHand().toString());
+		variableList.put("simulator.Trooper Hole hand",
+				getMyHoleCards().getFirstCard() + ", " + getMyHoleCards().getSecondCard());
+		variableList.put("simulator.Troper Comunity cards", getCommunityCards().toString());
+		// variableList.put("Table Position", getTablePosition());
+		variableList.put("simulator.Current round", getCurrentRound());
+		variableList.put("simulator.ammount.Call", getCallValue());
+		variableList.put("simulator.ammount.Raise", getRaiseValue());
+		variableList.put("simulator.ammount.Pot", getPotValue());
+		variableList.put("simulator.Num of players", getNumSimPlayers());
+		// variableList.put("simulator.ammount.Small blind", getSmallBlind());
+		// variableList.put("simulator.ammount.Big blind", getBigBlind());
+
 	}
 }

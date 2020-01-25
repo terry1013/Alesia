@@ -106,7 +106,6 @@ public class SensorsArray {
 	 * 
 	 * @see #isVillanActive(int)
 	 * @see #getActiveSeats()
-	 * @return - num of active villans
 	 */
 	public int getActiveVillans() {
 		int av = 0;
@@ -221,16 +220,11 @@ public class SensorsArray {
 	 * initialize this sensor array. clearing all sensor and all variables
 	 */
 	public void init() {
-		screenSensors.values().forEach((ss) -> ss.init());
+		// test: don.t delete the idle time information list
+		screenSensors.values().stream().filter(ss -> !chipsSensors.contains(ss.getName())).forEach(ss -> ss.init());
+		// screenSensors.values().forEach((ss) -> ss.init());
 		pokerSimulator.init();
 		blinds.clear();
-
-		// information readed during idle time
-		Collection<ScreenSensor> allSensors = screenSensors.values();
-		chipsSensors = new ArrayList<>();
-		List<String> slist = allSensors.stream().filter(ss -> ss.getName().contains(".chips"))
-				.map(ScreenSensor::getName).collect(Collectors.toList());
-		chipsSensors.addAll(slist);
 	}
 
 	/**
@@ -366,9 +360,9 @@ public class SensorsArray {
 			pokerSimulator.setNunOfPlayers(getActiveVillans() + 1);
 			pokerSimulator.runSimulation();
 		}
-		pokerSimulator.setVariable("sensorArray.Total readed sensors", slist.size());
-		pokerSimulator.setVariable("sensorArray.Tesseract OCR time", ((int) tesseractTime.getMean()));
-		pokerSimulator.setVariable("sensorArray.ImageDiference OCR time", ((int) imageDiffereceTime.getMean()));
+		// pokerSimulator.setVariable("sensorArray.Total readed sensors", slist.size());
+		pokerSimulator.setVariable("sensorArray.Performance", "Tesseract " + ((int) tesseractTime.getMean())
+				+ " ImageDiference " + ((int) imageDiffereceTime.getMean()));
 	}
 
 	/**
@@ -506,6 +500,14 @@ public class SensorsArray {
 			screenSensors.put(ss.getName(), ss);
 		}
 		setStandByBorder();
+
+		// information that must be readed in idle time. this info never must be cleared
+		Collection<ScreenSensor> allSensors = screenSensors.values();
+		chipsSensors = new ArrayList<>();
+		List<String> slist = allSensors.stream().filter(ss -> ss.getName().contains(".chips"))
+				.map(ScreenSensor::getName).collect(Collectors.toList());
+		chipsSensors.addAll(slist);
+
 		pokerSimulator.init();
 	}
 
