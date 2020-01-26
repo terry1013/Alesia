@@ -384,12 +384,9 @@ public class TCVUtils {
 	}
 
 	public static void main(String[] args) {
-		boolean a  = false;
-		int val = 1;
-	System.out.println(val > 0 && a);
-//		TCVUtils demo = new TCVUtils();
-//		demo.parameteres.put("imagesDir", "plugins/hero/image_cards/");
-//		demo.showFrame();
+		TCVUtils demo = new TCVUtils();
+		demo.parameteres.put("imagesDir", "plugins/hero/image_cards/");
+		demo.showFrame();
 	}
 	public static BufferedImage MoravecCorners(BufferedImage image, boolean drawCorners, Properties parms) {
 		if (parms == null) {

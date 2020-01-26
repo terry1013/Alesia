@@ -489,6 +489,11 @@ public class PokerSimulator {
 		return "<table>" + res + "</table>";
 	}
 
+	private void log() {
+		Hero.logger.info("simulator.Troper probability: " + variableList.get("simulator.Troper probability"));
+		Hero.logger.info("simulator.Trooper Current hand: " + variableList.get("simulator.Trooper Current hand"));
+	}
+
 	/**
 	 * update the simulation result to the console
 	 */
@@ -519,6 +524,6 @@ public class PokerSimulator {
 		variableList.put("simulator.Num of players", getNumSimPlayers());
 		// variableList.put("simulator.ammount.Small blind", getSmallBlind());
 		// variableList.put("simulator.ammount.Big blind", getBigBlind());
-
+		log();
 	}
 }

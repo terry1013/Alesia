@@ -30,7 +30,7 @@ import net.sourceforge.tess4j.*;
 
 public class Hero extends TPlugin {
 
-	protected static Tesseract iTesseract;
+	// protected static Tesseract iTesseract;
 	protected static ActionMap actionMap;
 	protected static ConsolePanel consolePanel;
 	protected static SensorsPanel sensorsPanel;
@@ -38,19 +38,7 @@ public class Hero extends TPlugin {
 
 	public Hero() {
 
-		// TODO: no visible performance improve by setting every sensor with his own teseract instance
-		iTesseract = new Tesseract(); // JNA Interface Mapping
-		iTesseract.setDatapath("plugins/hero/tessdata"); // path to tessdata directory
-
-		// DON:T SET THE PAGEMODE VAR: THIS DESTROY THE ACURACY OF THE OCR OPERATION. i don.t know why but it is
-		// iTesseract.setPageSegMode(3); //
-		
-		iTesseract.setTessVariable("classify_enable_learning", "0");
-		iTesseract.setTessVariable("OMP_THREAD_LIMIT", "1");
-		// TODO: recheck performanece. no visible performance improve setting this variable
-		// iTesseract.setOcrEngineMode(0); // Run Tesseract only - fastest
-
-//		iTesseract.setLanguage("pok");
+		// iTesseract.setLanguage("pok");
 		actionMap = Alesia.getInstance().getContext().getActionMap(this);
 		logger = Logger.getLogger("Hero");
 		consolePanel = new ConsolePanel(logger);
@@ -64,6 +52,21 @@ public class Hero extends TPlugin {
 			}
 		});
 		return load;
+	}
+
+	public static Tesseract geTesseract() {
+		// TODO: no visible performance improve by setting every sensor with his own teseract instance
+		Tesseract iTesseract = new Tesseract(); // JNA Interface Mapping
+		iTesseract.setDatapath("plugins/hero/tessdata"); // path to tessdata directory
+
+		// DON:T SET THE PAGEMODE VAR: THIS DESTROY THE ACURACY OF THE OCR OPERATION. i don.t know why but it is
+		// iTesseract.setPageSegMode(3); //
+
+		iTesseract.setTessVariable("classify_enable_learning", "0");
+		iTesseract.setTessVariable("OMP_THREAD_LIMIT", "1");
+		// TODO: recheck performanece. no visible performance improve setting this variable
+		// iTesseract.setOcrEngineMode(0); // Run Tesseract only - fastest
+		return iTesseract;
 	}
 	/**
 	 * This metod is separated because maybe in the future we will need diferents robot for diferent graphics
@@ -141,7 +144,7 @@ public class Hero extends TPlugin {
 		PropertyChangeListener tl = new PropertyChangeListener() {
 			public void propertyChange(PropertyChangeEvent evt) {
 				if (Trooper.PROP_DONE.equals(evt.getPropertyName())) {
-//					WebLookAndFeel.setForceSingleEventsThread(true);
+					// WebLookAndFeel.setForceSingleEventsThread(true);
 				}
 			}
 		};

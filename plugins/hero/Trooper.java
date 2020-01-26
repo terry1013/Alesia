@@ -7,7 +7,6 @@ import java.util.stream.*;
 
 import org.apache.commons.math3.distribution.*;
 import org.apache.commons.math3.stat.descriptive.*;
-import org.apache.poi.hsmf.parsers.*;
 import org.jdesktop.application.*;
 
 import com.javaflair.pokerprophesier.api.adapter.*;
@@ -141,8 +140,7 @@ public class Trooper extends Task {
 		boolean ok = true;
 		if (currentRound > PokerSimulator.HOLE_CARDS_DEALT && prob < PokerSimulator.probabilityThreshold) {
 			availableActions.clear();
-			setVariableAndLog(EXPLANATION,
-					"Probability &lt " + (int) (PokerSimulator.probabilityThreshold * 100.0) + "%");
+			setVariableAndLog(EXPLANATION, "Probability &lt " + PokerSimulator.probabilityThreshold);
 			ok = false;
 		}
 		return ok;
@@ -183,7 +181,7 @@ public class Trooper extends Task {
 
 		setVariableAndLog(EXPLANATION, "Normal pot odds actions");
 		int pot = pokerSimulator.getPotValue();
-		setOddActions("Pot " + pot, pot);
+		setOddActions("Normal pot odss " + pot, pot);
 
 		// check the odd probabilities
 		checkProbabilities();
@@ -257,6 +255,10 @@ public class Trooper extends Task {
 
 			// enviorement is in the gametable
 			if (isMyTurnToPlay()) {
+				// repeat the look of the sensors. this is because some times the capture is during a animation
+				// transition. to avoid error reading sensors, perform the lecture once more time. after the second
+				// lecutre, this retod return normaly
+				sensorsArray.read(SensorsArray.TYPE_ACTIONS);
 				return true;
 			}
 
@@ -339,7 +341,6 @@ public class Trooper extends Task {
 	 * 
 	 */
 	private String getSubOptimalAction() {
-		Vector<TEntry<String, Double>> tmp = new Vector<>();
 		int elements = availableActions.size();
 		double denom = availableActions.stream().mapToDouble(te -> te.getValue().doubleValue()).sum();
 		int[] singletos = new int[elements];
@@ -348,12 +349,10 @@ public class Trooper extends Task {
 			singletos[i] = i;
 			double evVal = availableActions.get(i).getValue();
 			probabilities[i] = evVal / denom;
-			String valStr = twoDigitFormat.format(evVal) + " " + availableActions.get(i).getKey().substring(0, 4);
-			tmp.add(new TEntry<>(valStr, probabilities[i]));
 		}
 		EnumeratedIntegerDistribution dist = new EnumeratedIntegerDistribution(singletos, probabilities);
 		String selact = availableActions.get(dist.sample()).getKey();
-		pokerSimulator.setActionsData(selact, tmp);
+		pokerSimulator.setActionsData(selact, availableActions);
 		return selact;
 	}
 
@@ -415,30 +414,31 @@ public class Trooper extends Task {
 	 * 
 	 */
 	private boolean isGoodPreflopHand() {
-		String value = null;
+		String txt = null;
 		// pocket pair
-		if (pokerSimulator.getMyHandHelper().isPocketPair())
-			value = "preflop hand is a pocket pair";
+		if (pokerSimulator.getMyHandHelper().isPocketPair()) {
+			txt = "preflop hand is a pocket pair";
+		}
 
 		// suited
 		if (pokerSimulator.getMyHoleCards().isSuited())
-			value = "preflop hand is suited";
+			txt = "preflop hand is suited";
 
 		// connected: cernters cards separated only by 1 or 2 cards provides de best probabilities (>6%)
 		double sp = pokerSimulator.getMyHandStatsHelper().getStraightProb();
-		if (sp > 0.059)
-			value = "preflop hand is posible straight";
+		if (sp >= 0.060)
+			txt = "preflop hand is posible straight";
 
 		// 10 or higher
 		Card[] heroc = pokerSimulator.getMyHoleCards().getCards();
 		if (heroc[0].getRank() > Card.NINE && heroc[1].getRank() > Card.NINE)
-			value = "preflop hand are 10 or higher";
+			txt = "preflop hand are 10 or higher";
 
-		if (value == null)
+		if (txt == null)
 			setVariableAndLog(EXPLANATION, "preflop hand is not good");
 		else
-			setVariableAndLog(EXPLANATION, value);
-		return value != null;
+			setVariableAndLog(EXPLANATION, txt);
+		return txt != null;
 	}
 
 	private boolean isMyTurnToPlay() {
@@ -478,7 +478,7 @@ public class Trooper extends Task {
 		if (pot >= 0)
 			availableActions.add(new TEntry<String, Double>("raise.pot;raise", getOddsWithoutRegret(sourceValue, pot)));
 
-		if (chips >= 0)
+		if (chips >= 0 && sensorsArray.getSensor("raise.allin").isEnabled())
 			availableActions
 					.add(new TEntry<String, Double>("raise.allin;raise", getOddsWithoutRegret(sourceValue, chips)));
 
@@ -488,15 +488,11 @@ public class Trooper extends Task {
 		// int bb = pokerSimulator.getBigBlind();
 		int bb = 100;
 
-		// the initial value is call value
-		int iniVal = call;
+		// the initial value is raise value
+		int iniVal = raise;
 
-		// fail safe: some times the slider sensor look enabled (i dont know way) so, i check the slider.text. both must
-		// be enabled
-		boolean sl = sensorsArray.getSensor("raise.slider").isEnabled()
-				&& sensorsArray.getSensor("raise.text").isEnabled();
 		// the slider action must be enabled and the call sensor enabled too (value > 0)
-		if (iniVal > 0 && sl) {
+		if (iniVal > 0 && sensorsArray.getSensor("raise.slider").isEnabled()) {
 			int tick = bb;
 			for (int c = 1; c < 11; c++) {
 				iniVal += (tick * c);
@@ -509,10 +505,10 @@ public class Trooper extends Task {
 		availableActions.removeIf(te -> te.getValue() < 0);
 
 		// 191228: Hero win his first game against TH app !!!!!!!!!!!!!!!! :D
-		String key = "Odds actions for";
-		String val = " " + sourceName + " " + availableActions.stream()
-				.map(te -> te.getKey() + "=" + fourDigitFormat.format(te.getValue())).collect(Collectors.joining(", "));
-		Hero.logger.info(key + " " + val);
+		String val = availableActions.stream().map(te -> te.getKey() + "=" + fourDigitFormat.format(te.getValue()))
+				.collect(Collectors.joining(", "));
+		val = val.trim().isEmpty() ? "No positive EV" : val;
+		Hero.logger.info(sourceName + " " + val);
 	}
 
 	/**
@@ -547,14 +543,20 @@ public class Trooper extends Task {
 			setVariableAndLog(EXPLANATION, "Error getting boss chips or hero chip.");
 			return;
 		}
-		setOddActions("Starting hand", base);
+		setOddActions("Preflop hand " + bn, base);
+		// TODO: temp: to avoid drain chips multiples times in drawings hans, i only keep all the options when the
+		// propability are > to the threshold. else, remove all except call/raise acctions
+		if (pokerSimulator.getBestProbability() < PokerSimulator.probabilityThreshold) {
+			setVariableAndLog(EXPLANATION, "Preflop cards &lt " + PokerSimulator.probabilityThreshold);
+			availableActions.removeIf(te -> !(te.getKey().equals("call") || te.getKey().equals("raise")));
+		}
 	}
 	private void setVariableAndLog(String key, Object value) {
 		String value1 = value.toString();
 		if (value instanceof Double)
 			value1 = fourDigitFormat.format(((Double) value).doubleValue());
 		pokerSimulator.setVariable(key, value);
-		// TODO: temporal : don.t log the status
+		// don.t log the status, only the explanation
 		if (!STATUS.equals(key))
 			Hero.logger.info(key + " " + value1);
 	}

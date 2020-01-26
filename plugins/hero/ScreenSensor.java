@@ -46,7 +46,7 @@ public class ScreenSensor extends JPanel {
 	private JLabel dataLabel;
 	private JLabel imageLabel;
 	private String ocrResult;
-
+	private Tesseract iTesseract;
 	private int ocrTime = -1;
 
 	public ScreenSensor(SensorsArray sa, Shape sha) {
@@ -71,6 +71,7 @@ public class ScreenSensor extends JPanel {
 		add(imageLabel, ratio > 2 ? BorderLayout.NORTH : BorderLayout.WEST);
 		add(dataLabel, BorderLayout.CENTER);
 
+		this.iTesseract = Hero.geTesseract();
 		init();
 		update();
 	}
@@ -226,16 +227,16 @@ public class ScreenSensor extends JPanel {
 		}
 		setEnabled(true);
 
-//		TODO: IMPLEMEEEEEEETTTTTTTTTTTTTTTTTTTTTTTTTTTT
-//		if (doOcr) {
-//			double imgdif = 100.0;
-//			if (lastOcrImage != null)
-//				imgdif = TCVUtils.getImageDiferences(lastOcrImage, capturedImage, false);
-//			if ((lastOcrImage == null) || imgdif > 0 || ocrResult == null) {
+		// TODO: IMPLEMEEEEEEETTTTTTTTTTTTTTTTTTTTTTTTTTTT
+		if (doOcr) {
+			double imgdif = 100.0;
+			if (lastOcrImage != null)
+				imgdif = TCVUtils.getImageDiferences(lastOcrImage, capturedImage, false);
+			if ((lastOcrImage == null) || imgdif > 0 || ocrResult == null) {
 				doOCR();
-//				lastOcrImage = capturedImage;
-//			}
-//		}
+				lastOcrImage = capturedImage;
+			}
+		}
 		update();
 		ocrTime = (int) (System.currentTimeMillis() - t1);
 	}
@@ -399,12 +400,12 @@ public class ScreenSensor extends JPanel {
 			MarvinImage mi = new MarvinImage(preparedImage);
 			TCVUtils.getImageSegments(mi, true, parms);
 		}
-//
-//		// if the card is the file name is card_facedown, set null for ocr
-//		if (ocr != null && ocr.equals("xx")) {
-//			ocr = null;
-//			Hero.logger.finer(getName() + ": card is face down.");
-//		}
+		//
+		// // if the card is the file name is card_facedown, set null for ocr
+		// if (ocr != null && ocr.equals("xx")) {
+		// ocr = null;
+		// Hero.logger.finer(getName() + ": card is face down.");
+		// }
 		return ocr;
 	}
 	/**
@@ -415,13 +416,13 @@ public class ScreenSensor extends JPanel {
 	 * @throws TesseractException
 	 */
 	private String getTesseractOCR() throws TesseractException {
-		String srcocr = Hero.iTesseract.doOCR(preparedImage);
+		String srcocr = iTesseract.doOCR(preparedImage);
 
 		// draw segmented regions (only on prepared image) and ONLY when the prepared image is request to be visible
 		if (showImage.equals(PREPARED) && preparedImage != null) {
 			int pageIteratorLevel = TessAPI.TessPageIteratorLevel.RIL_WORD;
 			// List<Word> wlst = Hero.iTesseract.getWords(preparedImage, pageIteratorLevel);
-			List<Rectangle> regions = Hero.iTesseract.getSegmentedRegions(preparedImage, pageIteratorLevel);
+			List<Rectangle> regions = iTesseract.getSegmentedRegions(preparedImage, pageIteratorLevel);
 			Graphics2D g2d = (Graphics2D) preparedImage.getGraphics();
 			g2d.setColor(Color.BLUE);
 			if (regions != null) {
@@ -495,7 +496,7 @@ public class ScreenSensor extends JPanel {
 		if (isTextArea() || isNumericArea()) {
 			bufimg = ImageHelper.getScaledInstance(capturedImage, scaledWidth, scaledHeight);
 			bufimg = ImageHelper.convertImageToGrayscale(bufimg);
-			
+
 		}
 		images.put(PREPARED, bufimg);
 		this.preparedImage = bufimg;
