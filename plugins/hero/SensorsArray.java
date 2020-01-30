@@ -61,7 +61,6 @@ public class SensorsArray {
 	private ShapeAreas screenAreas;
 	DescriptiveStatistics tesseractTime = new DescriptiveStatistics(10);
 	DescriptiveStatistics imageDiffereceTime = new DescriptiveStatistics(10);
-	private Hashtable<String, Integer> blinds;
 	private ArrayList<String> chipsSensors;
 
 	public SensorsArray() {
@@ -70,7 +69,6 @@ public class SensorsArray {
 		this.readingBorder = new LineBorder(Color.BLUE, 2);
 		this.lookingBorder = new LineBorder(Color.GREEN, 2);
 		this.standByBorder = new LineBorder(new JPanel().getBackground(), 2);
-		this.blinds = new Hashtable<>();
 		this.chipsSensors = new ArrayList();
 		this.screenSensors = new TreeMap<>();
 	}
@@ -224,7 +222,6 @@ public class SensorsArray {
 		screenSensors.values().stream().filter(ss -> !chipsSensors.contains(ss.getName())).forEach(ss -> ss.init());
 		// screenSensors.values().forEach((ss) -> ss.init());
 		pokerSimulator.init();
-		blinds.clear();
 	}
 
 	/**
@@ -330,19 +327,13 @@ public class SensorsArray {
 			// TODO: until now, i.m not using table position for any calculation.
 			// updateTablePosition();
 
-			// no need to update calls because PS pot contail all information
-			// updateCalls();
-			int potInt = getSensor("pot").getIntOCR();
+			pokerSimulator.setPotValue(getSensor("pot").getNumericOCR());
+			pokerSimulator.setCallValue(getSensor("hero.call").getNumericOCR());
+			pokerSimulator.setHeroChips(getSensor("hero.chips").getNumericOCR());
+			pokerSimulator.setRaiseValue(getSensor("hero.raise").getNumericOCR());
 
-			// the pot is the previous pot value + all calls
-			// potInt = potInt + blinds.values().stream().mapToInt(iv -> iv.intValue()).sum();
-
-			pokerSimulator.setPotValue(potInt);
-			pokerSimulator.setCallValue(getSensor("hero.call").getIntOCR());
-			pokerSimulator.setHeroChips(getSensor("hero.chips").getIntOCR());
-			pokerSimulator.setRaiseValue(getSensor("hero.raise").getIntOCR());
-
-			pokerSimulator.updateReport();
+			// the report is update at the end of this method
+			// pokerSimulator.updateReport();
 		}
 
 		// cards areas sensor will perform a simulation
@@ -357,9 +348,12 @@ public class SensorsArray {
 						pokerSimulator.getCardsBuffer().put(ss.getName(), ocr);
 				}
 			}
+			
 			pokerSimulator.setNunOfPlayers(getActiveVillans() + 1);
 			pokerSimulator.runSimulation();
 		}
+
+		// performance variables and update report
 		// pokerSimulator.setVariable("sensorArray.Total readed sensors", slist.size());
 		pokerSimulator.setVariable("sensorArray.Performance", "Tesseract " + ((int) tesseractTime.getMean())
 				+ " ImageDiference " + ((int) imageDiffereceTime.getMean()));
@@ -390,9 +384,8 @@ public class SensorsArray {
 		}
 	}
 	/**
-	 * Utility method to take the image of all card areas and store in the {@link ScreenSensor#IMAGE_CARDS} directory.
-	 * Used for retrive the images of the cards in configuration step to used for detect the card rack during the
-	 * gameplay
+	 * Utility method to take the image of all card areas and store in the {@link ScreenSensor#CARDS} directory. Used
+	 * for retrive the images of the cards in configuration step to used for detect the card rack during the gameplay
 	 */
 	public void takeCardSample() {
 		try {
@@ -404,7 +397,7 @@ public class SensorsArray {
 					ss.capture(false);
 					BufferedImage image = ss.getImage(ScreenSensor.CAPTURED);
 					// image = TColorUtils.getImageDataRegion(image);
-					File f = new File(ScreenSensor.IMAGE_CARDS + "sample_" + System.currentTimeMillis() + "." + ext);
+					File f = new File(ScreenSensor.CARDS + "sample_" + System.currentTimeMillis() + "." + ext);
 					f.createNewFile();
 					ImageIO.write(image, ext, f);
 				}
@@ -446,33 +439,6 @@ public class SensorsArray {
 	}
 
 	/**
-	 * Update the internal list of calls values. this list is used to calculate the correct pot value. The small and big
-	 * blinds are updatet too. The small blind is determinated by the smaller value in the list, and the big blind is
-	 * the next one.
-	 * <p>
-	 * NOTE: from this method point of view, the small/big blinds are the current detected smalles values. In some
-	 * ocations, the gameplay is too agressive to detect the real values.
-	 */
-	private void updateCalls() {
-		blinds.clear();
-		int sb = pokerSimulator.getSmallBlind() == -1 ? Integer.MAX_VALUE : pokerSimulator.getSmallBlind();
-		int bb = pokerSimulator.getBigBlind() == -1 ? Integer.MAX_VALUE : pokerSimulator.getBigBlind();
-		List<ScreenSensor> calls = getSensors(".call");
-		for (ScreenSensor ss : calls) {
-			int intocr = ss.getIntOCR();
-			// ignore errors or not available information
-			if (intocr > 0) {
-				sb = intocr < sb ? intocr : sb;
-				bb = intocr < bb && intocr > sb ? intocr : bb;
-				blinds.put(ss.getName(), intocr);
-			}
-		}
-		// reset to -1 values in case of no one make a call
-		sb = sb == Integer.MAX_VALUE ? -1 : sb;
-		bb = bb == Integer.MAX_VALUE ? -1 : bb;
-		pokerSimulator.setBlinds(sb, bb);
-	}
-	/**
 	 * Update the table position. the Hero´s table position is determinated detecting the dealer button and counting
 	 * clockwise. For examples, in a 4 villans table:
 	 * <li>If hero has the dealer button, this method return 5;
@@ -494,7 +460,6 @@ public class SensorsArray {
 	protected void createSensorsArray(ShapeAreas areas) {
 		this.screenAreas = areas;
 		this.screenSensors.clear();
-		this.blinds.clear();
 		for (Shape shape : screenAreas.getShapes().values()) {
 			ScreenSensor ss = new ScreenSensor(this, shape);
 			screenSensors.put(ss.getName(), ss);
@@ -504,7 +469,8 @@ public class SensorsArray {
 		// information that must be readed in idle time. this info never must be cleared
 		Collection<ScreenSensor> allSensors = screenSensors.values();
 		chipsSensors = new ArrayList<>();
-		List<String> slist = allSensors.stream().filter(ss -> ss.getName().contains(".chips"))
+		List<String> slist = allSensors.stream()
+				.filter(ss -> ss.getName().contains(".chips") || ss.getName().contains(".name"))
 				.map(ScreenSensor::getName).collect(Collectors.toList());
 		chipsSensors.addAll(slist);
 

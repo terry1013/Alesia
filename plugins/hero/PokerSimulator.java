@@ -55,7 +55,7 @@ public class PokerSimulator {
 	private int numSimPlayers;
 	private TreeMap<String, Object> variableList;
 	private PokerProphesierAdapter adapter;
-	private int callValue, raiseValue, potValue;
+	private double callValue, raiseValue, potValue;
 	private CommunityCards communityCards;
 	private JLabel reportJLabel;
 	private TUIPanel reportPanel;
@@ -67,9 +67,9 @@ public class PokerSimulator {
 	private MyHandStatsHelper myHandStatsHelper;
 	private MyGameStatsHelper myGameStatsHelper;
 
-	private int heroChips;
-	private int smallBlind;
-	private int bigBlind;
+	private double heroChips;
+	private double smallBlind;
+	private double bigBlind;
 
 	private ActionsBarChart actionsBarChart;
 	private long lastStepMillis;
@@ -104,6 +104,7 @@ public class PokerSimulator {
 		jp.add(actionsBarChart.getChartPanel(), BorderLayout.SOUTH);
 		// reportPanel.setBodyComponent(new JScrollPane(reportJLabel));
 		reportPanel.setBodyComponent(jp);
+		setBlinds(50, 100);
 
 		init();
 	}
@@ -133,11 +134,11 @@ public class PokerSimulator {
 		return bestProbability;
 	}
 
-	public int getBigBlind() {
+	public double getBigBlind() {
 		return bigBlind;
 	}
 
-	public int getCallValue() {
+	public double getCallValue() {
 		return callValue;
 	}
 
@@ -153,7 +154,7 @@ public class PokerSimulator {
 		return currentRound;
 	}
 
-	public int getHeroChips() {
+	public double getHeroChips() {
 		return heroChips;
 	}
 	public MyGameStatsHelper getMyGameStatsHelper() {
@@ -174,11 +175,11 @@ public class PokerSimulator {
 		return numSimPlayers;
 	}
 
-	public int getPotValue() {
+	public double getPotValue() {
 		return potValue;
 	}
 
-	public int getRaiseValue() {
+	public double getRaiseValue() {
 		return raiseValue;
 	}
 
@@ -191,7 +192,7 @@ public class PokerSimulator {
 		return reportPanel;
 	}
 
-	public int getSmallBlind() {
+	public double getSmallBlind() {
 		return smallBlind;
 	}
 	public int getTablePosition() {
@@ -216,8 +217,8 @@ public class PokerSimulator {
 		cardsBuffer.clear();
 		potValue = -1;
 		tablePosition = -1;
-		smallBlind = -1;
-		bigBlind = -1;
+		// smallBlind = -1;
+		// bigBlind = -1;
 		callValue = -1;
 		raiseValue = -1;
 		heroChips = -1;
@@ -283,10 +284,10 @@ public class PokerSimulator {
 		this.smallBlind = sb;
 		this.bigBlind = bb;
 	}
-	public void setCallValue(int callValue) {
+	public void setCallValue(double callValue) {
 		this.callValue = callValue;
 	}
-	public void setHeroChips(int heroChips) {
+	public void setHeroChips(double heroChips) {
 		this.heroChips = heroChips;
 	}
 
@@ -294,11 +295,11 @@ public class PokerSimulator {
 		this.numSimPlayers = p;
 	}
 
-	public void setPotValue(int potValue) {
+	public void setPotValue(double potValue) {
 		this.potValue = potValue;
 	}
 
-	public void setRaiseValue(int raiseValue) {
+	public void setRaiseValue(double raiseValue) {
 		this.raiseValue = raiseValue;
 	}
 	public void setTablePosition(int tp) {
@@ -314,7 +315,7 @@ public class PokerSimulator {
 			// variableList.put("trooper.Performance Step time", (System.currentTimeMillis() - lastStepMillis));
 			lastStepMillis = System.currentTimeMillis();
 		}
-
+		// mandatori. i nedd to see what is happening
 		updateReport();
 	}
 	public void updateReport() {
@@ -326,7 +327,6 @@ public class PokerSimulator {
 			}
 		};
 		// long t1 = System.currentTimeMillis();
-		// reportJLabel.setVisible(false);
 		String selectedHelper = ((TEntry) helperFilterComboBox.getSelectedItem()).getKey().toString();
 		String text = "<html>";
 		if (myHandHelper != null && selectedHelper.equals("MyHandHelper")) {
@@ -362,7 +362,6 @@ public class PokerSimulator {
 
 		text += "</html>";
 		reportJLabel.setText(text);
-		// reportJLabel.setVisible(true);
 		reportJLabel.repaint();
 		// Hero.logger.severe("updateMyOutsHelperInfo(): " + (System.currentTimeMillis() - t1));
 	}
@@ -522,8 +521,7 @@ public class PokerSimulator {
 		variableList.put("simulator.ammount.Raise", getRaiseValue());
 		variableList.put("simulator.ammount.Pot", getPotValue());
 		variableList.put("simulator.Num of players", getNumSimPlayers());
-		// variableList.put("simulator.ammount.Small blind", getSmallBlind());
-		// variableList.put("simulator.ammount.Big blind", getBigBlind());
+		variableList.put("simulator.ammount.blinds", getSmallBlind() + "/" + getBigBlind());
 		log();
 	}
 }

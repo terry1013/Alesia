@@ -11,6 +11,7 @@ import org.jdesktop.application.*;
 
 import com.javaflair.pokerprophesier.api.adapter.*;
 import com.javaflair.pokerprophesier.api.card.*;
+import com.jgoodies.common.base.*;
 
 import core.*;
 
@@ -41,10 +42,11 @@ import core.*;
  * @author terry
  *
  */
-public class Trooper extends Task {
+public class Trooper2 extends Task {
 
-	private static Trooper instance;
+	private static Trooper2 instance;
 	private static DecimalFormat fourDigitFormat = new DecimalFormat("#0.0000");
+	private static DecimalFormat twoDigitFormat = new DecimalFormat("#0.00");
 
 	public static String EXPLANATION = "trooper.Explanation";
 	public static String STATUS = "trooper.Status";
@@ -63,10 +65,10 @@ public class Trooper extends Task {
 	 */
 	private GameRecorder gameRecorder;
 
-	public Trooper() {
+	public Trooper2() {
 		this(null);
 	}
-	public Trooper(Trooper clone) {
+	public Trooper2(Trooper2 clone) {
 		super(Alesia.getInstance());
 		this.robotActuator = new RobotActuator();
 		availableActions = new Vector<>();
@@ -79,7 +81,7 @@ public class Trooper extends Task {
 			init(clone.file);
 		}
 	}
-	public static Trooper getInstance() {
+	public static Trooper2 getInstance() {
 		return instance;
 	}
 
@@ -154,10 +156,9 @@ public class Trooper extends Task {
 		Hero.logger.fine("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
 	}
 	long stepMillis;
-	private static String ODDS_EV = "Expected value odds";
-	private static String ODDS_MREV = "Minimun regret odds";
+
 	/**
-	 * decide de action(s) to perform. This method is called when the {@link Trooper} detect that is my turn to play. At
+	 * decide de action(s) to perform. This method is called when the {@link Trooper2} detect that is my turn to play. At
 	 * this point, the game enviorement is waiting for an accion.
 	 * 
 	 */
@@ -178,9 +179,9 @@ public class Trooper extends Task {
 
 		// int chips = pokerSimulator.getHeroChips();
 
-		setVariableAndLog(EXPLANATION, "computing " + ODDS_MREV + " ...");
+		setVariableAndLog(EXPLANATION, "Normal pot odds actions");
 		double pot = pokerSimulator.getPotValue();
-		setOddActions(ODDS_MREV, "pot " + pot, pot);
+		setOddActions("Normal pot odss " + pot, pot);
 
 		// check the odd probabilities
 		checkProbabilities();
@@ -247,7 +248,6 @@ public class Trooper extends Task {
 			if (!lastHoleCards.equals(hch)) {
 				lastHoleCards = hch;
 				setVariableAndLog(STATUS, "Cleanin the enviorement ...");
-				setVariableAndLog(EXPLANATION, "new round.");
 				clearEnviorement();
 				setVariableAndLog(STATUS, "Looking the table ...");
 				continue;
@@ -286,33 +286,27 @@ public class Trooper extends Task {
 	 * @param base - amount to retrive the odds from
 	 * @param cost - cost of call/bet/raise/...
 	 * 
+	 * @return expected utility for the passed argument
 	 */
-	protected void calculateOdds(double base, Vector<TEntry<String, Double>> list) {
-		// Preconditions.checkArgument(base >= 0 && cost >= 0, "Odd function accept only 0 or positive values.");
+	private double getOdds(double base, double cost) {
+		Preconditions.checkArgument(base >= 0 && cost >= 0, "Odd function accept only 0 or positive values.");
 		double prob = pokerSimulator.getBestProbability();
-		for (TEntry<String, Double> tEntry : list) {
-			double cost = tEntry.getValue();
-			// MoP page 54
-			double ev = (prob * base) - cost;
-			tEntry.setValue(ev);
-		}
-		// remove the action with negative EV
-		list.removeIf(te -> te.getValue() < 0);
+		// MoP page 54
+		double ev = (prob * base) - cost;
+		return ev;
 	}
 
-	protected void calculateRegretMinOdds(double base, Vector<TEntry<String, Double>> list) {
+	private double getOddsWithoutRegret(double base, double cost) {
+		Preconditions.checkArgument(base >= 0 && cost >= 0, "Odd function accept only 0 or positive values.");
 		double prob = pokerSimulator.getBestProbability();
-		// step (by observation, 1/20 of the bb)
-		double step = pokerSimulator.getBigBlind() / 20.0;
+		// normal EV.
+		double ev = getOdds(base, cost);
+		if (ev < 0)
+			return ev;
 		// regret
-		double reg = (prob - PokerSimulator.probabilityThreshold) * -1 * step;
-		for (TEntry<String, Double> tEntry : list) {
-			double cost = tEntry.getValue();
-			// similar eq for EV but now the cost has an asociated regret
-			double aev = (prob * base) - (cost * reg);
-			tEntry.setValue(aev);
-		}
-		list.removeIf(te -> te.getValue() < 0);
+		double reg = (prob - PokerSimulator.probabilityThreshold) * -1;
+		double ev2 = (prob * base) - (cost * reg);
+		return ev2;
 	}
 
 	/**
@@ -360,6 +354,55 @@ public class Trooper extends Task {
 		String selact = availableActions.get(dist.sample()).getKey();
 		pokerSimulator.setActionsData(selact, availableActions);
 		return selact;
+	}
+
+	/**
+	 * invert the list of {@link #availableActions} if the list contain all negative expected values.
+	 * <p>
+	 * Under some conditions, for example, when pot=0 or when, in pre flop street, the cost of a single call can not be
+	 * afforded even if hero has a pair of AAs, the normal potodd equation return negative espectative, in this case,
+	 * the trooper will fold his hand. to avoid this, translate all negatives values to the positive contepart changing
+	 * the sigh and shift the values to reflect the inverse of the retrived value. this allow
+	 * {@link #getSubOptimalAction()} select the less worst action for this espetial case.
+	 * 
+	 * <p>
+	 * Example: calculating the potodd for pot=0 will return: <code>
+	 * <TABLE>
+	 * <TR>
+	 * <TD>fold=-1</TD>
+	 * <TD>fold=1000</TD>
+	 * </TR>
+	 * <TR>
+	 * <TD>call(100)=-100</TD>
+	 * <TD>call(100)=200</TD>
+	 * </TR>
+	 * <TR>
+	 * <TD>raise(200)=-200</TD>
+	 * <TD>raise(200)=200</TD>
+	 * </TR>
+	 * <TR>
+	 * <TD>...</TD>
+	 * <TD>...</TD>
+	 * </TR>
+	 * <TR>
+	 * <TD>allin(1000)=-1000</TD>
+	 * <TD>allin(1000)=1</TD>
+	 * </TR>
+	 * </TABLE>
+	 * </code>
+	 * 
+	 */
+	protected void invertNegativeEV() {
+		// remove positive values. just in case
+		availableActions.removeIf(te -> te.getValue().doubleValue() > 0);
+		if (availableActions.isEmpty())
+			return;
+
+		// availableActions.add(new TEntry<String, Double>("fold", -1.0));
+		// availableActions.sort(null);
+		double max = availableActions.get(0).getValue() * -1.0;
+		availableActions.stream().forEach(te -> te.setValue(max + te.getValue()));
+		// pokerSimulator.setActionsData("Inverted", null, availableActions);
 	}
 
 	/**
@@ -419,7 +462,7 @@ public class Trooper extends Task {
 	 * @param sourceName - the name of the source
 	 * @param sourceValue - the value
 	 */
-	private void setOddActions(String computationType, String sourceName, double sourceValue) {
+	private void setOddActions(String sourceName, double sourceValue) {
 		availableActions.clear();
 		double call = pokerSimulator.getCallValue();
 		double raise = pokerSimulator.getRaiseValue();
@@ -427,44 +470,45 @@ public class Trooper extends Task {
 		double pot = pokerSimulator.getPotValue();
 
 		if (call >= 0)
-			availableActions.add(new TEntry<String, Double>("call", call));
+			availableActions.add(new TEntry<String, Double>("call", getOddsWithoutRegret(sourceValue, call)));
 
 		if (raise >= 0)
-			availableActions.add(new TEntry<String, Double>("raise", raise));
+			availableActions.add(new TEntry<String, Double>("raise", getOddsWithoutRegret(sourceValue, raise)));
 
 		if (pot >= 0)
-			availableActions.add(new TEntry<String, Double>("raise.pot;raise", pot));
+			availableActions.add(new TEntry<String, Double>("raise.pot;raise", getOddsWithoutRegret(sourceValue, pot)));
 
 		if (chips >= 0 && sensorsArray.getSensor("raise.allin").isEnabled())
-			availableActions.add(new TEntry<String, Double>("raise.allin;raise", chips));
+			availableActions
+					.add(new TEntry<String, Double>("raise.allin;raise", getOddsWithoutRegret(sourceValue, chips)));
 
 		// TODO: until now i.m goin to implement the slider performing click over the right side of the compoent.
 		// TODO: complete implementation of writhe the ammount for Poker star
 		// int sb = pokerSimulator.getSmallBlind();
-		double bb = pokerSimulator.getBigBlind();
+		// int bb = pokerSimulator.getBigBlind();
+		double bb = 100.0;
 
 		// the initial value is raise value
-		double tickVal = raise;
+		double iniVal = raise;
 
 		// the slider action must be enabled and the call sensor enabled too (value > 0)
-		if (tickVal > 0 && sensorsArray.getSensor("raise.slider").isEnabled()) {
+		if (iniVal > 0 && sensorsArray.getSensor("raise.slider").isEnabled()) {
 			double tick = bb;
-			// TODO: calculate until the end of the posible values
 			for (int c = 1; c < 11; c++) {
-				tickVal += (tick * c);
-				availableActions.add(new TEntry<String, Double>("raise.slider,c=" + c + ";raise", tickVal));
+				iniVal += (tick * c);
+				availableActions.add(new TEntry<String, Double>("raise.slider,c=" + c + ";raise",
+						getOddsWithoutRegret(sourceValue, iniVal)));
 			}
 		}
-		if (computationType == ODDS_EV)
-			calculateOdds(sourceValue, availableActions);
-		else
-			calculateRegretMinOdds(sourceValue, availableActions);
+
+		// remove negative ev
+		availableActions.removeIf(te -> te.getValue() < 0);
 
 		// 191228: Hero win his first game against TH app !!!!!!!!!!!!!!!! :D
 		String val = availableActions.stream().map(te -> te.getKey() + "=" + fourDigitFormat.format(te.getValue()))
 				.collect(Collectors.joining(", "));
 		val = val.trim().isEmpty() ? "No positive EV" : val;
-		Hero.logger.info(computationType + " for " + sourceName + " " + val);
+		Hero.logger.info(sourceName + " " + val);
 	}
 
 	/**
@@ -499,12 +543,12 @@ public class Trooper extends Task {
 			setVariableAndLog(EXPLANATION, "Error getting boss chips or hero chip.");
 			return;
 		}
+		setOddActions("Preflop hand " + bn, base);
 		// TODO: temp: to avoid drain chips multiples times in drawings hans, i only keep all the options when the
 		// propability are > to the threshold. else, remove all except call/raise acctions
-		setOddActions(ODDS_EV, "Preflop hand " + bn, base);
 		if (pokerSimulator.getBestProbability() < PokerSimulator.probabilityThreshold) {
-			// setVariableAndLog(EXPLANATION, "Preflop cards &lt " + PokerSimulator.probabilityThreshold);
-			// availableActions.removeIf(te -> !(te.getKey().equals("call") || te.getKey().equals("raise")));
+			setVariableAndLog(EXPLANATION, "Preflop cards &lt " + PokerSimulator.probabilityThreshold);
+			availableActions.removeIf(te -> !(te.getKey().equals("call") || te.getKey().equals("raise")));
 		}
 	}
 	private void setVariableAndLog(String key, Object value) {

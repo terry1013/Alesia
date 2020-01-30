@@ -29,18 +29,18 @@ public class ActionsBarChart {
 	public void addDataset(Hashtable<Integer, Integer> histogram, String name) {
 		Set<Integer> keys = histogram.keySet();
 		for (Integer key : keys) {
-			Color col  = new Color(key);
+			Color col = new Color(key);
 			String colval = TColorUtils.getRGBColor(col);
 			dataset.addValue(histogram.get(key), name, colval);
 		}
-//		change the color of the bars
-//		XYPlot xYPlot = (XYPlot) chart.getPlot();
-//		XYBarRenderer xYBarRenderer = (XYBarRenderer) xYPlot.getRenderer();
-//		xYBarRenderer.setDrawBarOutline(false);
-//		xYBarRenderer.setBarPainter(new StandardXYBarPainter());
-//		xYBarRenderer.setShadowVisible(false);
+		// change the color of the bars
+		// XYPlot xYPlot = (XYPlot) chart.getPlot();
+		// XYBarRenderer xYBarRenderer = (XYBarRenderer) xYPlot.getRenderer();
+		// xYBarRenderer.setDrawBarOutline(false);
+		// xYBarRenderer.setBarPainter(new StandardXYBarPainter());
+		// xYBarRenderer.setShadowVisible(false);
 	}
-	
+
 	/**
 	 * set the dataset for histogram
 	 * 
@@ -56,13 +56,16 @@ public class ActionsBarChart {
 		return chartPanel;
 	}
 
+	private String removePrefix(String action) {
+		return action.replace("raise.", "");
+	}
 	public void setCategoryMarker(String category) {
 		CategoryPlot categoryPlot = (CategoryPlot) chart.getPlot();
 		categoryPlot.clearDomainMarkers();
 		if (category == null)
 			return;
-
-		CategoryMarker categoryMarker = new CategoryMarker(category);
+		String cat = removePrefix(category);
+		CategoryMarker categoryMarker = new CategoryMarker(cat);
 		categoryMarker.setPaint(Color.BLUE);
 		categoryMarker.setAlpha(0.3F);
 		categoryPlot.addDomainMarker(categoryMarker, Layer.FOREGROUND);
@@ -75,11 +78,11 @@ public class ActionsBarChart {
 	public void setDataSet(Vector<TEntry<String, Double>> example) {
 		dataset.clear();
 
-		// fill the dataset with empty sloot to keep the shape of the graphics
+		// fill the dataset with empty slots to keep the shape of the graphics
 		if (example == null)
 			example = new Vector<>();
-		
-		example.forEach(te -> dataset.addValue(te.getValue(), "", te.getKey()));
+
+		example.forEach(te -> dataset.addValue(te.getValue(), "", removePrefix(te.getKey())));
 		int morec = 15 - dataset.getColumnCount();
 		if (morec < 1)
 			return;
@@ -98,13 +101,13 @@ public class ActionsBarChart {
 		categoryPlot.setDomainGridlinesVisible(true);
 		categoryPlot.setRangeCrosshairVisible(true);
 		categoryPlot.setRangeCrosshairPaint(Color.blue);
-		
+
 		Plot plot = chart.getPlot();
-//		xYPlot.setDomainPannable(true);
-//		xYPlot.setRangePannable(true);
+		// xYPlot.setDomainPannable(true);
+		// xYPlot.setRangePannable(true);
 		plot.setBackgroundPaint(Color.white);
 		plot.setForegroundAlpha(0.85F);
-		
+
 		CategoryAxis categoryAxis = categoryPlot.getDomainAxis();
 		categoryAxis
 				.setCategoryLabelPositions(CategoryLabelPositions.createUpRotationLabelPositions(0.5235987755982988D));
@@ -112,8 +115,8 @@ public class ActionsBarChart {
 		chart.getLegend().setVisible(false);
 		chart.setBackgroundPaint(Color.WHITE);
 
-//		StandardChartTheme sct = new StandardChartTheme("Legacy");
-//		sct.apply(chart);
+		// StandardChartTheme sct = new StandardChartTheme("Legacy");
+		// sct.apply(chart);
 		// ChartUtils.applyCurrentTheme(jFreeChart);
 		return chart;
 	}

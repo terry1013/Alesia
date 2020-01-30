@@ -35,8 +35,8 @@ public class ScreenSensor extends JPanel {
 	private Hashtable<String, BufferedImage> images;
 	private String showImage;
 
-	public static String IMAGE_CARDS = "plugins/hero/image_cards/";
-	public static TreeMap<String, BufferedImage> cardsTable = TCVUtils.loadCards(IMAGE_CARDS);
+	public static String CARDS = "plugins/hero/cards/";
+	public static TreeMap<String, BufferedImage> cardsTable = TCVUtils.loadCards(CARDS);
 	private Shape shape;
 	private SensorsArray sensorsArray;
 	private int scaledWidth, scaledHeight;
@@ -254,15 +254,15 @@ public class ScreenSensor extends JPanel {
 	 * 
 	 * @return int value or <code>-1</code>
 	 */
-	public int getIntOCR() {
+	public double getNumericOCR() {
 		String ocr = getOCR();
-		int val = -1;
+		double val = -1;
 		try {
 			if (ocr != null) {
-				val = Integer.parseInt(ocr);
+				val = Double.parseDouble(ocr);
 			}
 		} catch (Exception e) {
-			Hero.logger.severe(getName() + ": Fail getting int value. The OCR is: " + ocr);
+			Hero.logger.severe(getName() + ": Fail getting double value. The OCR is: " + ocr);
 		}
 		return val;
 	}

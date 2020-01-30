@@ -62,7 +62,7 @@ public class TCVUtils {
 		Rectangle croprec = getJoinSegments(segments);
 		MarvinImage clone;
 		// if there is no area to crop, return a copy of the original
-		if (croprec.getWidth() > 0 &&  croprec.getHeight() > 0)
+		if (croprec.getWidth() > 0 && croprec.getHeight() > 0)
 			clone = image.subimage(croprec.x, croprec.y, croprec.width, croprec.height);
 		else
 			clone = image.clone();
@@ -454,6 +454,7 @@ public class TCVUtils {
 		parms.setProperty("color", TColorUtils.getRGBColor(backgroundColor));
 		parms.setProperty("size", "8");
 		bufimg = TCVUtils.paintBorder(bufimg, parms);
+		// source from folder or captured ?
 		if (src)
 			bufimg = bufimg.getSubimage(0, 0, 28, 35);
 		MarvinImage mi = new MarvinImage(bufimg);
@@ -583,7 +584,7 @@ public class TCVUtils {
 
 	private void processImages() {
 		// start from the source
-		images = loadImages(ScreenSensor.IMAGE_CARDS);
+		images = loadImages(ScreenSensor.CARDS);
 
 		Set<String> keys = images.keySet();
 		for (String key : keys) {
@@ -608,7 +609,7 @@ public class TCVUtils {
 			Set<String> keys = images.keySet();
 			for (String key : keys) {
 				BufferedImage image = images.get(key);
-				File f = new File(ScreenSensor.IMAGE_CARDS + key + "." + ext);
+				File f = new File(ScreenSensor.CARDS + key + "." + ext);
 				f.delete();
 				f.createNewFile();
 				ImageIO.write(image, ext, f);
@@ -620,7 +621,7 @@ public class TCVUtils {
 
 	private void saveSegments() {
 		try {
-			images = loadImages(ScreenSensor.IMAGE_CARDS);
+			images = loadImages(ScreenSensor.CARDS);
 			String ext = "png";
 			Set<String> keys = images.keySet();
 			for (String key : keys) {
@@ -645,7 +646,7 @@ public class TCVUtils {
 
 	private void showFrame() {
 		// image panel
-		images = loadImages(ScreenSensor.IMAGE_CARDS);
+		images = loadImages(ScreenSensor.CARDS);
 		JPanel imagesPanel = createImagesPanel(images);
 
 		// controls
@@ -676,7 +677,7 @@ public class TCVUtils {
 	}
 
 	private void testImagePhash() {
-		images = loadImages(ScreenSensor.IMAGE_CARDS);
+		images = loadImages(ScreenSensor.CARDS);
 		images2 = new Hashtable<>();
 
 		Set<String> keys = images.keySet();

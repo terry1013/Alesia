@@ -112,7 +112,7 @@ public class Hero extends TPlugin {
 		Alesia.getMainPanel().setContentPanel(sensorsPanel);
 
 		// temporal
-		Trooper.getInstance().init(new File("plugins/hero/resources/ps-poker stars.ppt"));
+		Trooper.getInstance().init(new File("plugins/hero/resources/ps-main table.ppt"));
 	}
 
 	@org.jdesktop.application.Action
