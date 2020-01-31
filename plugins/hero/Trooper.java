@@ -131,17 +131,32 @@ public class Trooper extends Task {
 	 * only to aboid drain chips in lost causes
 	 * 
 	 */
-	private boolean checkProbabilities() {
+	private void ammunitionControl() {
 		double prob = pokerSimulator.getBestProbability();
+		double herochip = pokerSimulator.getHeroChips();
 		int currentRound = pokerSimulator.getCurrentRound();
-		// i use a bolean because the available action my be emptey already
-		boolean ok = true;
-		if (currentRound > PokerSimulator.HOLE_CARDS_DEALT && prob < PokerSimulator.probabilityThreshold) {
-			availableActions.clear();
-			setVariableAndLog(EXPLANATION, "Probability &lt " + PokerSimulator.probabilityThreshold);
-			ok = false;
-		}
-		return ok;
+
+		double investCapavility = herochip * prob;
+
+		int z1 = availableActions.size();
+		// the amunition control is activated only for normal prob (2/3)
+		if (currentRound > PokerSimulator.HOLE_CARDS_DEALT && prob < 0.6666)
+			availableActions.removeIf(te -> te.getValue() > investCapavility);
+
+		int z2 = z1 - availableActions.size();
+		if (z2 > 0)
+			setVariableAndLog(EXPLANATION, "Amunition control remove " + z2 + " actions.");
+
+		//
+		// int currentRound = pokerSimulator.getCurrentRound();
+		// // i use a bolean because the available action my be emptey already
+		// boolean ok = true;
+		// if (currentRound > PokerSimulator.HOLE_CARDS_DEALT && prob < PokerSimulator.probabilityThreshold) {
+		// availableActions.clear();
+		// setVariableAndLog(EXPLANATION, "Probability &lt " + PokerSimulator.probabilityThreshold);
+		// ok = false;
+		// }
+		// return ok;
 	}
 
 	private void clearEnviorement() {
@@ -182,8 +197,7 @@ public class Trooper extends Task {
 		double pot = pokerSimulator.getPotValue();
 		setOddActions(ODDS_MREV, "pot " + pot, pot);
 
-		// check the odd probabilities
-		checkProbabilities();
+		ammunitionControl();
 
 		// preflop: if normal pot odd action has no action todo, check the preflopcards.
 		if (availableActions.size() == 0 && pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
@@ -308,10 +322,14 @@ public class Trooper extends Task {
 		double reg = (prob - PokerSimulator.probabilityThreshold) * -1 * step;
 		for (TEntry<String, Double> tEntry : list) {
 			double cost = tEntry.getValue();
-			// similar eq for EV but now the cost has an asociated regret
-			double aev = (prob * base) - (cost * reg);
-			tEntry.setValue(aev);
+			// 1 calculate normal EV
+			double ev = (prob * base) - cost;
+			// 2 ONLY if normal EV is positive, calcula RMEV.
+			if (ev > 0)
+				ev = (prob * base) - (cost * reg);
+			tEntry.setValue(ev);
 		}
+		// 3 remove all negative values
 		list.removeIf(te -> te.getValue() < 0);
 	}
 
@@ -319,7 +337,7 @@ public class Trooper extends Task {
 	 * chck for all sensor and return the current active stronger villan. The stronger villan in this functions is the
 	 * villan with more chips.
 	 */
-	private double getStrongerVillan() {
+	private double getBoss() {
 		ArrayList<Double> chips = new ArrayList<>();
 		for (int id = 1; id <= sensorsArray.getVillans(); id++) {
 			if (sensorsArray.isVillanActive(id))
@@ -328,10 +346,8 @@ public class Trooper extends Task {
 		chips.removeIf(i -> i.doubleValue() < 0);
 		chips.sort(null);
 
-		// fail safe in case of error reading sensor: , the sensor some times get error and this function cant detect
-		// the stronger villan. in this case, return 0 to allow the fight continue
 		if (chips.isEmpty())
-			return 0;
+			return -1;
 
 		double wv = chips.get(chips.size() - 1);
 		return wv;
@@ -486,26 +502,18 @@ public class Trooper extends Task {
 			return;
 
 		double herochips = pokerSimulator.getHeroChips();
-		double boss = getStrongerVillan();
-		double base = herochips > boss ? boss : herochips;
-		String bn = herochips > boss ? "boss" : "herochips";
+		double boss = getBoss();
+		double base = herochips > boss && boss != -1 ? boss : herochips;
+		String bn = base == boss ? "boss" : "herochips";
 		setVariableAndLog("trooper.Troper preflop base", bn + " " + base);
 
-		// TODO: in case of error getting hero or boss chips, the hand is still good. ??? what to do? how to inprove
-		// acuracion in for the numeric values ??
-		// TODO: test. in case of error, this metod just notify the event. the final desicion of the decide method try
-		// to keep the troper in fight selectin check action instead of fold action.
-		if (base < 0) {
-			setVariableAndLog(EXPLANATION, "Error getting boss chips or hero chip.");
-			return;
-		}
 		// TODO: temp: to avoid drain chips multiples times in drawings hans, i only keep all the options when the
 		// propability are > to the threshold. else, remove all except call/raise acctions
 		setOddActions(ODDS_EV, "Preflop hand " + bn, base);
-		if (pokerSimulator.getBestProbability() < PokerSimulator.probabilityThreshold) {
-			// setVariableAndLog(EXPLANATION, "Preflop cards &lt " + PokerSimulator.probabilityThreshold);
-			// availableActions.removeIf(te -> !(te.getKey().equals("call") || te.getKey().equals("raise")));
-		}
+		// if (pokerSimulator.getBestProbability() < PokerSimulator.probabilityThreshold) {
+		// // setVariableAndLog(EXPLANATION, "Preflop cards &lt " + PokerSimulator.probabilityThreshold);
+		// // availableActions.removeIf(te -> !(te.getKey().equals("call") || te.getKey().equals("raise")));
+		// }
 	}
 	private void setVariableAndLog(String key, Object value) {
 		String value1 = value.toString();

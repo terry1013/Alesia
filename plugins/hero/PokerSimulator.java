@@ -276,6 +276,7 @@ public class PokerSimulator {
 		actionsBarChart.setDataSet(actions);
 		updateReport();
 	}
+
 	public void setActionsData(Vector<TEntry<String, Double>> actions) {
 		actionsBarChart.setDataSet(actions);
 		updateReport();
