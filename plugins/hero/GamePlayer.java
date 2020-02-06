@@ -2,6 +2,8 @@ package plugins.hero;
 
 import java.util.*;
 
+import org.apache.commons.math3.stat.descriptive.*;
+
 /**
  * encapsulate all player information.
  * <p>
@@ -14,15 +16,19 @@ import java.util.*;
 public class GamePlayer {
 	public static final String unkData = "?";
 	public String name = "";
-	public String card1 = unkData;
-	public String card2 = unkData;
-	public StringBuffer actions = new StringBuffer();
+	private DescriptiveStatistics bettings;
+	private DescriptiveStatistics potValues;
+	private SensorsArray array;
 	private int playerId;
 	private String prefix;
+
 	public GamePlayer(int playerId) {
 		this.playerId = playerId;
 		this.prefix = "villan" + playerId;
 		this.name = prefix;
+		this.array = Trooper.getInstance().getSensorsArray();
+		this.bettings = new DescriptiveStatistics(100);
+		this.potValues = new DescriptiveStatistics(100);
 	}
 
 	/**
@@ -33,42 +39,31 @@ public class GamePlayer {
 	 * data base. propabilistic information about this villan could be retribed afeter that
 	 */
 	public void update() {
-		SensorsArray array = Trooper.getInstance().getSensorsArray();
-		ScreenSensor nameSensor = array.getSensor(prefix + ".name");
 
 		// update only the active villans. if a villan fold, his last actions was already recorded
 		if (!array.isVillanActive(playerId))
 			return;
 
-		// TODO: temporal for th app. retrive the name only once when the background is black
-		if (name.equals(prefix) && nameSensor.getMaxColor().equals("000000")) {
-			nameSensor.capture(true);
-			name = nameSensor.getOCR();
-			name = name == null ? prefix : name;
-		}
-		if (card1.equals(unkData)) {
-			String ct = array.getSensor(prefix + ".card1").getOCR();
-			card1 = ct == null ? unkData : ct;
-		}
-		if (card2.equals(unkData)) {
-			String ct = array.getSensor(prefix + ".card2").getOCR();
-			card2 = ct == null ? unkData : ct;
+		// update only villans with colected information
+		double chips = array.getSensor(prefix + ".chips").getNumericOCR();
+		if (chips == -1)
+			return;
+
+		// update only after preflop
+		if (array.getPokerSimulator().getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT)
+			return;
+
+		// at this point i need to collect the information
+		// villan name
+		name = array.getSensor(prefix + ".name").getOCR();
+		name = name == null ? prefix : name;
+		// TODO: is a know villan ??
+		if (name != null) {
+			// Alesia.openDB();
 		}
 
-		// action perform by the by villan. at this point the villan still alive. if i can get the villan action it is
-		// because the villan is not spoked yet, hero is in a early table position. So he still alive at this point he
-		// must be call/check the hero last action
-		// BufferedImage imagea = nameSensor.getPreparedImage();
-		// BufferedImage imagea = nameSensor.getCapturedImage();
-		// String ocr = ScreenSensor.getOCRFromImage(nameSensor.getName(), imagea, GameRecorder.actionsTable);
-		// values. the unknow or error spetial value -1 is appended too
-		String ocr = null;
-		int val = array.getSensor(prefix + ".call").getIntOCR();
-		actions.append(ocr == null ? "c" : ocr.substring(0, 1));
-		actions.append(val);
-	}
-	@Override
-	public String toString() {
-		return name + "," + card1 + "," + card2 + "," + actions;
+		double pot = array.getSensor("pot").getNumericOCR();
+		potValues.addValue(pot);
+		bettings.addValue(chips);
 	}
 }

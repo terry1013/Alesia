@@ -61,7 +61,7 @@ public class SensorsArray {
 	private ShapeAreas screenAreas;
 	DescriptiveStatistics tesseractTime = new DescriptiveStatistics(10);
 	DescriptiveStatistics imageDiffereceTime = new DescriptiveStatistics(10);
-	private ArrayList<String> chipsSensors;
+	private ArrayList<String> villansSensors;
 
 	public SensorsArray() {
 		this.pokerSimulator = new PokerSimulator();
@@ -69,7 +69,7 @@ public class SensorsArray {
 		this.readingBorder = new LineBorder(Color.BLUE, 2);
 		this.lookingBorder = new LineBorder(Color.GREEN, 2);
 		this.standByBorder = new LineBorder(new JPanel().getBackground(), 2);
-		this.chipsSensors = new ArrayList();
+		this.villansSensors = new ArrayList();
 		this.screenSensors = new TreeMap<>();
 	}
 
@@ -219,7 +219,7 @@ public class SensorsArray {
 	 */
 	public void init() {
 		// test: don.t delete the idle time information list
-		screenSensors.values().stream().filter(ss -> !chipsSensors.contains(ss.getName())).forEach(ss -> ss.init());
+		screenSensors.values().stream().filter(ss -> !villansSensors.contains(ss.getName())).forEach(ss -> ss.init());
 		// screenSensors.values().forEach((ss) -> ss.init());
 		pokerSimulator.init();
 	}
@@ -287,12 +287,12 @@ public class SensorsArray {
 	 * @param restar - <code>true</code> indicate the internal list must be reordener to the initial status.
 	 *        <code>false</code> indicate normal rotation reading
 	 */
-	public void readChipsSensor(boolean restar) {
+	public void readVillans(boolean restar) {
 		if (restar)
-			chipsSensors.sort(null);
+			villansSensors.sort(null);
 		ArrayList<ScreenSensor> tmp = new ArrayList<>(1);
-		tmp.add(getSensor(chipsSensors.get(0)));
-		Collections.rotate(chipsSensors, 1);
+		tmp.add(getSensor(villansSensors.get(0)));
+		Collections.rotate(villansSensors, 1);
 		readSensors(true, tmp);
 	}
 
@@ -348,7 +348,7 @@ public class SensorsArray {
 						pokerSimulator.getCardsBuffer().put(ss.getName(), ocr);
 				}
 			}
-			
+
 			pokerSimulator.setNunOfPlayers(getActiveVillans() + 1);
 			pokerSimulator.runSimulation();
 		}
@@ -374,7 +374,7 @@ public class SensorsArray {
 					ss.capture(false);
 					BufferedImage bi = ss.getImage(ScreenSensor.CAPTURED);
 					String ext = "png";
-					File f = new File(GameRecorder.IMAGE_ACTIONS + "sample_" + System.currentTimeMillis() + "." + ext);
+					File f = new File("TODO:" + "sample_" + System.currentTimeMillis() + "." + ext);
 					f.createNewFile();
 					ImageIO.write(bi, ext, f);
 				}
@@ -468,11 +468,12 @@ public class SensorsArray {
 
 		// information that must be readed in idle time. this info never must be cleared
 		Collection<ScreenSensor> allSensors = screenSensors.values();
-		chipsSensors = new ArrayList<>();
+		villansSensors = new ArrayList<>();
 		List<String> slist = allSensors.stream()
-				.filter(ss -> ss.getName().contains(".chips") || ss.getName().contains(".name"))
-				.map(ScreenSensor::getName).collect(Collectors.toList());
-		chipsSensors.addAll(slist);
+				// .filter(ss -> ss.getName().contains(".chips") || ss.getName().contains(".name"))
+				.filter(ss -> ss.getName().startsWith("villan")).map(ScreenSensor::getName)
+				.collect(Collectors.toList());
+		villansSensors.addAll(slist);
 
 		pokerSimulator.init();
 	}

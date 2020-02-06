@@ -235,7 +235,7 @@ public class Trooper2 extends Task {
 			if (isCancelled())
 				return false;
 
-			sensorsArray.readChipsSensor(restarChips);
+			sensorsArray.readVillans(restarChips);
 			restarChips = false;
 
 			sensorsArray.read(SensorsArray.TYPE_ACTIONS);

@@ -490,8 +490,10 @@ public class PokerSimulator {
 	}
 
 	private void log() {
-		Hero.logger.info("simulator.Troper probability: " + variableList.get("simulator.Troper probability"));
-		Hero.logger.info("simulator.Trooper Current hand: " + variableList.get("simulator.Trooper Current hand"));
+		Hero.logger.info("Num of players: " + getNumSimPlayers() + " prob for each player: "
+				+ fourDigitFormat.format(1.0 / getNumSimPlayers()));
+		Hero.logger.info("Troper probability: " + variableList.get("simulator.Troper probability"));
+		Hero.logger.info("Trooper Current hand: " + variableList.get("simulator.Trooper Current hand"));
 	}
 
 	/**

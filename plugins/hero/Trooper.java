@@ -45,6 +45,7 @@ public class Trooper extends Task {
 
 	private static Trooper instance;
 	private static DecimalFormat fourDigitFormat = new DecimalFormat("#0.0000");
+	private static DecimalFormat twoDigitFormat = new DecimalFormat("#0.00");
 
 	public static String EXPLANATION = "trooper.Explanation";
 	public static String STATUS = "trooper.Status";
@@ -123,9 +124,6 @@ public class Trooper extends Task {
 		this.isTestMode = isTestMode;
 	}
 	/**
-	 * check the win probability. The tendency of the trooper to stay in the game some times make him reach higher
-	 * street with extreme low win probability (spetialy the river) to avoid error on {@link #getSubOptimalAction()},
-	 * this code ensure fold action only for 0 troper probability
 	 * 
 	 * TODO: this variables MUST be ajusted. maybe dinamicaly or based on gamerecording analisis. for now, pot to 10%
 	 * only to aboid drain chips in lost causes
@@ -135,28 +133,16 @@ public class Trooper extends Task {
 		double prob = pokerSimulator.getBestProbability();
 		double herochip = pokerSimulator.getHeroChips();
 		int currentRound = pokerSimulator.getCurrentRound();
-
 		double investCapavility = herochip * prob;
 
 		int z1 = availableActions.size();
 		// the amunition control is activated only for normal prob (2/3)
-		if (currentRound > PokerSimulator.HOLE_CARDS_DEALT && prob < 0.6666)
+		if (currentRound > PokerSimulator.HOLE_CARDS_DEALT && prob < 0.75)
 			availableActions.removeIf(te -> te.getValue() > investCapavility);
 
 		int z2 = z1 - availableActions.size();
 		if (z2 > 0)
 			setVariableAndLog(EXPLANATION, "Amunition control remove " + z2 + " actions.");
-
-		//
-		// int currentRound = pokerSimulator.getCurrentRound();
-		// // i use a bolean because the available action my be emptey already
-		// boolean ok = true;
-		// if (currentRound > PokerSimulator.HOLE_CARDS_DEALT && prob < PokerSimulator.probabilityThreshold) {
-		// availableActions.clear();
-		// setVariableAndLog(EXPLANATION, "Probability &lt " + PokerSimulator.probabilityThreshold);
-		// ok = false;
-		// }
-		// return ok;
 	}
 
 	private void clearEnviorement() {
@@ -191,11 +177,16 @@ public class Trooper extends Task {
 			return;
 		}
 
-		// int chips = pokerSimulator.getHeroChips();
-
-		setVariableAndLog(EXPLANATION, "computing " + ODDS_MREV + " ...");
+		// compute the odd por hero invest capability or over the pot. this allow odd action function more range of
+		// manuver. the normal odds only for pot make the trooper unable for agressive behabior.
+		// double pot = pokerSimulator.getPotValue();
+		// setOddActions(ODDS_MREV, "pot " + pot, pot);
+		double invest = pokerSimulator.getHeroChips() * pokerSimulator.getBestProbability();
 		double pot = pokerSimulator.getPotValue();
-		setOddActions(ODDS_MREV, "pot " + pot, pot);
+		double number = invest > pot ? invest : pot;
+		String txt = invest > pot ? "chips invest " : "pot ";
+		setVariableAndLog(EXPLANATION, "computing " + ODDS_MREV + txt + "...");
+		setOddActions(ODDS_MREV, txt + twoDigitFormat.format(number), number);
 
 		ammunitionControl();
 
@@ -248,7 +239,7 @@ public class Trooper extends Task {
 			if (isCancelled())
 				return false;
 
-			sensorsArray.readChipsSensor(restarChips);
+			sensorsArray.readVillans(restarChips);
 			restarChips = false;
 
 			sensorsArray.read(SensorsArray.TYPE_ACTIONS);
@@ -285,7 +276,7 @@ public class Trooper extends Task {
 			// the i.m back button is active (at this point, the enviorement must only being showing the i.m back
 			// button)
 			if (sensorsArray.isSensorEnabled("imBack")) {
-				robotActuator.perform("imBack");
+				// robotActuator.perform("imBack");
 				continue;
 			}
 		}
@@ -448,34 +439,46 @@ public class Trooper extends Task {
 		if (raise >= 0)
 			availableActions.add(new TEntry<String, Double>("raise", raise));
 
-		if (pot >= 0)
+		if (pot >= 0 && sensorsArray.getSensor("raise.pot").isEnabled())
 			availableActions.add(new TEntry<String, Double>("raise.pot;raise", pot));
 
 		if (chips >= 0 && sensorsArray.getSensor("raise.allin").isEnabled())
 			availableActions.add(new TEntry<String, Double>("raise.allin;raise", chips));
 
-		// TODO: until now i.m goin to implement the slider performing click over the right side of the compoent.
-		// TODO: complete implementation of writhe the ammount for Poker star
-		// int sb = pokerSimulator.getSmallBlind();
+		double sb = pokerSimulator.getSmallBlind();
 		double bb = pokerSimulator.getBigBlind();
 
 		// the initial value is raise value
-		double tickVal = raise;
+		// double tickVal = raise;
 
-		// the slider action must be enabled and the call sensor enabled too (value > 0)
-		if (tickVal > 0 && sensorsArray.getSensor("raise.slider").isEnabled()) {
-			double tick = bb;
-			// TODO: calculate until the end of the posible values
+		// the slider action must be enabled and the raise sensor enabled too (value > 0)
+		// if (tickVal > 0 && sensorsArray.getSensor("raise.slider").isEnabled()) {
+		// double tick = (chips - tickVal) / 4;
+		// double tick = bb;
+		// // TODO: calculate until the end of the posible values
+		// for (int c = 1; c < 11; c++) {
+		// tickVal += (tick * c);
+		// availableActions.add(new TEntry<String, Double>("raise.slider,c=" + c + ";raise", tickVal));
+		// }
+		// }
+		if (raise > 0 && sensorsArray.getSensor("raise.slider").isEnabled()) {
+			// check for int or double values for blinds
+			boolean isInt = (new Double(bb)).intValue() == bb && (new Double(sb)).intValue() == sb;
+			double tick = (chips - raise) / 10;
 			for (int c = 1; c < 11; c++) {
-				tickVal += (tick * c);
-				availableActions.add(new TEntry<String, Double>("raise.slider,c=" + c + ";raise", tickVal));
+				double tickVal = raise + (tick * c);
+				String txt = isInt ? "" + (int) tickVal : twoDigitFormat.format(tickVal);
+				availableActions
+						.add(new TEntry<String, Double>("raise.text,dc;raise.text,k=" + txt + ";raise", tickVal));
 			}
 		}
-		if (computationType == ODDS_EV)
+		if (computationType == ODDS_EV) {
 			calculateOdds(sourceValue, availableActions);
-		else
+//			availableActions.sort(Collections.reverseOrder());
+		} else {
 			calculateRegretMinOdds(sourceValue, availableActions);
-
+//			availableActions.sort(null);
+		}
 		// 191228: Hero win his first game against TH app !!!!!!!!!!!!!!!! :D
 		String val = availableActions.stream().map(te -> te.getKey() + "=" + fourDigitFormat.format(te.getValue()))
 				.collect(Collectors.joining(", "));
@@ -506,14 +509,7 @@ public class Trooper extends Task {
 		double base = herochips > boss && boss != -1 ? boss : herochips;
 		String bn = base == boss ? "boss" : "herochips";
 		setVariableAndLog("trooper.Troper preflop base", bn + " " + base);
-
-		// TODO: temp: to avoid drain chips multiples times in drawings hans, i only keep all the options when the
-		// propability are > to the threshold. else, remove all except call/raise acctions
 		setOddActions(ODDS_EV, "Preflop hand " + bn, base);
-		// if (pokerSimulator.getBestProbability() < PokerSimulator.probabilityThreshold) {
-		// // setVariableAndLog(EXPLANATION, "Preflop cards &lt " + PokerSimulator.probabilityThreshold);
-		// // availableActions.removeIf(te -> !(te.getKey().equals("call") || te.getKey().equals("raise")));
-		// }
 	}
 	private void setVariableAndLog(String key, Object value) {
 		String value1 = value.toString();
@@ -521,8 +517,10 @@ public class Trooper extends Task {
 			value1 = fourDigitFormat.format(((Double) value).doubleValue());
 		pokerSimulator.setVariable(key, value);
 		// don.t log the status, only the explanation
-		if (!STATUS.equals(key))
-			Hero.logger.info(key + " " + value1);
+		if (!STATUS.equals(key)) {
+			String key1 = key.replace(EXPLANATION, "");
+			Hero.logger.info(key1 + " " + value1);
+		}
 	}
 
 	/**

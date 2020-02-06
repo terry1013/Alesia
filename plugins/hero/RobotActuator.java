@@ -11,8 +11,9 @@ import java.awt.event.*;
  * <p>
  * <code>action_name;action_name:c=#;action_name:k=text</code>
  * <li>action name alone - perform 1 click using the mouse over the action area.
+ * <li>action_name,dc - Perform a double click over the action area
  * <li>action_name,c=# - Perform the number # of click over the action area
- * <li>action_name,k=text - move the mouse over the action area, perform one click and write the text text.
+ * <li>action_name,k=text - write the text text. The area must be previously selected using double or simple click
  * 
  * @author terry
  *
@@ -46,8 +47,6 @@ public class RobotActuator {
 	public void perform(String commands) {
 		String[] commandss = commands.split(";");
 		for (String cmd : commandss) {
-			int clicks = 1;
-			String text = "";
 			String temp[] = cmd.split("[,]");
 			String action = temp[0];
 			String actValue = temp.length > 1 ? temp[1] : "";
@@ -58,24 +57,33 @@ public class RobotActuator {
 				continue;
 			}
 
-			// the action has click number or keyboard text
-			if (!actValue.equals("")) {
-				clicks = actValue.startsWith("c=") ? Integer.parseInt(actValue.substring(2)) : 1;
-				text = actValue.startsWith("k=") ? actValue.substring(2) : "";
-			}
-
-			// perform clicks
 			Point p = fig.getRandomPoint();
 			mouseMove(p.x, p.y);
-			for (int c = 0; c < clicks; c++) {
-				doClick();
+
+			// perform double clicks
+			if (actValue.startsWith("dc")) {
+				doubleClick();
+				Hero.logger.info("Action " + action + " double click performed.");
+				continue;
+			}
+
+			// perform clicks by click number or action name only
+			if (actValue.startsWith("c=") || actValue.equals("")) {
+				int clicks = actValue.equals("") ? 1 : Integer.parseInt(actValue.substring(2));
+				for (int c = 0; c < clicks; c++) {
+					doClick();
+				}
+				Hero.logger.info("Action " + action + " " + clicks + " click(s)  performed.");
+				continue;
 			}
 
 			// write the text
-			if (!text.equals("")) {
+			if (actValue.startsWith("k=")) {
+				String text = actValue.substring(2);
 				type(text);
+				Hero.logger.info("Action " + action + " Text= " + text + " writed.");
+				continue;
 			}
-			Hero.logger.info("Action " + action + " Click= " + clicks + " Text= " + text + " performed.");
 		}
 	}
 	public void setEnviorement(ShapeAreas sDisp) {
@@ -89,13 +97,29 @@ public class RobotActuator {
 	public void doClick() {
 		if (Trooper.getInstance().isTestMode()) {
 			type(KeyEvent.VK_CONTROL);
-			robot.delay(mouseDelay);
 			return;
 		}
 		robot.mousePress(InputEvent.BUTTON1_MASK);
 		robot.delay(mouseDelay);
 		robot.mouseRelease(InputEvent.BUTTON1_MASK);
 		robot.delay(mouseDelay);
+	}
+	/**
+	 * Perform mouse left click. In test mode, this method send the {@link KeyEvent#VK_CONTROL} using the keyboard to
+	 * signal only. the property "show location of pointer when press control key" must be set on in mouse properties
+	 */
+	public void doubleClick() {
+		if (Trooper.getInstance().isTestMode()) {
+			type(KeyEvent.VK_CONTROL);
+			return;
+		}
+		robot.mousePress(InputEvent.BUTTON1_MASK);
+		robot.delay(keyStrokeDelay);
+		robot.mouseRelease(InputEvent.BUTTON1_MASK);
+		robot.delay(keyStrokeDelay);
+		robot.mousePress(InputEvent.BUTTON1_MASK);
+		robot.delay(keyStrokeDelay);
+		robot.mouseRelease(InputEvent.BUTTON1_MASK);
 	}
 
 	/**
@@ -115,9 +139,10 @@ public class RobotActuator {
 	 * @param vk - the key code to type
 	 */
 	public void type(int vk) {
-		robot.delay(keyStrokeDelay);
 		robot.keyPress(vk);
+		robot.delay(keyStrokeDelay);
 		robot.keyRelease(vk);
+		robot.delay(keyStrokeDelay);
 	}
 
 	/**
@@ -134,9 +159,14 @@ public class RobotActuator {
 			if ((code > 96 && code < 123)) {
 				code = code - 32;
 			}
-			robot.delay(keyStrokeDelay);
-			robot.keyPress(code);
-			robot.keyRelease(code);
+			if (Trooper.getInstance().isTestMode())
+				type(KeyEvent.VK_CONTROL);
+			else
+				type(code);
+			// robot.delay(mouseDelay);
+			// robot.keyPress(code);
+			// robot.delay(keyStrokeDelay);
+			// robot.keyRelease(code);
 		}
 	}
 }

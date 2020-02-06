@@ -18,9 +18,6 @@ import java.util.*;
  */
 public class GameRecorder {
 
-	public static String IMAGE_ACTIONS = "plugins/hero/image_actions/";
-	public static TreeMap<String, BufferedImage> actionsTable = TCVUtils.loadImages(IMAGE_ACTIONS);
-
 	private int currentRound = PokerSimulator.HOLE_CARDS_DEALT;
 	private SensorsArray sensorsArray;
 	private Vector<GamePlayer> villans;
