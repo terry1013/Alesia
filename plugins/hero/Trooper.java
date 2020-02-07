@@ -59,9 +59,6 @@ public class Trooper extends Task {
 	private long time1;
 	private DescriptiveStatistics outGameStats;
 	private boolean paused = false;
-	/**
-	 * the game recorder is created only after the continue action. this avoid record incomplete sesion
-	 */
 	private GameRecorder gameRecorder;
 
 	public Trooper() {
@@ -72,7 +69,6 @@ public class Trooper extends Task {
 		this.robotActuator = new RobotActuator();
 		availableActions = new Vector<>();
 		this.outGameStats = new DescriptiveStatistics(10);
-		// this.trooperStatus = ACTIVE;
 		this.sensorsArray = new SensorsArray();
 		this.pokerSimulator = sensorsArray.getPokerSimulator();
 		instance = this;
@@ -99,7 +95,7 @@ public class Trooper extends Task {
 		this.availableActions.clear();
 		sensorsArray.createSensorsArray(sDisp);
 		robotActuator.setEnviorement(sDisp);
-		// gameRecorder = new GameRecorder(sensorsArray);
+		gameRecorder = new GameRecorder(sensorsArray);
 		Hero.sensorsPanel.setArray(sensorsArray);
 	}
 
@@ -474,10 +470,10 @@ public class Trooper extends Task {
 		}
 		if (computationType == ODDS_EV) {
 			calculateOdds(sourceValue, availableActions);
-//			availableActions.sort(Collections.reverseOrder());
+			// availableActions.sort(Collections.reverseOrder());
 		} else {
 			calculateRegretMinOdds(sourceValue, availableActions);
-//			availableActions.sort(null);
+			// availableActions.sort(null);
 		}
 		// 191228: Hero win his first game against TH app !!!!!!!!!!!!!!!! :D
 		String val = availableActions.stream().map(te -> te.getKey() + "=" + fourDigitFormat.format(te.getValue()))
@@ -530,14 +526,12 @@ public class Trooper extends Task {
 	protected void act() {
 		setVariableAndLog(STATUS, "Acting ...");
 		String ha = getSubOptimalAction();
-		// pokerSimulator.setActionsData(ha, availableActions);
-		if (gameRecorder != null) {
-			gameRecorder.takeSnapShot(ha);
-		}
+		gameRecorder.takeSnapShot();
 		String key = "trooper.Action performed";
 		pokerSimulator.setVariable(key, ha);
 		// robot actuator perform the log
 		robotActuator.perform(ha);
+		gameRecorder.updateDB();
 	}
 	@Override
 	protected Object doInBackground() throws Exception {
