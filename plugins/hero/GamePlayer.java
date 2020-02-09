@@ -2,6 +2,7 @@ package plugins.hero;
 
 import org.apache.commons.math3.stat.descriptive.*;
 
+import core.*;
 import core.datasource.model.*;
 
 /**
@@ -31,12 +32,15 @@ public class GamePlayer {
 		this.prefix = "villan" + playerId;
 		this.name = prefix;
 		this.array = Trooper.getInstance().getSensorsArray();
+		initStatistics();
+	}
+	private void initStatistics() {
 		this.bettingPattern = new DescriptiveStatistics(100);
 		this.startingHands = new DescriptiveStatistics(100);
 		this.potValues = new DescriptiveStatistics(100);
 		this.trooperProbabilities = new DescriptiveStatistics(100);
-	}
 
+	}
 	/**
 	 * signal by {@link GameRecorder} when is time to update the information about this player. This method will updata
 	 * all the available information retrived from {@link PokerSimulator}
@@ -55,10 +59,15 @@ public class GamePlayer {
 		// chips = -1 (posible error but the villan is active. collect the info to keep tracking
 		// chips = 0 means the villan fold his card (is not active)
 
-		double chips = array.getSensor(prefix + ".chips").getNumericOCR();
-
-		if (!array.isVillanActive(playerId) && chips > 0)
-			chips = 0;
+		// hero o villan
+		double chips = 0.0;
+		if (playerId == 0) {
+			chips = array.getPokerSimulator().getHeroChips();
+		} else {
+			chips = array.getSensor(prefix + ".chips").getNumericOCR();
+			if (!array.isVillanActive(playerId) && chips > 0)
+				chips = 0;
+		}
 
 		// villan name
 		// spetial treatment for troper
@@ -66,15 +75,22 @@ public class GamePlayer {
 			name = "Hero";
 		else
 			name = array.getSensor(prefix + ".name").getOCR();
-		
+
 		name = name == null ? prefix : name;
 		if (!(name.equals(prefix) || name.equals(oldName))) {
 			oldName = name;
-			GamesHistory gh = GamesHistory.findOrCreateIt("NAME = ?", name);
-			bettingPattern = (DescriptiveStatistics) gh.get("BEATTIN_PATTERN");
-			startingHands = (DescriptiveStatistics) gh.get("STARTING_HANDS");
-			potValues = (DescriptiveStatistics) gh.get("POT_VALUES");
-			trooperProbabilities = (DescriptiveStatistics) gh.get("TROOPER_PROBS");
+			GamesHistory gh = GamesHistory.findFirst("NAME = ?", name);
+			if (gh == null) {
+				initStatistics();
+			} else {
+				bettingPattern = (DescriptiveStatistics) TPreferences
+						.getObjectFromByteArray(gh.getBytes("BEATTIN_PATTERN"));
+				startingHands = (DescriptiveStatistics) TPreferences
+						.getObjectFromByteArray(gh.getBytes("STARTING_HANDS"));
+				potValues = (DescriptiveStatistics) TPreferences.getObjectFromByteArray(gh.getBytes("POT_VALUES"));
+				trooperProbabilities = (DescriptiveStatistics) TPreferences
+						.getObjectFromByteArray(gh.getBytes("TROOPER_PROBS"));
+			}
 		}
 
 		potValues.addValue(array.getPokerSimulator().getPotValue());
@@ -83,13 +99,17 @@ public class GamePlayer {
 		trooperProbabilities.addValue(array.getPokerSimulator().getBestProbability());
 		newRound = false;
 	}
-
+	public void assest() {
+		// TODO
+	}
 	public void updateDB() {
-		GamesHistory gh = GamesHistory.findOrCreateIt("NAME = ?", name);
-		gh.set("BEATTIN_PATTERN", bettingPattern);
-		gh.set("STARTING_HANDS", startingHands);
-		gh.set("POT_VALUES", potValues);
-		gh.set("TROOPER_PROBS", trooperProbabilities);
-		gh.save();
+		if (!name.equals(prefix)) {
+			GamesHistory gh = GamesHistory.findOrCreateIt("NAME", name);
+			gh.set("BEATTIN_PATTERN", TPreferences.getByteArrayFromObject(bettingPattern));
+			gh.set("STARTING_HANDS", TPreferences.getByteArrayFromObject(startingHands));
+			gh.set("POT_VALUES", TPreferences.getByteArrayFromObject(potValues));
+			gh.set("TROOPER_PROBS", TPreferences.getByteArrayFromObject(trooperProbabilities));
+			gh.save();
+		}
 	}
 }

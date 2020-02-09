@@ -22,7 +22,6 @@ public class GameRecorder {
 	private Vector<GamePlayer> villans;
 
 	public GameRecorder(SensorsArray sensorsArray) {
-		Alesia.openDB();
 		int lv = sensorsArray.getVillans();
 		// 0 index is the troper
 		this.villans = new Vector<>(lv);
@@ -32,13 +31,13 @@ public class GameRecorder {
 	}
 
 	/**
-	 * complete the recording operation and store the result in DB. This method is called afther the troper perform the
-	 * action. at this moment, is enough time to update the database and ....
+	 * Store the result in DB. This method is called afther the troper perform the action. at this moment, is enough
+	 * time to update the database and perform an assesment over the villans
 	 * 
-	 * TODO: perform assesment here.This method
 	 */
 	public void updateDB() {
 		villans.forEach(gr -> gr.updateDB());
+		villans.forEach(gr -> gr.assest());
 	}
 
 	/**

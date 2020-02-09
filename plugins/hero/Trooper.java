@@ -60,6 +60,7 @@ public class Trooper extends Task {
 	private DescriptiveStatistics outGameStats;
 	private boolean paused = false;
 	private GameRecorder gameRecorder;
+	private Properties preflopHands;
 
 	public Trooper() {
 		this(null);
@@ -72,6 +73,12 @@ public class Trooper extends Task {
 		this.sensorsArray = new SensorsArray();
 		this.pokerSimulator = sensorsArray.getPokerSimulator();
 		instance = this;
+		this.preflopHands = new Properties();
+		try {
+			preflopHands.load(new FileInputStream("preflop.properties"));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		if (clone != null && clone.file != null) {
 			init(clone.file);
 		}
@@ -119,12 +126,7 @@ public class Trooper extends Task {
 	public void setTestMode(boolean isTestMode) {
 		this.isTestMode = isTestMode;
 	}
-	/**
-	 * 
-	 * TODO: this variables MUST be ajusted. maybe dinamicaly or based on gamerecording analisis. for now, pot to 10%
-	 * only to aboid drain chips in lost causes
-	 * 
-	 */
+
 	private void ammunitionControl() {
 		double prob = pokerSimulator.getBestProbability();
 		double herochip = pokerSimulator.getHeroChips();
@@ -177,14 +179,10 @@ public class Trooper extends Task {
 		// manuver. the normal odds only for pot make the trooper unable for agressive behabior.
 		// double pot = pokerSimulator.getPotValue();
 		// setOddActions(ODDS_MREV, "pot " + pot, pot);
-		double invest = pokerSimulator.getHeroChips() * pokerSimulator.getBestProbability();
-		double pot = pokerSimulator.getPotValue();
-		double number = invest > pot ? invest : pot;
-		String txt = invest > pot ? "chips invest " : "pot ";
-		setVariableAndLog(EXPLANATION, "computing " + ODDS_MREV + txt + "...");
-		setOddActions(ODDS_MREV, txt + twoDigitFormat.format(number), number);
+		double number = getAmmunitions();
+		setOddActions(ODDS_MREV, "from bugget value", number);
 
-		ammunitionControl();
+		// ammunitionControl();
 
 		// preflop: if normal pot odd action has no action todo, check the preflopcards.
 		if (availableActions.size() == 0 && pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
@@ -375,24 +373,32 @@ public class Trooper extends Task {
 	 */
 	private boolean isGoodPreflopHand() {
 		String txt = null;
+		HoleCards hc = pokerSimulator.getMyHoleCards();
+		String s = hc.isSuited() ? "s" : "";
+		String cr = hc.getFirstCard().toString().substring(0, 1) + hc.getSecondCard().toString().substring(0, 1);
+		String cards = cr + s;
+		boolean good = preflopHands.containsValue(cards);
+		if (good) {
+			txt = "preflop hand is in positive EV list";
+		}
 		// pocket pair
 		if (pokerSimulator.getMyHandHelper().isPocketPair()) {
 			txt = "preflop hand is a pocket pair";
 		}
 
-		// suited
-		if (pokerSimulator.getMyHoleCards().isSuited())
-			txt = "preflop hand is suited";
-
-		// connected: cernters cards separated only by 1 or 2 cards provides de best probabilities (>6%)
-		double sp = pokerSimulator.getMyHandStatsHelper().getStraightProb();
-		if (sp >= 0.060)
-			txt = "preflop hand is posible straight";
-
-		// 10 or higher
-		Card[] heroc = pokerSimulator.getMyHoleCards().getCards();
-		if (heroc[0].getRank() > Card.NINE && heroc[1].getRank() > Card.NINE)
-			txt = "preflop hand are 10 or higher";
+		// // suited
+		// if (pokerSimulator.getMyHoleCards().isSuited())
+		// txt = "preflop hand is suited";
+		//
+		// // connected: cernters cards separated only by 1 or 2 cards provides de best probabilities (>6%)
+		// double sp = pokerSimulator.getMyHandStatsHelper().getStraightProb();
+		// if (sp >= 0.060)
+		// txt = "preflop hand is posible straight";
+		//
+		// // 10 or higher
+		// Card[] heroc = pokerSimulator.getMyHoleCards().getCards();
+		// if (heroc[0].getRank() > Card.NINE && heroc[1].getRank() > Card.NINE)
+		// txt = "preflop hand are 10 or higher";
 
 		if (txt == null)
 			setVariableAndLog(EXPLANATION, "preflop hand is not good");
@@ -483,6 +489,34 @@ public class Trooper extends Task {
 	}
 
 	/**
+	 * compute and return the amount of chips available for actions. The amunitons come form 2 sides: the pot and the
+	 * fraction of chips than hera cand spend due the probabilities. this allow the troper range of manuver.
+	 * 
+	 * TODO: control the number of amunitions per street. the trooper most dangeros disadvantege is when all the villas
+	 * put small amount of chips during a lager period of time in a single street (generaly preflop) hero must avoid
+	 * this situation because in subsecuent street, the pot will be so hight that hero will be available to go allin
+	 * whit poor hands
+	 * 
+	 * @return amunitions
+	 */
+	private double getAmmunitions() {
+		double max = 5000;
+		double factor = pokerSimulator.getMyHandHelper().getHand().getHandRank() * 0.10;
+		double prob = pokerSimulator.getBestProbability();
+		// double invest = pokerSimulator.getHeroChips() * prob;
+		double invest = pokerSimulator.getHeroChips() * factor;
+		double pot = pokerSimulator.getPotValue();
+		double number = invest > pot ? invest : pot;
+		String txt = invest > pot ? "Hero chips " : "Pot ";
+		// bugget control. only allow allin posibility for prob 0,99 o better
+		if (number > max && prob < 0.98) {
+			number = max;
+			txt = "Max ";
+		}
+		setVariableAndLog(EXPLANATION, "Amunition source: " + txt + twoDigitFormat.format(number));
+		return number;
+	}
+	/**
 	 * Set the action based on the starting hand distribution. if the starting hand is inside on the predefined
 	 * distribution, then compute the amount of chips able to invest in this situation.
 	 * <p>
@@ -500,12 +534,8 @@ public class Trooper extends Task {
 		if (!isGoodPreflopHand())
 			return;
 
-		double herochips = pokerSimulator.getHeroChips();
-		double boss = getBoss();
-		double base = herochips > boss && boss != -1 ? boss : herochips;
-		String bn = base == boss ? "boss" : "herochips";
-		setVariableAndLog("trooper.Troper preflop base", bn + " " + base);
-		setOddActions(ODDS_EV, "Preflop hand " + bn, base);
+		double number = getAmmunitions();
+		setOddActions(ODDS_EV, "Preflop hand " + number, number);
 	}
 	private void setVariableAndLog(String key, Object value) {
 		String value1 = value.toString();
@@ -537,12 +567,12 @@ public class Trooper extends Task {
 	protected Object doInBackground() throws Exception {
 
 		// ensure db connection on the current thread.
-		// try {
-		// Alesia.openDB();
-		// } catch (Exception e) {
-		// // just a warning log because reiterated pause/stop/play can generate error re opening the connection
-		// Hero.logger.warning(e.getMessage());
-		// }
+		try {
+			Alesia.openDB();
+		} catch (Exception e) {
+			// just a warning log because reiterated pause/stop/play can generate error re opening the connection
+			Hero.logger.warning(e.getMessage());
+		}
 
 		clearEnviorement();
 
