@@ -1,5 +1,7 @@
 package plugins.hero;
 
+import java.awt.geom.*;
+
 import org.apache.commons.math3.stat.descriptive.*;
 
 import core.*;
@@ -69,11 +71,11 @@ public class GamePlayer {
 				chips = 0;
 		}
 
-		// villan name
 		// spetial treatment for troper
 		if (playerId == 0)
 			name = "Hero";
 		else
+			// villan name
 			name = array.getSensor(prefix + ".name").getOCR();
 
 		name = name == null ? prefix : name;
@@ -99,12 +101,27 @@ public class GamePlayer {
 		trooperProbabilities.addValue(array.getPokerSimulator().getBestProbability());
 		newRound = false;
 	}
-	public void assest() {
-		// TODO
+
+	public Point2D.Double assest() {
+		double hands = 0;
+		for (int i = 0; i < startingHands.getN(); i++) {
+			hands += startingHands.getElement(i);
+		}
+		double winnings = 0;
+		for (int i = 1; i < bettingPattern.getN(); i++) {
+			double prevChips = bettingPattern.getElement(i - 1);
+			double chips = bettingPattern.getElement(i);
+			if (prevChips > 0 && chips > 0) {
+				winnings += chips-prevChips;
+			}
+		}
+		// the x vector is the beatting patter. the y vector is the startin hand
+		return new Point2D.Double(winnings, hands);
 	}
 	public void updateDB() {
 		if (!name.equals(prefix)) {
 			GamesHistory gh = GamesHistory.findOrCreateIt("NAME", name);
+			gh.set("ASSESMENT", assest().toString());
 			gh.set("BEATTIN_PATTERN", TPreferences.getByteArrayFromObject(bettingPattern));
 			gh.set("STARTING_HANDS", TPreferences.getByteArrayFromObject(startingHands));
 			gh.set("POT_VALUES", TPreferences.getByteArrayFromObject(potValues));

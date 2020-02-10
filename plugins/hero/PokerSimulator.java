@@ -68,6 +68,7 @@ public class PokerSimulator {
 	private MyGameStatsHelper myGameStatsHelper;
 
 	private double heroChips;
+	private double buyIn;
 	private double smallBlind;
 	private double bigBlind;
 
@@ -104,7 +105,7 @@ public class PokerSimulator {
 		jp.add(actionsBarChart.getChartPanel(), BorderLayout.SOUTH);
 		// reportPanel.setBodyComponent(new JScrollPane(reportJLabel));
 		reportPanel.setBodyComponent(jp);
-		setBlinds(50, 100);
+		setTableParms(10000, 50, 100);
 
 		init();
 	}
@@ -192,6 +193,9 @@ public class PokerSimulator {
 		return reportPanel;
 	}
 
+	public double getBuyIn() {
+		return buyIn;
+	}
 	public double getSmallBlind() {
 		return smallBlind;
 	}
@@ -281,7 +285,8 @@ public class PokerSimulator {
 		actionsBarChart.setDataSet(actions);
 		updateReport();
 	}
-	public void setBlinds(int sb, int bb) {
+	public void setTableParms(double buyin, double sb, double bb) {
+		this.buyIn = buyin;
 		this.smallBlind = sb;
 		this.bigBlind = bb;
 	}

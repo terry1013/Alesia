@@ -1,8 +1,7 @@
 package plugins.hero;
 
+import java.awt.geom.*;
 import java.util.*;
-
-import core.*;
 
 /**
  * This class record the game secuence and store the result in the games db file. instance of this class are dispached
@@ -29,6 +28,9 @@ public class GameRecorder {
 			villans.add(new GamePlayer(i));
 		}
 	}
+	public Point2D.Double getAssest(int playerId) {
+		return villans.elementAt(playerId).assest();
+	}
 
 	/**
 	 * Store the result in DB. This method is called afther the troper perform the action. at this moment, is enough
@@ -37,7 +39,6 @@ public class GameRecorder {
 	 */
 	public void updateDB() {
 		villans.forEach(gr -> gr.updateDB());
-		villans.forEach(gr -> gr.assest());
 	}
 
 	/**

@@ -1,5 +1,6 @@
 package plugins.hero;
 
+import java.awt.geom.*;
 import java.io.*;
 import java.text.*;
 import java.util.*;
@@ -175,12 +176,8 @@ public class Trooper extends Task {
 			return;
 		}
 
-		// compute the odd por hero invest capability or over the pot. this allow odd action function more range of
-		// manuver. the normal odds only for pot make the trooper unable for agressive behabior.
-		// double pot = pokerSimulator.getPotValue();
-		// setOddActions(ODDS_MREV, "pot " + pot, pot);
 		double number = getAmmunitions();
-		setOddActions(ODDS_MREV, "from bugget value", number);
+		setOddActions(ODDS_EV, "from ammunition value", number);
 
 		// ammunitionControl();
 
@@ -386,19 +383,19 @@ public class Trooper extends Task {
 			txt = "preflop hand is a pocket pair";
 		}
 
-		// // suited
-		// if (pokerSimulator.getMyHoleCards().isSuited())
-		// txt = "preflop hand is suited";
-		//
-		// // connected: cernters cards separated only by 1 or 2 cards provides de best probabilities (>6%)
-		// double sp = pokerSimulator.getMyHandStatsHelper().getStraightProb();
-		// if (sp >= 0.060)
-		// txt = "preflop hand is posible straight";
-		//
-		// // 10 or higher
-		// Card[] heroc = pokerSimulator.getMyHoleCards().getCards();
-		// if (heroc[0].getRank() > Card.NINE && heroc[1].getRank() > Card.NINE)
-		// txt = "preflop hand are 10 or higher";
+		// suited
+		if (pokerSimulator.getMyHoleCards().isSuited())
+			txt = "preflop hand is suited";
+
+		// connected: cernters cards separated only by 1 or 2 cards provides de best probabilities (>6%)
+		double sp = pokerSimulator.getMyHandStatsHelper().getStraightProb();
+		if (sp >= 0.060)
+			txt = "preflop hand is posible straight";
+
+		// 10 or higher
+		Card[] heroc = pokerSimulator.getMyHoleCards().getCards();
+		if (heroc[0].getRank() > Card.NINE && heroc[1].getRank() > Card.NINE)
+			txt = "preflop hand are 10 or higher";
 
 		if (txt == null)
 			setVariableAndLog(EXPLANATION, "preflop hand is not good");
@@ -430,6 +427,11 @@ public class Trooper extends Task {
 	 */
 	private void setOddActions(String computationType, String sourceName, double sourceValue) {
 		availableActions.clear();
+		// no calculation for 0 value
+		if (sourceValue == 0) {
+			Hero.logger.info("No posible positive EV for " + sourceValue);
+			return;
+		}
 		double call = pokerSimulator.getCallValue();
 		double raise = pokerSimulator.getRaiseValue();
 		double chips = pokerSimulator.getHeroChips();
@@ -449,20 +451,6 @@ public class Trooper extends Task {
 
 		double sb = pokerSimulator.getSmallBlind();
 		double bb = pokerSimulator.getBigBlind();
-
-		// the initial value is raise value
-		// double tickVal = raise;
-
-		// the slider action must be enabled and the raise sensor enabled too (value > 0)
-		// if (tickVal > 0 && sensorsArray.getSensor("raise.slider").isEnabled()) {
-		// double tick = (chips - tickVal) / 4;
-		// double tick = bb;
-		// // TODO: calculate until the end of the posible values
-		// for (int c = 1; c < 11; c++) {
-		// tickVal += (tick * c);
-		// availableActions.add(new TEntry<String, Double>("raise.slider,c=" + c + ";raise", tickVal));
-		// }
-		// }
 		if (raise > 0 && sensorsArray.getSensor("raise.slider").isEnabled()) {
 			// check for int or double values for blinds
 			boolean isInt = (new Double(bb)).intValue() == bb && (new Double(sb)).intValue() == sb;
@@ -476,7 +464,7 @@ public class Trooper extends Task {
 		}
 		if (computationType == ODDS_EV) {
 			calculateOdds(sourceValue, availableActions);
-			// availableActions.sort(Collections.reverseOrder());
+			availableActions.sort(Collections.reverseOrder());
 		} else {
 			calculateRegretMinOdds(sourceValue, availableActions);
 			// availableActions.sort(null);
@@ -490,7 +478,9 @@ public class Trooper extends Task {
 
 	/**
 	 * compute and return the amount of chips available for actions. The amunitons come form 2 sides: the pot and the
-	 * fraction of chips than hera cand spend due the probabilities. this allow the troper range of manuver.
+	 * chips from hero. Both values are fractions acording to the current hand ranck. this allow the troper invest
+	 * ammunitons acording to a real chance of winning. The previos estimation based on probabilities sen the trooper to
+	 * invest a lot on amunitions in low value hands an is easy anbush by villans.
 	 * 
 	 * TODO: control the number of amunitions per street. the trooper most dangeros disadvantege is when all the villas
 	 * put small amount of chips during a lager period of time in a single street (generaly preflop) hero must avoid
@@ -500,20 +490,34 @@ public class Trooper extends Task {
 	 * @return amunitions
 	 */
 	private double getAmmunitions() {
-		double max = 5000;
-		double factor = pokerSimulator.getMyHandHelper().getHand().getHandRank() * 0.10;
+		Hand hand = pokerSimulator.getMyHandHelper().getHand();
+		double factor = (hand.getHandRank() - 1) * 0.10;
 		double prob = pokerSimulator.getBestProbability();
-		// double invest = pokerSimulator.getHeroChips() * prob;
 		double invest = pokerSimulator.getHeroChips() * factor;
-		double pot = pokerSimulator.getPotValue();
-		double number = invest > pot ? invest : pot;
-		String txt = invest > pot ? "Hero chips " : "Pot ";
-		// bugget control. only allow allin posibility for prob 0,99 o better
-		if (number > max && prob < 0.98) {
-			number = max;
+		double pot = pokerSimulator.getPotValue() * factor;
+		double buyIn = pokerSimulator.getBuyIn();
+		double number;
+		String txt = "";
+		if (invest > pot) {
+			number = invest;
+			txt = "Hero chips ";
+		} else {
+			number = pot;
+			txt = "Pot ";
+		}
+		// only allow allin posibility for prob ??????????? o better or the hand is the nuts
+		if (pokerSimulator.getMyHandHelper().isTheNuts() || prob > 0.9) {
+			txt = pokerSimulator.getMyHandHelper().isTheNuts()
+					? "Current hand is the nuts "
+					: "Hight Probability (" + fourDigitFormat.format(prob) + ") ";
+			number = buyIn;
+		}
+		// bugget control.
+		if (number > buyIn) {
+			number = buyIn;
 			txt = "Max ";
 		}
-		setVariableAndLog(EXPLANATION, "Amunition source: " + txt + twoDigitFormat.format(number));
+		setVariableAndLog(EXPLANATION, "Amunition source " + txt + twoDigitFormat.format(number));
 		return number;
 	}
 	/**
@@ -533,19 +537,19 @@ public class Trooper extends Task {
 		availableActions.clear();
 		if (!isGoodPreflopHand())
 			return;
-
-		double number = getAmmunitions();
-		setOddActions(ODDS_EV, "Preflop hand " + number, number);
+		// just enoung tho keepme in the battle
+		double max = pokerSimulator.getBuyIn() / 10;
+		setOddActions(ODDS_EV, "Preflop hand " + max, max);
 	}
 	private void setVariableAndLog(String key, Object value) {
 		String value1 = value.toString();
 		if (value instanceof Double)
 			value1 = fourDigitFormat.format(((Double) value).doubleValue());
 		pokerSimulator.setVariable(key, value);
-		// don.t log the status, only the explanation
+		// don.t log the status, only the explanatio
 		if (!STATUS.equals(key)) {
 			String key1 = key.replace(EXPLANATION, "");
-			Hero.logger.info(key1 + " " + value1);
+			Hero.logger.info(key1 + value1);
 		}
 	}
 
@@ -562,6 +566,8 @@ public class Trooper extends Task {
 		// robot actuator perform the log
 		robotActuator.perform(ha);
 		gameRecorder.updateDB();
+		Point2D.Double ass = gameRecorder.getAssest(0);
+		setVariableAndLog("trooper.Assest", ass.x + "/" + ass.y + " (" + ass.x / ass.y + ")");
 	}
 	@Override
 	protected Object doInBackground() throws Exception {

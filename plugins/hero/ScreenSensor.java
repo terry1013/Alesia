@@ -445,28 +445,18 @@ public class ScreenSensor extends JPanel {
 	 */
 	private String OCRCorrection(String srcocd) {
 
-		// cards sensors
-		if (isCardArea()) {
-			// srcocd = srcocd.replaceAll("\\s", "");
-			// // checq the last character looking for the suit.
-			// String tmp = srcocd.substring(srcocd.length() - 1, srcocd.length());
-			// String suit = "c";
-			// suit = tmp.equals("V") ? "h" : suit;
-			// suit = tmp.equals("Q") ? "s" : suit;
-			// suit = tmp.equals("0") ? "d" : suit;
-			// String rank = srcocd.substring(0, 1);
-			// rank = rank.equals("1") ? "10" : rank;
-			// srcocd = rank + suit;
-		}
-
 		// standar procedure for numeric sensors
 		if (isNumericArea()) {
 			srcocd = srcocd.replaceAll("[^.1234567890]", "");
-			// srcocd = replaceWhitNumbers(srcocd);
 		}
 
 		// standar procedure: remove all blanks caracters
 		srcocd = srcocd.replaceAll("\\s", "");
+
+		// special treatmen for hero.call sensor
+		if ("hero.call".equals(getName()) && isEnabled() && srcocd.equals(""))
+			srcocd = "0";
+
 		return srcocd;
 	}
 
