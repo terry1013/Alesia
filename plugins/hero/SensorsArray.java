@@ -102,29 +102,30 @@ public class SensorsArray {
 	/**
 	 * Return the number of current active villans.
 	 * 
-	 * @see #isVillanActive(int)
+	 * @see #isActive(int)
 	 * @see #getActiveSeats()
 	 */
 	public int getActiveVillans() {
 		int av = 0;
 		for (int i = 1; i <= getVillans(); i++) {
-			if (isVillanActive(i))
+			if (isActive(i))
 				av++;
 		}
 		return av;
 	}
 
 	/**
-	 * return <code>true</code> if the villan identifyed as id argument is active. A VILLAN IS ACTIVE IF HE HAS CARDS IN
-	 * THIS HANDS. if a player fold his card. this method will not count that player. from this method point of view.
-	 * the player is in tha game, but in this particular moment are not active.
+	 * return <code>true</code> if the player identifyed as id argument is active (hero or villan). A PLAYER IS ACTIVE
+	 * IF HE HAS CARDS IN THIS HANDS. if a player fold his card. this method will not count that player. from this
+	 * method point of view. the player is in tha game, but in this particular moment are not active.
 	 * 
-	 * @param id - villan id or seat
-	 * @return true if the villan is active
+	 * @param id - villan id or 0 for hero
+	 * @return true if the player is active
 	 */
-	public boolean isVillanActive(int id) {
-		ScreenSensor vc1 = getSensor("villan" + id + ".card1");
-		ScreenSensor vc2 = getSensor("villan" + id + ".card2");
+	public boolean isActive(int id) {
+		String prefix = id == 0 ? "hero" : "villan" + id;
+		ScreenSensor vc1 = getSensor(prefix + ".card1");
+		ScreenSensor vc2 = getSensor(prefix + ".card2");
 		return vc1.isEnabled() && vc2.isEnabled();
 	}
 	/**

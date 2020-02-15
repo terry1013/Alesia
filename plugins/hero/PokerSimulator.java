@@ -19,6 +19,7 @@ import com.jgoodies.common.base.*;
 
 import core.*;
 import gui.*;
+import plugins.hero.UoAHandEval.*;
 
 /**
  * 
@@ -75,8 +76,13 @@ public class PokerSimulator {
 	private ActionsBarChart actionsBarChart;
 	private long lastStepMillis;
 	private double bestProbability;
+	private UoAHand uoAHand;
+	private static int topHandRank = 2970356;
+	private static int minHandRank = 371293;
+
 	public PokerSimulator() {
 		this.cardsBuffer = new Hashtable<String, String>();
+		this.uoAHand = new UoAHand();
 		// Create an adapter to communicate with the simulator
 		this.adapter = new PokerProphesierAdapter();
 		adapter.setNumSimulations(numSimulations);
@@ -139,6 +145,10 @@ public class PokerSimulator {
 		return bigBlind;
 	}
 
+	public double getBuyIn() {
+		return buyIn;
+	}
+
 	public double getCallValue() {
 		return callValue;
 	}
@@ -150,21 +160,27 @@ public class PokerSimulator {
 	public CommunityCards getCommunityCards() {
 		return communityCards;
 	}
-
 	public int getCurrentRound() {
 		return currentRound;
 	}
 
+	public double getHandFactor() {
+		double rank = UoAHandEvaluator.rankHand(uoAHand);
+		if (rank < minHandRank)
+			return 0.0;
+		return rank / topHandRank;
+	}
 	public double getHeroChips() {
 		return heroChips;
 	}
+
 	public MyGameStatsHelper getMyGameStatsHelper() {
 		return myGameStatsHelper;
 	}
-
 	public MyHandHelper getMyHandHelper() {
 		return myHandHelper;
 	}
+
 	public MyHandStatsHelper getMyHandStatsHelper() {
 		return myHandStatsHelper;
 	}
@@ -172,6 +188,7 @@ public class PokerSimulator {
 	public HoleCards getMyHoleCards() {
 		return holeCards;
 	}
+
 	public int getNumSimPlayers() {
 		return numSimPlayers;
 	}
@@ -179,11 +196,9 @@ public class PokerSimulator {
 	public double getPotValue() {
 		return potValue;
 	}
-
 	public double getRaiseValue() {
 		return raiseValue;
 	}
-
 	/**
 	 * Return the information component whit all values computesd form simulations and game status
 	 * 
@@ -193,16 +208,12 @@ public class PokerSimulator {
 		return reportPanel;
 	}
 
-	public double getBuyIn() {
-		return buyIn;
-	}
 	public double getSmallBlind() {
 		return smallBlind;
 	}
 	public int getTablePosition() {
 		return tablePosition;
 	}
-
 	public TreeMap<String, Object> getVariables() {
 		return variableList;
 	}
@@ -226,8 +237,9 @@ public class PokerSimulator {
 		callValue = -1;
 		raiseValue = -1;
 		heroChips = -1;
-		cleanReport();
+		// cleanReport();
 	}
+
 	/**
 	 * perform the PokerProphesier simulation. Call this method when all the cards on the table has been setted using
 	 * {@link #addCard(String, String)} this method will create the {@link HoleCards} and the {@link CommunityCards} (if
@@ -259,6 +271,9 @@ public class PokerSimulator {
 			createHoleCards();
 			createComunityCards();
 
+			String h = cardsBuffer.values().stream().collect(Collectors.joining(" "));
+			this.uoAHand = new UoAHand(h);
+
 			adapter.runMySimulations(holeCards, communityCards, numSimPlayers, currentRound);
 			myGameStatsHelper = adapter.getMyGameStatsHelper();
 			myHandStatsHelper = adapter.getMyHandStatsHelper();
@@ -280,19 +295,14 @@ public class PokerSimulator {
 		actionsBarChart.setDataSet(actions);
 		updateReport();
 	}
-
 	public void setActionsData(Vector<TEntry<String, Double>> actions) {
 		actionsBarChart.setDataSet(actions);
 		updateReport();
 	}
-	public void setTableParms(double buyin, double sb, double bb) {
-		this.buyIn = buyin;
-		this.smallBlind = sb;
-		this.bigBlind = bb;
-	}
 	public void setCallValue(double callValue) {
 		this.callValue = callValue;
 	}
+
 	public void setHeroChips(double heroChips) {
 		this.heroChips = heroChips;
 	}
@@ -304,13 +314,18 @@ public class PokerSimulator {
 	public void setPotValue(double potValue) {
 		this.potValue = potValue;
 	}
-
 	public void setRaiseValue(double raiseValue) {
 		this.raiseValue = raiseValue;
+	}
+	public void setTableParms(double buyin, double sb, double bb) {
+		this.buyIn = buyin;
+		this.smallBlind = sb;
+		this.bigBlind = bb;
 	}
 	public void setTablePosition(int tp) {
 		this.tablePosition = tp;
 	}
+
 	public void setVariable(String key, Object value) {
 		// format double values
 		Object value1 = value;
@@ -324,6 +339,7 @@ public class PokerSimulator {
 		// mandatori. i nedd to see what is happening
 		updateReport();
 	}
+
 	public void updateReport() {
 		Predicate<String> valgt0 = new Predicate<String>() {
 			@Override
@@ -373,8 +389,8 @@ public class PokerSimulator {
 	}
 
 	/**
-	 * Create and return an {@link Card} based on the string representation. this method return <code>null</code> if the
-	 * string representation is not correct.
+	 * Create and return an {@link UoACard} based on the string representation. this method return <code>null</code> if
+	 * the string representation is not correct.
 	 * 
 	 * @param scard - Standar string representation of a card
 	 * @return Card
@@ -419,7 +435,6 @@ public class PokerSimulator {
 
 		return car;
 	}
-
 	/**
 	 * create the comunity cards. This method also set the currnet round of the game based on length of the
 	 * <code>cards</code> parameter.
@@ -447,7 +462,6 @@ public class PokerSimulator {
 			ccars[i] = createCardFromString(list.get(i));
 		}
 		communityCards = new CommunityCards(ccars);
-
 		// set current round
 		currentRound = ccars.length == 3 ? FLOP_CARDS_DEALT : currentRound;
 		currentRound = ccars.length == 4 ? TURN_CARD_DEALT : currentRound;
@@ -529,7 +543,6 @@ public class PokerSimulator {
 		variableList.put("simulator.ammount.Raise", getRaiseValue());
 		variableList.put("simulator.ammount.Pot", getPotValue());
 		variableList.put("simulator.Num of players", getNumSimPlayers());
-		variableList.put("simulator.ammount.blinds", getSmallBlind() + "/" + getBigBlind());
 		log();
 	}
 }

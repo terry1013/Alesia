@@ -1,6 +1,8 @@
 package plugins.hero;
 
+import java.awt.*;
 import java.awt.geom.*;
+import java.security.*;
 
 import org.apache.commons.math3.stat.descriptive.*;
 
@@ -23,25 +25,23 @@ import core.datasource.model.*;
 public class GamePlayer {
 	private String name;
 	private String oldName = "";
-	private DescriptiveStatistics bettingPattern, startingHands, potValues, trooperProbabilities;
+	private DescriptiveStatistics bettingPattern, startingHands;
 	private SensorsArray array;
 	private int playerId;
 	private String prefix;
-	private boolean newRound;
+	private double prevValue;
 
 	public GamePlayer(int playerId) {
 		this.playerId = playerId;
 		this.prefix = "villan" + playerId;
 		this.name = prefix;
+		this.prevValue = -1;
 		this.array = Trooper.getInstance().getSensorsArray();
 		initStatistics();
 	}
 	private void initStatistics() {
-		this.bettingPattern = new DescriptiveStatistics(100);
-		this.startingHands = new DescriptiveStatistics(100);
-		this.potValues = new DescriptiveStatistics(100);
-		this.trooperProbabilities = new DescriptiveStatistics(100);
-
+		this.bettingPattern = new DescriptiveStatistics(300);
+		this.startingHands = new DescriptiveStatistics(300);
 	}
 	/**
 	 * signal by {@link GameRecorder} when is time to update the information about this player. This method will updata
@@ -51,31 +51,34 @@ public class GamePlayer {
 	 * propabilistic information about this villan could be retribed afeter that
 	 */
 	public void update() {
-		// update only after preflop
-		if (array.getPokerSimulator().getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
-			newRound = true;
+
+		// record only if the player is active
+		if (!array.isActive(playerId))
 			return;
-		}
 
-		// villans chips value meaning:
-		// chips = -1 (posible error but the villan is active. collect the info to keep tracking
-		// chips = 0 means the villan fold his card (is not active)
-
-		// hero o villan
+		// amunitions
 		double chips = 0.0;
 		if (playerId == 0) {
 			chips = array.getPokerSimulator().getHeroChips();
 		} else {
-			chips = array.getSensor(prefix + ".chips").getNumericOCR();
-			if (!array.isVillanActive(playerId) && chips > 0)
-				chips = 0;
+			chips = array.getSensor("villan" + playerId + ".chips").getNumericOCR();
 		}
 
-		// spetial treatment for troper
+		// chips = -1 because this seat is inactive or the player fold
+		if (chips == -1)
+			return;
+
+		// at the beginnin of the record process, i just set the initial values. after that, i start the record process.
+		if (prevValue == -1) {
+			prevValue = chips;
+			return;
+		}
+
+		// at this point, all is set to start the record process
+		// name
 		if (playerId == 0)
 			name = "Hero";
 		else
-			// villan name
 			name = array.getSensor(prefix + ".name").getOCR();
 
 		name = name == null ? prefix : name;
@@ -89,43 +92,53 @@ public class GamePlayer {
 						.getObjectFromByteArray(gh.getBytes("BEATTIN_PATTERN"));
 				startingHands = (DescriptiveStatistics) TPreferences
 						.getObjectFromByteArray(gh.getBytes("STARTING_HANDS"));
-				potValues = (DescriptiveStatistics) TPreferences.getObjectFromByteArray(gh.getBytes("POT_VALUES"));
-				trooperProbabilities = (DescriptiveStatistics) TPreferences
-						.getObjectFromByteArray(gh.getBytes("TROOPER_PROBS"));
 			}
 		}
 
-		potValues.addValue(array.getPokerSimulator().getPotValue());
-		startingHands.addValue(newRound ? 1.0 : 0.0);
-		bettingPattern.addValue(chips);
-		trooperProbabilities.addValue(array.getPokerSimulator().getBestProbability());
-		newRound = false;
+		// store the curren street. starting hans can be calculated just retrivin the values > 0;
+		startingHands.addValue(array.getPokerSimulator().getCurrentRound());
+		// negative for betting, positive for winnigs 0 for checks (or split pot)
+		bettingPattern.addValue(chips - prevValue);
+		prevValue = chips;
 	}
 
-	public Point2D.Double assest() {
-		double hands = 0;
-		for (int i = 0; i < startingHands.getN(); i++) {
-			hands += startingHands.getElement(i);
-		}
-		double winnings = 0;
-		for (int i = 1; i < bettingPattern.getN(); i++) {
-			double prevChips = bettingPattern.getElement(i - 1);
-			double chips = bettingPattern.getElement(i);
-			if (prevChips > 0 && chips > 0) {
-				winnings += chips-prevChips;
+	public double getMean() {
+		double mean = bettingPattern.getMean();
+		mean = ((int) (mean * 100)) / 100.0;
+		return mean;
+	}
+	
+	public double getVariance() {
+		double var = bettingPattern.getVariance();
+		var = ((int) (var * 100)) / 100.0;
+		return var;
+	}
+
+	public int getHands() {
+		int hands = 0;
+		for (int i = 1; i < startingHands.getN(); i++) {
+			if (startingHands.getElement(i) == PokerSimulator.FLOP_CARDS_DEALT
+					&& startingHands.getElement(i - 1) == PokerSimulator.HOLE_CARDS_DEALT) {
+				hands++;
 			}
 		}
-		// the x vector is the beatting patter. the y vector is the startin hand
-		return new Point2D.Double(winnings, hands);
+		return hands;
 	}
+
+	@Override
+	public String toString() {
+		return playerId + ": " + getMean() + "/" + getHands();
+	}
+
 	public void updateDB() {
 		if (!name.equals(prefix)) {
 			GamesHistory gh = GamesHistory.findOrCreateIt("NAME", name);
-			gh.set("ASSESMENT", assest().toString());
+			gh.set("BUY_IN", array.getPokerSimulator().getBuyIn());
+			gh.set("SMALL_BLID", array.getPokerSimulator().getSmallBlind());
+			gh.set("BIG_BLID", array.getPokerSimulator().getBigBlind());
+			gh.set("ASSESMENT", toString());
 			gh.set("BEATTIN_PATTERN", TPreferences.getByteArrayFromObject(bettingPattern));
 			gh.set("STARTING_HANDS", TPreferences.getByteArrayFromObject(startingHands));
-			gh.set("POT_VALUES", TPreferences.getByteArrayFromObject(potValues));
-			gh.set("TROOPER_PROBS", TPreferences.getByteArrayFromObject(trooperProbabilities));
 			gh.save();
 		}
 	}

@@ -1,9 +1,0 @@
-<PluginInformation>
-    <id>ratass</id>
-    <title>ratass</title>
-    <description>Porker plugin</description>
-    <version major="1" minor="0" />
-    <disableable>true</disableable>
-    <mainClass>plugins.ratass.Hero</mainClass>
-	<type>leftPanelUI</type>
-</PluginInformation>

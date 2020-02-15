@@ -3,6 +3,8 @@ package plugins.hero;
 import java.awt.geom.*;
 import java.util.*;
 
+import core.*;
+
 /**
  * This class record the game secuence and store the result in the games db file. instance of this class are dispached
  * when is the trooper turns to fight. all sensor information are stored inside of this class and this class silent
@@ -28,8 +30,8 @@ public class GameRecorder {
 			villans.add(new GamePlayer(i));
 		}
 	}
-	public Point2D.Double getAssest(int playerId) {
-		return villans.elementAt(playerId).assest();
+	public String getAssest(int playerId) {
+		return villans.elementAt(playerId).toString();
 	}
 
 	/**
@@ -41,6 +43,19 @@ public class GameRecorder {
 		villans.forEach(gr -> gr.updateDB());
 	}
 
+	private ArrayList<TEntry<String, Double>> tempList = new ArrayList<>();
+	public String getBoss() {
+		tempList.clear();
+		for (int i = 1; i < villans.size(); i++) {
+			GamePlayer gp = villans.elementAt(i);
+			double mean = gp.getMean() * Trooper.getInstance().getSensorsArray().getPokerSimulator().getBuyIn();
+			double var = gp.getVariance();
+			tempList.add(new TEntry<>(gp.toString(), mean + var));
+		}
+		tempList.sort(null);
+		String boss = tempList.size() > 0 ? tempList.get(tempList.size() - 1).getKey() : "No boss detected.";
+		return boss;
+	}
 	/**
 	 * Take a snapshot of the game status. At this point all elements are available for be processed because this method
 	 * is called one step before the tropper perform his action.
