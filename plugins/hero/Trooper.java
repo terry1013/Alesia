@@ -69,7 +69,8 @@ public class Trooper extends Task {
 	// This variable is ONLY used and cleaned by ensuregametable method
 	private String lastHoleCards = "";
 
-	private double preflopReconAmunition;
+	private double rekonAmunition;
+	private double maximunRekonAmunitions;
 
 	public Trooper() {
 		this(null);
@@ -119,6 +120,8 @@ public class Trooper extends Task {
 		robotActuator.setEnviorement(sDisp);
 		gameRecorder = new GameRecorder(sensorsArray);
 		Hero.sensorsPanel.setArray(sensorsArray);
+		// 5% of the buyin must be enougth
+		this.maximunRekonAmunitions = pokerSimulator.getBuyIn() * 0.05;
 	}
 
 	public boolean isPaused() {
@@ -137,7 +140,7 @@ public class Trooper extends Task {
 
 	private void clearEnviorement() {
 		sensorsArray.init();
-		preflopReconAmunition = 0;
+		rekonAmunition = 0;
 		availableActions.clear();
 		// at first time execution, a standar time of 10 second is used
 		long tt = time1 == 0 ? 10000 : System.currentTimeMillis() - time1;
@@ -168,9 +171,15 @@ public class Trooper extends Task {
 		double number = getAmmunitions();
 		setOddActions(ODDS_MREV, "from ammunition value", number);
 
-		// ammunitionControl();
+		// flop o futher especial case:
+		// if there is no action but is a posible draw and the troper has saved amunitions
+		if (availableActions.size() == 0 && pokerSimulator.getCurrentRound() > PokerSimulator.HOLE_CARDS_DEALT
+				&& (rekonAmunition < maximunRekonAmunitions && pokerSimulator.isdraw())) {
+			setRekonMode("posible draw");
+		}
 
-		// preflop: if normal pot odd action has no action todo, check the preflopcards.
+		// preflop:
+		// if normal pot odd action has no action todo, check the preflopcards.
 		if (availableActions.size() == 0 && pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
 			setVariableAndLog(EXPLANATION, "pre flop action");
 			setPrefloopActions();
@@ -190,6 +199,28 @@ public class Trooper extends Task {
 		if (availableActions.size() == 0) {
 			setVariableAndLog(STATUS, "Empty list. Folding");
 			availableActions.add(new TEntry<String, Double>("fold", 1.0));
+		}
+	}
+	
+	private void setRekonMode(String addinfo) {
+		double call = pokerSimulator.getCallValue();
+		// can i check ??
+		if (call == 0) {
+			availableActions.add(new TEntry<String, Double>("call", 1.0));
+			setVariableAndLog(EXPLANATION, "Checking.");
+			return;
+		}
+		// enought ammunitions wasted ??
+		if (call > maximunRekonAmunitions || rekonAmunition > maximunRekonAmunitions) {
+			// TODO: test the case when i already a hight par (AA)
+			setVariableAndLog(EXPLANATION, "No more ammunition available for recon actions.");
+			return;
+		}
+		// last check: can call (the sensor is active)??
+		if (call != -1) {
+			rekonAmunition += call;
+			availableActions.add(new TEntry<String, Double>("call", call));
+			setVariableAndLog(EXPLANATION, addinfo + ". Calling " + call + " of " + maximunRekonAmunitions);
 		}
 	}
 	/**
@@ -217,7 +248,7 @@ public class Trooper extends Task {
 		// the minimul is the buyin.
 		double number = chips > buyIn ? buyIn * factor : chips * factor;
 
-		 String txt = "Amunition amount ";
+		String txt = "Amunition amount ";
 		// if (invest > pot) {
 		// number = invest;
 		// txt = "Hero chips ";
@@ -301,8 +332,8 @@ public class Trooper extends Task {
 		String cr = hc.getFirstCard().toString().substring(0, 1) + hc.getSecondCard().toString().substring(0, 1);
 		String cards = cr + s;
 		boolean good = preflopHands.containsValue(cards);
-		if (good) {
-			txt = "preflop hand is in positive EV list";
+		if (!good) {
+			txt = "preflop hand is NOT in positive EV list";
 		}
 		// pocket pair
 		if (pokerSimulator.getMyHandHelper().isPocketPair()) {
@@ -389,7 +420,7 @@ public class Trooper extends Task {
 			availableActions.sort(Collections.reverseOrder());
 		} else {
 			calculateRegretMinOdds(sourceValue, availableActions);
-			availableActions.sort(null);
+			// availableActions.sort(null);
 		}
 		// 191228: Hero win his first game against TH app !!!!!!!!!!!!!!!! :D
 		String val = availableActions.stream().map(te -> te.getKey() + "=" + fourDigitFormat.format(te.getValue()))
@@ -411,30 +442,10 @@ public class Trooper extends Task {
 		availableActions.clear();
 		String prehand = isGoodPreflopHand();
 		if (prehand == null) {
-			setVariableAndLog(EXPLANATION, "preflop hand not good.");
+			setVariableAndLog(EXPLANATION, "Preflop hand not good.");
 			return;
 		}
-		// 5% of the buyin bus be enougth
-		double max = pokerSimulator.getBuyIn() * 0.05;
-		double call = pokerSimulator.getCallValue();
-		// can i check ??
-		if (call == 0) {
-			availableActions.add(new TEntry<String, Double>("call", 1.0));
-			setVariableAndLog(EXPLANATION, "Checking.");
-			return;
-		}
-		// enought ammunitions wasted ??
-		if (call > max || preflopReconAmunition > max) {
-			// TODO: test the case when i already a hight par (AA)
-			setVariableAndLog(EXPLANATION, "No more ammunition available for preflop actions.");
-			return;
-		}
-//		last check: can call (the sensor is active)??
-		if(call != -1) {
-			preflopReconAmunition += call;
-			availableActions.add(new TEntry<String, Double>("call", call));
-			setVariableAndLog(EXPLANATION, prehand + ". Calling " + call + " of " + max);
-		}
+		setRekonMode(prehand);
 
 		// TEST: if the cost is marginal, i go. trying to get luck in folp street. this allow trooper to look for hiden
 		// oportunities

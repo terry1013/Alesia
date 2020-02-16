@@ -127,7 +127,7 @@ public class GamePlayer {
 
 	@Override
 	public String toString() {
-		return playerId + ": " + getMean() + "/" + getHands();
+		return getMean() + "/" + getHands();
 	}
 
 	public void updateDB() {

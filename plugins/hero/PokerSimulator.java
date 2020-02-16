@@ -164,9 +164,13 @@ public class PokerSimulator {
 		return currentRound;
 	}
 
+	public boolean isdraw() {
+		return myHandHelper.isFlushDraw() || myHandHelper.isStraightDraw() || myHandHelper.isStraightFlushDraw();
+	}
 	public double getHandFactor() {
 		double rank = UoAHandEvaluator.rankHand(uoAHand);
-		if (rank < minHandRank)
+		// lest than minimun, or none of hole card participate in the hand
+		if (rank < minHandRank || !myHandHelper.isHoleCardHand())
 			return 0.0;
 		return rank / topHandRank;
 	}
