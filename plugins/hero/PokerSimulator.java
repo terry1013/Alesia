@@ -67,6 +67,7 @@ public class PokerSimulator {
 	private MyHandHelper myHandHelper;
 	private MyHandStatsHelper myHandStatsHelper;
 	private MyGameStatsHelper myGameStatsHelper;
+	private Hashtable<Integer, Double> upperProbability;
 
 	private double heroChips;
 	private double buyIn;
@@ -77,7 +78,9 @@ public class PokerSimulator {
 	private long lastStepMillis;
 	private double bestProbability;
 	private UoAHand uoAHand;
+	// royal flush
 	private static int topHandRank = 2970356;
+	// pair of 22
 	private static int minHandRank = 371293;
 
 	public PokerSimulator() {
@@ -112,6 +115,15 @@ public class PokerSimulator {
 		// reportPanel.setBodyComponent(new JScrollPane(reportJLabel));
 		reportPanel.setBodyComponent(jp);
 		setTableParms(10000, 50, 100);
+
+		// test: uper probabilitiy by street.
+		this.upperProbability = new Hashtable<>();
+		// pair of AA
+		upperProbability.put(PokerSimulator.HOLE_CARDS_DEALT, 0.49);
+		// middle card and 2 more cards in the comunity card: tree of a kind: 7.0.
+		upperProbability.put(PokerSimulator.FLOP_CARDS_DEALT, 0.7);
+		upperProbability.put(PokerSimulator.TURN_CARD_DEALT, 0.8);
+		upperProbability.put(PokerSimulator.RIVER_CARD_DEALT, 0.9);
 
 		init();
 	}
@@ -164,9 +176,20 @@ public class PokerSimulator {
 		return currentRound;
 	}
 
-	public boolean isdraw() {
-		return myHandHelper.isFlushDraw() || myHandHelper.isStraightDraw() || myHandHelper.isStraightFlushDraw();
+	public String isdraw() {
+		String drw = null;
+		drw = myHandHelper.isFlushDraw() ? "Flush draw" : drw;
+		drw = myHandHelper.isStraightDraw() ? "Strainht draw" : drw;
+		drw = myHandHelper.isStraightFlushDraw() ? "Straight Flush draw" : drw;
+		return drw;
 	}
+
+	/**
+	 * Return the current "hand factor". The factor is the fraction of the hand rank starting from a pair of 22 one of
+	 * wich must be in the trooper hands. If this minimun requeriment is not fulfilled, this method return 0
+	 * 
+	 * @return the hero hand rank where value close to 0.1 is a pair of 2 and 1.0 is a royal flush
+	 */
 	public double getHandFactor() {
 		double rank = UoAHandEvaluator.rankHand(uoAHand);
 		// lest than minimun, or none of hole card participate in the hand
@@ -519,24 +542,25 @@ public class PokerSimulator {
 		Hero.logger.info("Trooper Current hand: " + variableList.get("simulator.Trooper Current hand"));
 	}
 
+	public String isOportunity() {
+		String txt = null;
+		txt = currentRound > HOLE_CARDS_DEALT && getMyHandHelper().isTheNuts() ? "is the nuts" : txt;
+		txt = myHandHelper.getHandRank() >= Hand.THREE_OF_A_KIND
+				&& bestProbability >= upperProbability.get(currentRound)
+						? "hight prob with hand  three of a kind"
+						: txt;
+		return txt;
+	}
+
 	/**
 	 * update the simulation result to the console
 	 */
 	private void updateSimulationResults() {
-		// TODO: temporal check working only whit win probability. inprove probability was before to the preflopaction
-		// metods
-		// float inprove = myHandStatsHelper == null ? 0 : myHandStatsHelper.getTotalProb();
-		float inprove = -1;
-		float actual = myGameStatsHelper == null ? 0 : myGameStatsHelper.getWinProb() + myGameStatsHelper.getTieProb();
+		bestProbability = myGameStatsHelper == null
+				? 0
+				: myGameStatsHelper.getWinProb() + myGameStatsHelper.getTieProb();
 
-		// float actual = getMyGameStatsHelper().getWinProb();
-		if (getCurrentRound() == PokerSimulator.RIVER_CARD_DEALT)
-			bestProbability = actual;
-		else
-			bestProbability = inprove > actual ? inprove : actual;
-
-		String pnam = inprove > actual ? "Improve" : "Win";
-		variableList.put("simulator.Troper probability", pnam + " " + fourDigitFormat.format(bestProbability));
+		variableList.put("simulator.Troper probability", fourDigitFormat.format(bestProbability));
 		variableList.put("simulator.Trooper Current hand", getMyHandHelper().getHand().toString());
 		variableList.put("simulator.Trooper Hole hand",
 				getMyHoleCards().getFirstCard() + ", " + getMyHoleCards().getSecondCard());
