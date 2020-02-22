@@ -11,6 +11,7 @@ import org.jdesktop.application.*;
 
 import com.javaflair.pokerprophesier.api.adapter.*;
 import com.javaflair.pokerprophesier.api.card.*;
+import com.jgoodies.common.base.*;
 
 import core.*;
 
@@ -70,7 +71,7 @@ public class Trooper extends Task {
 	private String lastHoleCards = "";
 
 	private double rekonAmunition;
-	private double maximunRekonAmunitions;
+	private double maxRekonAmmo;
 
 	public Trooper() {
 		this(null);
@@ -161,37 +162,39 @@ public class Trooper extends Task {
 		availableActions.clear();
 
 		// chek the status of the simulator in case of error. if an error is detected, fold
-		if (!pokerSimulator.getVariables().get(PokerSimulator.STATUS).equals(PokerSimulator.STATUS_OK)) {
+		if (pokerSimulator.getVariables().get(PokerSimulator.STATUS).equals(PokerSimulator.STATUS_ERROR)) {
 			availableActions.add(new TEntry<String, Double>("fold", 1.0));
 			setVariableAndLog(EXPLANATION, "Error detected in simulator.");
 			return;
 		}
 
-		// 5% of the buyin must be enougth
-		// test:
-		double f = 0.05;
-		this.maximunRekonAmunitions = Math.max(pokerSimulator.getBuyIn() * f, pokerSimulator.getHeroChips() * f);
+		// test: empirical result set the buy in for preflop to 0.05 of the hero chips. now, from the original 5%, i
+		// take a factor dependin of the card dealed. the idea is try to survive the "pot stoler" that generaly
+		// start the preflop with hight amounts and after the preflop raise all in to steal the pot. the constant 5% of
+		// the chip, leave hero vulnerable to those buffons and the chips start to dropping out whiout control.
+		if (pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
+			double f = 0.05;
+			double base = pokerSimulator.getBigBlind() * 3;
+			double ammo = Math.max(pokerSimulator.getBuyIn() * f, pokerSimulator.getHeroChips() * f);
+			maxRekonAmmo = base + ammo * pokerSimulator.getHandFactorPreFlop();
+		}
 
-		Hero.logger.info("Numerical values: amunitions=" + pokerSimulator.getHeroChips() + " pot="
-				+ pokerSimulator.getPotValue());
-		// normal odds based on hand rannk. if the trooper detect an oportuniti, the odds action are NOT calculated. the
-		// actions are just put for selecttion.
 		double number = getAmmunitions();
 		setOddActions(ODDS_MREV, "from ammunition value", number);
+
+		// preflop:
+		// if normal pot odd action has no action todo, check the preflopcards.
+		if (availableActions.size() == 0 && pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
+			setPrefloopActions();
+			// setRekonMode("Preflop");
+		}
 
 		// flop o futher especial case:
 		// if there is no action but is a posible draw and the troper has saved amunitions
 		String drw = pokerSimulator.isdraw();
 		if (availableActions.size() == 0 && pokerSimulator.getCurrentRound() > PokerSimulator.HOLE_CARDS_DEALT
-				&& (rekonAmunition < maximunRekonAmunitions && drw != null)) {
+				&& (rekonAmunition < maxRekonAmmo && drw != null)) {
 			setRekonMode(drw);
-		}
-
-		// preflop:
-		// if normal pot odd action has no action todo, check the preflopcards.
-		if (availableActions.size() == 0 && pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
-			setVariableAndLog(EXPLANATION, "pre flop action");
-			setPrefloopActions();
 		}
 
 		// if the list of available actions are empty, i habe no option but fold/check
@@ -213,23 +216,42 @@ public class Trooper extends Task {
 
 	private void setRekonMode(String addinfo) {
 		double call = pokerSimulator.getCallValue();
+		double raise = pokerSimulator.getRaiseValue();
+		double bb = pokerSimulator.getBigBlind();
+		double cnt = 0;
+		double tmp = 0.0;
+
 		// can i check ??
 		if (call == 0) {
 			availableActions.add(new TEntry<String, Double>("call", 1.0));
-			setVariableAndLog(EXPLANATION, "Checking.");
-			return;
+			cnt++;
 		}
+		// can i call ?
+		if (call > 0) {
+			availableActions.add(new TEntry<String, Double>("call", 3.0));
+			cnt++;
+			tmp += call;
+		}
+		// the raise is mariginal ??
+		if (raise <= bb && raise != -1) {
+			availableActions.add(new TEntry<String, Double>("raise", 3.0));
+			cnt++;
+			tmp += raise;
+		}
+		// cnt can be 1 o 2 for check/raise or call
+		// TODO: temporal but i think is enought. here the presition is not so importat. take de average because i dont
+		// know wicht option will be selected
+		tmp = tmp / cnt;
 		// enought ammunitions wasted ??
-		if (call >= maximunRekonAmunitions || rekonAmunition >= maximunRekonAmunitions) {
-			setVariableAndLog(EXPLANATION, "No more ammunition available for recon actions.");
+		if (tmp >= maxRekonAmmo || rekonAmunition >= maxRekonAmmo) {
+			setVariableAndLog(EXPLANATION, addinfo + ". No more ammunition available.");
+			availableActions.clear();
 			return;
 		}
-		// last check: can call (the sensor is active)??
-		if (call != -1) {
-			rekonAmunition += call;
-			availableActions.add(new TEntry<String, Double>("call", call));
-			setVariableAndLog(EXPLANATION, addinfo + ". Calling " + call + " of " + maximunRekonAmunitions);
-		}
+
+		rekonAmunition += tmp;
+		setVariableAndLog(EXPLANATION,
+				addinfo + ". Ammo " + twoDigitFormat.format(tmp) + " of " + twoDigitFormat.format(maxRekonAmmo));
 	}
 	/**
 	 * compute and return the amount of chips available for actions. The number of amount are directe related to the
@@ -256,21 +278,20 @@ public class Trooper extends Task {
 		// when hero is por, this allow him to get out from poverty (or die tryin)
 		if (chips < buyIn) {
 			number = buyIn;
-			txt = "Buy in";
+			txt = "Ammunitons come from Buy in";
 		} else {
 			// the normal behabior: take the minimun: fron pot can be view as normal pot odd, from hero chips, is a
 			// investment
-			if (pot < chips) {
-				number = pot;
-				txt = "Pot";
-			} else {
-				number = chips;
-				txt = "Chips";
-			}
+			// if (pot < chips) {
+			// number = pot;
+			// txt = "Normal pot odds";
+			// } else {
+			number = chips;
+			txt = "Chips. Factor " + twoDigitFormat.format(factor);
+			// }
 		}
 		// double number = chips > buyIn ? buyIn * factor : chips * factor;
-		setVariableAndLog(EXPLANATION, "Amunition from " + txt + " factor " + twoDigitFormat.format(factor) + " is "
-				+ twoDigitFormat.format(number));
+		setVariableAndLog(EXPLANATION, txt + " Value " + twoDigitFormat.format(number));
 		return number;
 	}
 
@@ -353,7 +374,7 @@ public class Trooper extends Task {
 
 		// 10 or higher
 		Card[] heroc = pokerSimulator.getMyHoleCards().getCards();
-		if (heroc[0].getRank() > Card.NINE && heroc[1].getRank() > Card.NINE)
+		if (heroc[0].getRank() > Card.NINE || heroc[1].getRank() > Card.NINE)
 			txt = "preflop hand are 10 or higher";
 
 		return txt;
@@ -410,8 +431,15 @@ public class Trooper extends Task {
 			// check for int or double values for blinds
 			boolean isInt = (new Double(bb)).intValue() == bb && (new Double(sb)).intValue() == sb;
 			double tick = (chips - raise) / 10;
-			for (int c = 1; c < 11; c++) {
+			// not 11 because 11 is equal to allin
+			for (int c = 1; c < 10; c++) {
 				double tickVal = raise + (tick * c);
+
+				// TODO: check for double values: round value to look natural (dont write 12345. write 12340 or 12350)
+				if (isInt)
+					tickVal = ((int) (tickVal / 10)) * 10;
+
+				tickVal = Math.round(tickVal);
 				String txt = isInt ? "" + (int) tickVal : twoDigitFormat.format(tickVal);
 				availableActions
 						.add(new TEntry<String, Double>("raise.text,dc;raise.text,k=" + txt + ";raise", tickVal));
@@ -420,11 +448,23 @@ public class Trooper extends Task {
 		// if is an oportunity, i dont need calculate odds
 		String txt = pokerSimulator.isOportunity();
 		if (txt != null || oportinity) {
-			if (oportinity)
-				txt = "Using previous oportunity.";
-			Hero.logger.info("Oportunity detected " + txt);
-			oportinity = true;
+			Hero.logger.info("Oportunity detected ----------");
 			availableActions.sort(null);
+			// initial oportutity: pot
+			if (!oportinity) {
+				availableActions.removeIf(te -> !te.getKey().equals("raise.pot;raise"));
+			} else {
+				// secont step: boss or chips
+				txt = "Using previous oportunity.";
+				double bo = getBoss();
+				double amo = bo != -1 ? bo : chips;
+				availableActions.removeIf(te -> te.getValue() > amo);
+				availableActions.sort(null);
+				TEntry teval = availableActions.elementAt(availableActions.size() - 1);
+				availableActions.removeIf(te -> !te.equals(teval));
+			}
+			oportinity = true;
+			Hero.logger.info(txt);
 			return;
 		}
 		if (computationType == ODDS_EV) {
@@ -432,7 +472,7 @@ public class Trooper extends Task {
 			availableActions.sort(Collections.reverseOrder());
 		} else {
 			calculateRegretMinOdds(sourceValue, availableActions);
-			// availableActions.sort(null);
+			availableActions.sort(null);
 		}
 		// 191228: Hero win his first game against TH app !!!!!!!!!!!!!!!! :D
 		String val = availableActions.stream().map(te -> te.getKey() + "=" + fourDigitFormat.format(te.getValue()))
@@ -455,26 +495,9 @@ public class Trooper extends Task {
 		String prehand = isGoodPreflopHand();
 		if (prehand == null) {
 			setVariableAndLog(EXPLANATION, "Preflop hand not good.");
-			// return;
+			return;
 		}
 		setRekonMode(prehand);
-
-		// TEST: if the cost is marginal, i go. trying to get luck in folp street. this allow trooper to look for hiden
-		// oportunities
-		// double call = pokerSimulator.getCallValue();
-		// double temMax = pokerSimulator.getBigBlind() * 2;
-		// if (call <= 0) {
-		// setVariableAndLog(EXPLANATION, "empty list. Letting check.");
-		// return;
-		// }
-		//
-		// if (call > temMax || preflopReconAmunition > temMax) {
-		// setVariableAndLog(EXPLANATION, "No more ammunition available for Recon mode.");
-		// return;
-		// }
-		// preflopReconAmunition += call;
-		// availableActions.add(new TEntry<String, Double>("call", call));
-		// setVariableAndLog(EXPLANATION, "Recon mode. Calling " + call);
 	}
 
 	private void setVariableAndLog(String key, Object value) {
@@ -525,7 +548,7 @@ public class Trooper extends Task {
 			hch += hc2 == null ? "" : hc2;
 			if (!("".equals(hch) || lastHoleCards.equals(hch))) {
 				lastHoleCards = hch;
-				setVariableAndLog(EXPLANATION, "new round ------------------------");
+				setVariableAndLog(EXPLANATION, "new round ----------");
 				clearEnviorement();
 				setVariableAndLog(STATUS, "Looking the table ...");
 				continue;

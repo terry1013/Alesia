@@ -45,6 +45,7 @@ public class PokerSimulator {
 	public static int DEALER = 10;
 	public static String STATUS = "Simulator Status";
 	public static String STATUS_OK = "Ok";
+	public static String STATUS_ERROR = "Error";
 	private static DecimalFormat fourDigitFormat = new DecimalFormat("#0.0000");
 
 	public static double probabilityThreshold = 0.50;
@@ -82,6 +83,8 @@ public class PokerSimulator {
 	private static int topHandRank = 2970356;
 	// pair of 22
 	private static int minHandRank = 371293;
+	// top hol card (no pair)
+	private static int topHoleRank = 167;
 
 	public PokerSimulator() {
 		this.cardsBuffer = new Hashtable<String, String>();
@@ -185,6 +188,21 @@ public class PokerSimulator {
 	}
 
 	/**
+	 * return a string representing the card in the troopers hand that participe in the hand Example:
+	 * <li>hero: 2s Ah, comunity: 2s 4h 4c this method return only 2s
+	 * <li>hero: 2s Ah, comunity: 2s Ah 4c this method return 2s Ah
+	 * 
+	 * @return the hole cards that participe in the hand
+	 */
+	private String getSignificantCards() {
+		String stimate = "";
+		Card[] cards = myHandHelper.getSignificantCards();
+		for (Card card : cards) {
+			stimate += card.isHoleCard() ? "" : card.toString() + " ";
+		}
+		return stimate.trim();
+	}
+	/**
 	 * Return the current "hand factor". The factor is the fraction of the hand rank starting from a pair of 22 one of
 	 * wich must be in the trooper hands. If this minimun requeriment is not fulfilled, this method return 0
 	 * 
@@ -192,11 +210,29 @@ public class PokerSimulator {
 	 */
 	public double getHandFactor() {
 		double rank = UoAHandEvaluator.rankHand(uoAHand);
+		// both hero hands must participate in the hand. if not, the hand is treated as a single pair
+		// TODO: this apply also for straing or flush ????????????????????
+		if (myHandHelper.getHandRank() > Hand.PAIR) {
+			String stimate = getSignificantCards();
+			if (stimate.length() == 2) {
+				UoAHand sh = new UoAHand(stimate + " " + stimate);
+				rank = UoAHandEvaluator.rankHand(sh);
+			}
+		}
 		// lest than minimun, or none of hole card participate in the hand
 		if (rank < minHandRank || !myHandHelper.isHoleCardHand())
 			return 0.0;
 		return rank / topHandRank;
 	}
+
+	public double getHandFactorPreFlop() {
+		double rank = UoAHandEvaluator.rankHand(uoAHand);
+		// if is already a poket pair, assig the normal hand factor
+		if (myHandHelper.isPocketPair())
+			rank = getHandFactor();
+		return rank / topHoleRank;
+	}
+
 	public double getHeroChips() {
 		return heroChips;
 	}
@@ -307,13 +343,18 @@ public class PokerSimulator {
 			myHandHelper = adapter.getMyHandHelper();
 			updateSimulationResults();
 			variableList.put(STATUS, STATUS_OK);
+			String oportunity = isOportunity();
+			if (oportunity != null)
+				variableList.put(STATUS, oportunity);
 			updateReport();
 		} catch (SimulatorException e) {
-			setVariable(STATUS, e.getClass().getSimpleName() + e.getMessage());
+			setVariable(STATUS, STATUS_ERROR);
+			// setVariable(STATUS, e.getClass().getSimpleName() + e.getMessage());
 			Hero.logger.warning(e.getMessage() + "\n\tCurrent round: " + currentRound + "\n\tHole cards: " + holeCards
 					+ "\n\tComunity cards: " + communityCards);
 		} catch (Exception e) {
-			setVariable(STATUS, e.getClass().getSimpleName() + " " + e.getMessage());
+			setVariable(STATUS, STATUS_ERROR);
+			// setVariable(STATUS, e.getClass().getSimpleName() + " " + e.getMessage());
 			Hero.logger.log(Level.SEVERE, e.getMessage(), e);
 		}
 	}
@@ -535,20 +576,23 @@ public class PokerSimulator {
 		return "<table>" + res + "</table>";
 	}
 
-	private void log() {
-		Hero.logger.info("Num of players: " + getNumSimPlayers() + " prob for each player: "
-				+ fourDigitFormat.format(1.0 / getNumSimPlayers()));
-		Hero.logger.info("Troper probability: " + variableList.get("simulator.Troper probability"));
-		Hero.logger.info("Trooper Current hand: " + variableList.get("simulator.Trooper Current hand"));
-	}
-
 	public String isOportunity() {
 		String txt = null;
+		if (currentRound > FLOP_CARDS_DEALT) {
+			txt = currentRound > HOLE_CARDS_DEALT && myHandHelper.isTopPair() && myHandHelper.isTopKickerHoleCard()
+					? "top pair with top kicker"
+					: txt;
+			txt = currentRound > HOLE_CARDS_DEALT && myHandHelper.isOverPair() ? "Pocket pair is over pair" : txt;
+		}
+		if (currentRound == FLOP_CARDS_DEALT) {
+			String sts = getSignificantCards();
+			String nh = UoAHandEvaluator.nameHand(uoAHand);
+			txt = myHandHelper.getHandRank() > Hand.PAIR & sts.length() == 5 ? "Troper has " + nh + " (set)" : txt;
+		}
 		txt = currentRound > HOLE_CARDS_DEALT && getMyHandHelper().isTheNuts() ? "is the nuts" : txt;
-		txt = myHandHelper.getHandRank() >= Hand.THREE_OF_A_KIND
-				&& bestProbability >= upperProbability.get(currentRound)
-						? "hight prob with hand  three of a kind"
-						: txt;
+		txt = myHandHelper.getHandRank() == Hand.THREE_OF_A_KIND && myHandHelper.isSet()
+				? "three of a kind (set)"
+				: txt;
 		return txt;
 	}
 
@@ -566,11 +610,15 @@ public class PokerSimulator {
 				getMyHoleCards().getFirstCard() + ", " + getMyHoleCards().getSecondCard());
 		variableList.put("simulator.Troper Comunity cards", getCommunityCards().toString());
 		// variableList.put("Table Position", getTablePosition());
-		variableList.put("simulator.Current round", getCurrentRound());
-		variableList.put("simulator.ammount.Call", getCallValue());
-		variableList.put("simulator.ammount.Raise", getRaiseValue());
-		variableList.put("simulator.ammount.Pot", getPotValue());
-		variableList.put("simulator.Num of players", getNumSimPlayers());
-		log();
+		String txt = "Amunitions " + getHeroChips() + " Pot " + getPotValue() + " Call " + getCallValue() + " Raise "
+				+ getRaiseValue();
+		variableList.put("simulator.Table values", txt);
+		variableList.put("simulator.Simulator values", "Round " + getCurrentRound() + " Players " + getNumSimPlayers());
+
+		Hero.logger.info("Table values: " + variableList.get("simulator.Table values"));
+		Hero.logger.info("Troper probability: " + variableList.get("simulator.Troper probability"));
+		Hero.logger.info("Trooper Current hand: " + variableList.get("simulator.Trooper Current hand"));
+		Hero.logger.info("Simulator values: " + variableList.get("simulator.Simulator values"));
+
 	}
 }

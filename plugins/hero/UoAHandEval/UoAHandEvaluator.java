@@ -17,8 +17,8 @@ public class UoAHandEvaluator {
 
    public static void main(String args[]){
 	   long l1 = System.currentTimeMillis();
-       UoAHand hand1 = new UoAHand("2c 2h 2s 2h Ah");
-       UoAHand hand2 = new UoAHand("Kc 8c 9c Tc Jc Qc Ac");
+       UoAHand hand1 = new UoAHand("Kc Ah");
+       UoAHand hand2 = new UoAHand("2c 2h");
 
        UoAHandEvaluator handEval = new UoAHandEvaluator();
 
