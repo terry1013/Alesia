@@ -73,6 +73,8 @@ public class Trooper extends Task {
 	private double rekonAmunition;
 	private double maxRekonAmmo;
 
+	boolean oportinity = false;
+
 	public Trooper() {
 		this(null);
 	}
@@ -95,10 +97,10 @@ public class Trooper extends Task {
 			init(clone.file);
 		}
 	}
-
 	public static Trooper getInstance() {
 		return instance;
 	}
+
 	public void cancelTrooper(boolean interrupt) {
 		setVariableAndLog(STATUS, "Trooper Canceled.");
 		super.cancel(interrupt);
@@ -122,7 +124,6 @@ public class Trooper extends Task {
 		gameRecorder = new GameRecorder(sensorsArray);
 		Hero.sensorsPanel.setArray(sensorsArray);
 	}
-
 	public boolean isPaused() {
 		return paused;
 	}
@@ -133,10 +134,10 @@ public class Trooper extends Task {
 		this.paused = pause;
 		setVariableAndLog(STATUS, paused ? "Trooper paused" : "Trooper resumed");
 	}
+
 	public void setTestMode(boolean isTestMode) {
 		this.isTestMode = isTestMode;
 	}
-
 	private void clearEnviorement() {
 		sensorsArray.init();
 		rekonAmunition = 0;
@@ -148,6 +149,7 @@ public class Trooper extends Task {
 		time1 = System.currentTimeMillis();
 		Hero.logger.fine("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
 	}
+
 	/**
 	 * decide de action(s) to perform. This method is called when the {@link Trooper} detect that is my turn to play. At
 	 * this point, the game enviorement is waiting for an accion.
@@ -212,46 +214,6 @@ public class Trooper extends Task {
 			setVariableAndLog(STATUS, "Empty list. Folding");
 			availableActions.add(new TEntry<String, Double>("fold", 1.0));
 		}
-	}
-
-	private void setRekonMode(String addinfo) {
-		double call = pokerSimulator.getCallValue();
-		double raise = pokerSimulator.getRaiseValue();
-		double bb = pokerSimulator.getBigBlind();
-		double cnt = 0;
-		double tmp = 0.0;
-
-		// can i check ??
-		if (call == 0) {
-			availableActions.add(new TEntry<String, Double>("call", 1.0));
-			cnt++;
-		}
-		// can i call ?
-		if (call > 0) {
-			availableActions.add(new TEntry<String, Double>("call", 3.0));
-			cnt++;
-			tmp += call;
-		}
-		// the raise is mariginal ??
-		if (raise <= bb && raise != -1) {
-			availableActions.add(new TEntry<String, Double>("raise", 3.0));
-			cnt++;
-			tmp += raise;
-		}
-		// cnt can be 1 o 2 for check/raise or call
-		// TODO: temporal but i think is enought. here the presition is not so importat. take de average because i dont
-		// know wicht option will be selected
-		tmp = tmp / cnt;
-		// enought ammunitions wasted ??
-		if (tmp >= maxRekonAmmo || rekonAmunition >= maxRekonAmmo) {
-			setVariableAndLog(EXPLANATION, addinfo + ". No more ammunition available.");
-			availableActions.clear();
-			return;
-		}
-
-		rekonAmunition += tmp;
-		setVariableAndLog(EXPLANATION,
-				addinfo + ". Ammo " + twoDigitFormat.format(tmp) + " of " + twoDigitFormat.format(maxRekonAmmo));
 	}
 	/**
 	 * compute and return the amount of chips available for actions. The number of amount are directe related to the
@@ -352,30 +314,30 @@ public class Trooper extends Task {
 		String txt = null;
 		HoleCards hc = pokerSimulator.getMyHoleCards();
 		String s = hc.isSuited() ? "s" : "";
-		String cr = hc.getFirstCard().toString().substring(0, 1) + hc.getSecondCard().toString().substring(0, 1);
-		String cards = cr + s;
-		// boolean inList = preflopHands.containsValue(cards);
-		// if (!inList) {
-		// txt = "preflop hand is NOT in positive EV list";
-		// }
+		String c1 = hc.getFirstCard().toString().substring(0, 1) + hc.getSecondCard().toString().substring(0, 1);
+		String c2 = hc.getSecondCard().toString().substring(0, 1) + hc.getFirstCard().toString().substring(0, 1);
+		boolean inList = preflopHands.containsValue(c1 + s) || preflopHands.containsValue(c2 + s);
+		if (inList) {
+			txt = "In positive EV list";
+		}
 		// pocket pair
 		if (pokerSimulator.getMyHandHelper().isPocketPair()) {
-			txt = "preflop hand is a pocket pair";
+			txt = "A pocket pair";
 		}
 
 		// suited
-		if (pokerSimulator.getMyHoleCards().isSuited())
-			txt = "preflop hand is suited";
+		// if (pokerSimulator.getMyHoleCards().isSuited())
+		// txt = "preflop hand is suited";
 
 		// connected: cernters cards separated only by 1 or 2 cards provides de best probabilities (>6%)
 		double sp = pokerSimulator.getMyHandStatsHelper().getStraightProb();
 		if (sp >= 0.060)
-			txt = "preflop hand is posible straight";
+			txt = "Posible straight";
 
-		// 10 or higher
-		Card[] heroc = pokerSimulator.getMyHoleCards().getCards();
-		if (heroc[0].getRank() > Card.NINE || heroc[1].getRank() > Card.NINE)
-			txt = "preflop hand are 10 or higher";
+		// J or higher
+		// Card[] heroc = pokerSimulator.getMyHoleCards().getCards();
+		// if (heroc[0].getRank() > Card.TEN&& heroc[1].getRank() > Card.TEN)
+		// txt = "J or higher";
 
 		return txt;
 	}
@@ -472,7 +434,6 @@ public class Trooper extends Task {
 			availableActions.sort(Collections.reverseOrder());
 		} else {
 			calculateRegretMinOdds(sourceValue, availableActions);
-			availableActions.sort(null);
 		}
 		// 191228: Hero win his first game against TH app !!!!!!!!!!!!!!!! :D
 		String val = availableActions.stream().map(te -> te.getKey() + "=" + fourDigitFormat.format(te.getValue()))
@@ -480,7 +441,6 @@ public class Trooper extends Task {
 		val = val.trim().isEmpty() ? "No positive EV" : val;
 		Hero.logger.info(computationType + " for " + sourceName + " " + val);
 	}
-	boolean oportinity = false;
 	/**
 	 * Set the action based on the starting hand distribution. If the starting hand is inside on the predefined hands
 	 * distribution, this method evaluate if a predefinde max amount of chips has ben reached (due to an allin or
@@ -498,6 +458,45 @@ public class Trooper extends Task {
 			return;
 		}
 		setRekonMode(prehand);
+	}
+	private void setRekonMode(String addinfo) {
+		double call = pokerSimulator.getCallValue();
+		double raise = pokerSimulator.getRaiseValue();
+		double bb = pokerSimulator.getBigBlind();
+		double cnt = 0;
+		double tmp = 0.0;
+
+		// can i check ??
+		if (call == 0) {
+			availableActions.add(new TEntry<String, Double>("call", 1.0));
+			cnt++;
+		}
+		// can i call ?
+		if (call > 0) {
+			availableActions.add(new TEntry<String, Double>("call", 3.0));
+			cnt++;
+			tmp += call;
+		}
+		// the raise is mariginal ??
+		if (raise <= bb && raise != -1) {
+			availableActions.add(new TEntry<String, Double>("raise", 3.0));
+			cnt++;
+			tmp += raise;
+		}
+		// cnt can be 1 o 2 for check/raise or call
+		// TODO: temporal but i think is enought. here the presition is not so importat. take de average because i dont
+		// know wicht option will be selected
+		tmp = tmp / cnt;
+		// enought ammunitions wasted ??
+		if (tmp >= maxRekonAmmo || rekonAmunition >= maxRekonAmmo) {
+			setVariableAndLog(EXPLANATION, addinfo + ". No more ammunition available.");
+			availableActions.clear();
+			return;
+		}
+
+		rekonAmunition += tmp;
+		setVariableAndLog(EXPLANATION,
+				addinfo + ". Ammo " + twoDigitFormat.format(tmp) + " of " + twoDigitFormat.format(maxRekonAmmo));
 	}
 
 	private void setVariableAndLog(String key, Object value) {

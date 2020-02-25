@@ -49,6 +49,12 @@ public class PokerSimulator {
 	private static DecimalFormat fourDigitFormat = new DecimalFormat("#0.0000");
 
 	public static double probabilityThreshold = 0.50;
+	// royal flush
+	private static int topHandRank = 2970356;
+	// pair of 22
+	private static int minHandRank = 371293;
+	// top hol card (no pair)
+	private static int topHoleRank = 167;
 	// Number of simulations, total players
 	private int numSimulations = 100000;
 	// temporal storage for incoming cards
@@ -66,25 +72,19 @@ public class PokerSimulator {
 	private int tablePosition;
 	private WebComboBox helperFilterComboBox;
 	private MyHandHelper myHandHelper;
+
 	private MyHandStatsHelper myHandStatsHelper;
 	private MyGameStatsHelper myGameStatsHelper;
 	private Hashtable<Integer, Double> upperProbability;
-
 	private double heroChips;
+
 	private double buyIn;
 	private double smallBlind;
 	private double bigBlind;
-
 	private ActionsBarChart actionsBarChart;
 	private long lastStepMillis;
 	private double bestProbability;
 	private UoAHand uoAHand;
-	// royal flush
-	private static int topHandRank = 2970356;
-	// pair of 22
-	private static int minHandRank = 371293;
-	// top hol card (no pair)
-	private static int topHoleRank = 167;
 
 	public PokerSimulator() {
 		this.cardsBuffer = new Hashtable<String, String>();
@@ -179,29 +179,6 @@ public class PokerSimulator {
 		return currentRound;
 	}
 
-	public String isdraw() {
-		String drw = null;
-		drw = myHandHelper.isFlushDraw() ? "Flush draw" : drw;
-		drw = myHandHelper.isStraightDraw() ? "Strainht draw" : drw;
-		drw = myHandHelper.isStraightFlushDraw() ? "Straight Flush draw" : drw;
-		return drw;
-	}
-
-	/**
-	 * return a string representing the card in the troopers hand that participe in the hand Example:
-	 * <li>hero: 2s Ah, comunity: 2s 4h 4c this method return only 2s
-	 * <li>hero: 2s Ah, comunity: 2s Ah 4c this method return 2s Ah
-	 * 
-	 * @return the hole cards that participe in the hand
-	 */
-	private String getSignificantCards() {
-		String stimate = "";
-		Card[] cards = myHandHelper.getSignificantCards();
-		for (Card card : cards) {
-			stimate += card.isHoleCard() ? "" : card.toString() + " ";
-		}
-		return stimate.trim();
-	}
 	/**
 	 * Return the current "hand factor". The factor is the fraction of the hand rank starting from a pair of 22 one of
 	 * wich must be in the trooper hands. If this minimun requeriment is not fulfilled, this method return 0
@@ -232,7 +209,6 @@ public class PokerSimulator {
 			rank = getHandFactor();
 		return rank / topHoleRank;
 	}
-
 	public double getHeroChips() {
 		return heroChips;
 	}
@@ -240,6 +216,7 @@ public class PokerSimulator {
 	public MyGameStatsHelper getMyGameStatsHelper() {
 		return myGameStatsHelper;
 	}
+
 	public MyHandHelper getMyHandHelper() {
 		return myHandHelper;
 	}
@@ -247,7 +224,6 @@ public class PokerSimulator {
 	public MyHandStatsHelper getMyHandStatsHelper() {
 		return myHandStatsHelper;
 	}
-
 	public HoleCards getMyHoleCards() {
 		return holeCards;
 	}
@@ -259,9 +235,11 @@ public class PokerSimulator {
 	public double getPotValue() {
 		return potValue;
 	}
+
 	public double getRaiseValue() {
 		return raiseValue;
 	}
+
 	/**
 	 * Return the information component whit all values computesd form simulations and game status
 	 * 
@@ -270,13 +248,13 @@ public class PokerSimulator {
 	public JComponent getReportPanel() {
 		return reportPanel;
 	}
-
 	public double getSmallBlind() {
 		return smallBlind;
 	}
 	public int getTablePosition() {
 		return tablePosition;
 	}
+
 	public TreeMap<String, Object> getVariables() {
 		return variableList;
 	}
@@ -301,6 +279,34 @@ public class PokerSimulator {
 		raiseValue = -1;
 		heroChips = -1;
 		// cleanReport();
+	}
+	public String isdraw() {
+		String drw = null;
+		drw = myHandHelper.isFlushDraw() ? "Flush draw" : drw;
+		drw = myHandHelper.isStraightDraw() ? "Strainht draw" : drw;
+		drw = myHandHelper.isStraightFlushDraw() ? "Straight Flush draw" : drw;
+		return drw;
+	}
+	public String isOportunity() {
+		String txt = null;
+		// if (currentRound > FLOP_CARDS_DEALT) {
+		// txt = currentRound > HOLE_CARDS_DEALT && myHandHelper.isTopPair() && myHandHelper.isTopKickerHoleCard()
+		// ? "top pair with top kicker"
+		// : txt;
+		// txt = currentRound > HOLE_CARDS_DEALT && myHandHelper.isOverPair() ? "Pocket pair is over pair" : txt;
+		// }
+		if (currentRound > HOLE_CARDS_DEALT) {
+			// WARNNING: two pair case is not an oportunity
+			String sts = getSignificantCards();
+			String nh = UoAHandEvaluator.nameHand(uoAHand);
+			txt = myHandHelper.getHandRank() > Hand.PAIR && sts.length() == 5 ? "Troper has " + nh + " (set)" : txt;
+		}
+		// is the nut
+		txt = currentRound > HOLE_CARDS_DEALT && getMyHandHelper().isTheNuts() ? "is the nuts" : txt;
+		// txt = myHandHelper.getHandRank() == Hand.THREE_OF_A_KIND && myHandHelper.isSet()
+		// ? "three of a kind (set)"
+		// : txt;
+		return txt;
 	}
 
 	/**
@@ -576,24 +582,20 @@ public class PokerSimulator {
 		return "<table>" + res + "</table>";
 	}
 
-	public String isOportunity() {
-		String txt = null;
-		if (currentRound > FLOP_CARDS_DEALT) {
-			txt = currentRound > HOLE_CARDS_DEALT && myHandHelper.isTopPair() && myHandHelper.isTopKickerHoleCard()
-					? "top pair with top kicker"
-					: txt;
-			txt = currentRound > HOLE_CARDS_DEALT && myHandHelper.isOverPair() ? "Pocket pair is over pair" : txt;
+	/**
+	 * return a string representing the card in the troopers hand that participe in the hand Example:
+	 * <li>hero: 2s Ah, comunity: 2s 4h 4c this method return only 2s
+	 * <li>hero: 2s Ah, comunity: 2s Ah 4c this method return 2s Ah
+	 * 
+	 * @return the hole cards that participe in the hand
+	 */
+	private String getSignificantCards() {
+		String stimate = "";
+		Card[] cards = myHandHelper.getSignificantCards();
+		for (Card card : cards) {
+			stimate += card.isHoleCard() ? card.toString().substring(0, 2) + " " : "";
 		}
-		if (currentRound == FLOP_CARDS_DEALT) {
-			String sts = getSignificantCards();
-			String nh = UoAHandEvaluator.nameHand(uoAHand);
-			txt = myHandHelper.getHandRank() > Hand.PAIR & sts.length() == 5 ? "Troper has " + nh + " (set)" : txt;
-		}
-		txt = currentRound > HOLE_CARDS_DEALT && getMyHandHelper().isTheNuts() ? "is the nuts" : txt;
-		txt = myHandHelper.getHandRank() == Hand.THREE_OF_A_KIND && myHandHelper.isSet()
-				? "three of a kind (set)"
-				: txt;
-		return txt;
+		return stimate.trim();
 	}
 
 	/**
