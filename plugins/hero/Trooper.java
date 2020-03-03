@@ -11,7 +11,6 @@ import org.jdesktop.application.*;
 
 import com.javaflair.pokerprophesier.api.adapter.*;
 import com.javaflair.pokerprophesier.api.card.*;
-import com.jgoodies.common.base.*;
 
 import core.*;
 
@@ -63,7 +62,6 @@ public class Trooper extends Task {
 	private DescriptiveStatistics outGameStats;
 	private boolean paused = false;
 
-	private GameRecorder gameRecorder;
 	private Properties preflopHands;
 	long stepMillis;
 
@@ -72,13 +70,11 @@ public class Trooper extends Task {
 
 	private double rekonAmunition;
 	private double maxRekonAmmo;
-
 	boolean oportinity = false;
 
 	public Trooper() {
 		this(null);
 	}
-
 	public Trooper(Trooper clone) {
 		super(Alesia.getInstance());
 		this.robotActuator = new RobotActuator();
@@ -97,6 +93,7 @@ public class Trooper extends Task {
 			init(clone.file);
 		}
 	}
+
 	public static Trooper getInstance() {
 		return instance;
 	}
@@ -109,7 +106,6 @@ public class Trooper extends Task {
 	public SensorsArray getSensorsArray() {
 		return sensorsArray;
 	}
-
 	/**
 	 * set the enviorement. this method create a new enviorement discarting all previous created objects
 	 * 
@@ -121,7 +117,6 @@ public class Trooper extends Task {
 		this.availableActions.clear();
 		sensorsArray.createSensorsArray(sDisp);
 		robotActuator.setEnviorement(sDisp);
-		gameRecorder = new GameRecorder(sensorsArray);
 		Hero.sensorsPanel.setArray(sensorsArray);
 	}
 	public boolean isPaused() {
@@ -130,17 +125,19 @@ public class Trooper extends Task {
 	public boolean isTestMode() {
 		return isTestMode;
 	}
+
 	public void pause(boolean pause) {
 		this.paused = pause;
 		setVariableAndLog(STATUS, paused ? "Trooper paused" : "Trooper resumed");
 	}
-
 	public void setTestMode(boolean isTestMode) {
 		this.isTestMode = isTestMode;
 	}
+
 	private void clearEnviorement() {
 		sensorsArray.init();
 		rekonAmunition = 0;
+		maxRekonAmmo = -1;
 		oportinity = false;
 		availableActions.clear();
 		// at first time execution, a standar time of 10 second is used
@@ -149,7 +146,6 @@ public class Trooper extends Task {
 		time1 = System.currentTimeMillis();
 		Hero.logger.fine("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
 	}
-
 	/**
 	 * decide de action(s) to perform. This method is called when the {@link Trooper} detect that is my turn to play. At
 	 * this point, the game enviorement is waiting for an accion.
@@ -174,29 +170,31 @@ public class Trooper extends Task {
 		// take a factor dependin of the card dealed. the idea is try to survive the "pot stoler" that generaly
 		// start the preflop with hight amounts and after the preflop raise all in to steal the pot. the constant 5% of
 		// the chip, leave hero vulnerable to those buffons and the chips start to dropping out whiout control.
-		if (pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
-			double f = 0.05;
+		if (pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT && maxRekonAmmo == -1) {
 			double base = pokerSimulator.getBigBlind() * 3;
-			double ammo = Math.max(pokerSimulator.getBuyIn() * f, pokerSimulator.getHeroChips() * f);
-			maxRekonAmmo = base + ammo * pokerSimulator.getHandFactorPreFlop();
+//			TEST: allwais buy in 
+			double ammo = pokerSimulator.getBuyIn() * 0.1;
+//			double ammo = Math.max(pokerSimulator.getBuyIn() * f, pokerSimulator.getHeroChips() * f);
+			maxRekonAmmo = base + ammo * pokerSimulator.getPreFlopHandStreng();
 		}
 
-		double number = getAmmunitions();
-		setOddActions(ODDS_MREV, "from ammunition value", number);
-
-		// preflop:
+		// PREFLOP
 		// if normal pot odd action has no action todo, check the preflopcards.
-		if (availableActions.size() == 0 && pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
-			setPrefloopActions();
-			// setRekonMode("Preflop");
+		if (pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
+//			setPrefloopActions();
+			setRekonMode("Preflop");
 		}
 
-		// flop o futher especial case:
-		// if there is no action but is a posible draw and the troper has saved amunitions
-		String drw = pokerSimulator.isdraw();
-		if (availableActions.size() == 0 && pokerSimulator.getCurrentRound() > PokerSimulator.HOLE_CARDS_DEALT
-				&& (rekonAmunition < maxRekonAmmo && drw != null)) {
-			setRekonMode(drw);
+		// FLOP AND FUTHER
+		if (pokerSimulator.getCurrentRound() > PokerSimulator.HOLE_CARDS_DEALT) {
+			double number = getAmmunitions();
+			setOddActions(ODDS_MREV, "from ammunition value", number);
+
+			// if there is no action but is a posible draw and the troper has saved amunitions
+			String drw = pokerSimulator.isdraw();
+			if (availableActions.size() == 0 && (rekonAmunition < maxRekonAmmo && drw != null)) {
+//				setRekonMode(drw);
+			}
 		}
 
 		// if the list of available actions are empty, i habe no option but fold/check
@@ -229,52 +227,31 @@ public class Trooper extends Task {
 	 * @return amunitions
 	 */
 	private double getAmmunitions() {
-		double factor = pokerSimulator.getHandFactor();
-		// test: upper bound now is pot or number
-		double pot = pokerSimulator.getPotValue();
-		double chips = pokerSimulator.getHeroChips() * factor;
-		double buyIn = pokerSimulator.getBuyIn() * factor;
+		double hand = pokerSimulator.getCurrentHandStreng();
+		double potential = pokerSimulator.getHandPotential();
+//		double factor = hand + potential;
+		String txt1 = "Hand " + twoDigitFormat.format(hand) + " Potential " + twoDigitFormat.format(potential);
+		double chips = pokerSimulator.getHeroChips() * potential;
+		double buyIn = pokerSimulator.getBuyIn() * potential;
+		double pot = pokerSimulator.getBuyIn() * hand;
 		// minimun upper bound: chip or buy (when hero is poor)
 		double number = 0.0;
-		String txt = "";
-		// when hero is por, this allow him to get out from poverty (or die tryin)
-		if (chips < buyIn) {
+		String ammoSrc = "";
+		// when hero is poor, this allow him to get out from poverty (or die tryin)
+
+		//		TODO: TEST: allways max is buy in
+//		if (chips < buyIn) {
 			number = buyIn;
-			txt = "Ammunitons come from Buy in";
-		} else {
-			// the normal behabior: take the minimun: fron pot can be view as normal pot odd, from hero chips, is a
-			// investment
-			// if (pot < chips) {
-			// number = pot;
-			// txt = "Normal pot odds";
-			// } else {
-			number = chips;
-			txt = "Chips. Factor " + twoDigitFormat.format(factor);
-			// }
-		}
-		// double number = chips > buyIn ? buyIn * factor : chips * factor;
-		setVariableAndLog(EXPLANATION, txt + " Value " + twoDigitFormat.format(number));
+//			ammoSrc = "Buy in";
+//		} else {
+//			number = chips;
+//			ammoSrc = "Chips";
+//		}
+//		to the previous numner, add the future posibility
+		number += pot;
+		
+		setVariableAndLog(EXPLANATION, ammoSrc + " " + txt1 + " Value " + twoDigitFormat.format(number));
 		return number;
-	}
-
-	/**
-	 * chck for all sensor and return the current active stronger villan. The stronger villan in this functions is the
-	 * villan with more chips.
-	 */
-	private double getBoss() {
-		ArrayList<Double> chips = new ArrayList<>();
-		for (int id = 1; id <= sensorsArray.getVillans(); id++) {
-			if (sensorsArray.isActive(id))
-				chips.add(sensorsArray.getSensor("villan" + id + ".chips").getNumericOCR());
-		}
-		chips.removeIf(i -> i.doubleValue() < 0);
-		chips.sort(null);
-
-		if (chips.isEmpty())
-			return -1;
-
-		double wv = chips.get(chips.size() - 1);
-		return wv;
 	}
 
 	/**
@@ -418,7 +395,7 @@ public class Trooper extends Task {
 			} else {
 				// secont step: boss or chips
 				txt = "Using previous oportunity.";
-				double bo = getBoss();
+				double bo = sensorsArray.getBoss();
 				double amo = bo != -1 ? bo : chips;
 				availableActions.removeIf(te -> te.getValue() > amo);
 				availableActions.sort(null);
@@ -534,8 +511,8 @@ public class Trooper extends Task {
 			// canceled ?
 			if (isCancelled())
 				return false;
-
-			sensorsArray.readVillans(restarChips);
+			sensorsArray.readVillans();
+			// sensorsArray.readVillans(restarChips);
 			restarChips = false;
 
 			sensorsArray.read(SensorsArray.TYPE_ACTIONS);
@@ -586,13 +563,13 @@ public class Trooper extends Task {
 	protected void act() {
 		setVariableAndLog(STATUS, "Acting ...");
 		String ha = getSubOptimalAction();
-		gameRecorder.takeSnapShot();
+		// gameRecorder.takeSnapShot();
 		String key = "trooper.Action performed";
 		pokerSimulator.setVariable(key, ha);
 		// robot actuator perform the log
 		robotActuator.perform(ha);
-		gameRecorder.updateDB();
-		setVariableAndLog("trooper.Assesment ", gameRecorder.getAssest(0));
+		// gameRecorder.updateDB();
+		// setVariableAndLog("trooper.Assesment ", gameRecorder.getAssest(0));
 	}
 	/**
 	 * Return the expectation of the <code>base</code> argument against the <code>cost</code> argument. to comply with

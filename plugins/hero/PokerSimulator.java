@@ -179,35 +179,47 @@ public class PokerSimulator {
 		return currentRound;
 	}
 
+	public double getHandPotential() {
+		double hp = 0.0;
+		if (myHandStatsHelper != null) {
+			int toh = Hand.STRAIGHT_FLUSH - (myHandHelper.getHandRank() + 1);
+			float[] list = myHandStatsHelper.getAllProbs();
+			for (int i = 0; i < toh; i++) {
+				hp += list[i];
+				// System.out.println("PokerSimulator.getHandPotential() " + list[i]);
+			}
+		}
+		return hp;
+	}
+
 	/**
 	 * Return the current "hand factor". The factor is the fraction of the hand rank starting from a pair of 22 one of
 	 * wich must be in the trooper hands. If this minimun requeriment is not fulfilled, this method return 0
 	 * 
 	 * @return the hero hand rank where value close to 0.1 is a pair of 2 and 1.0 is a royal flush
 	 */
-	public double getHandFactor() {
+	public double getCurrentHandStreng() {
 		double rank = UoAHandEvaluator.rankHand(uoAHand);
 		// both hero hands must participate in the hand. if not, the hand is treated as a single pair
 		// TODO: this apply also for straing or flush ????????????????????
-		if (myHandHelper.getHandRank() > Hand.PAIR) {
-			String stimate = getSignificantCards();
-			if (stimate.length() == 2) {
-				UoAHand sh = new UoAHand(stimate + " " + stimate);
-				rank = UoAHandEvaluator.rankHand(sh);
-			}
-		}
+		// if (myHandHelper.getHandRank() > Hand.PAIR) {
+		// String stimate = getSignificantCards();
+		// if (stimate.length() == 2) {
+		// UoAHand sh = new UoAHand(stimate + " " + stimate);
+		// rank = UoAHandEvaluator.rankHand(sh);
+		// }
+		// }
 		// lest than minimun, or none of hole card participate in the hand
 		if (rank < minHandRank || !myHandHelper.isHoleCardHand())
 			return 0.0;
 		return rank / topHandRank;
 	}
 
-	public double getHandFactorPreFlop() {
+	public double getPreFlopHandStreng() {
 		double rank = UoAHandEvaluator.rankHand(uoAHand);
-		// if is already a poket pair, assig the normal hand factor
-		if (myHandHelper.isPocketPair())
-			rank = getHandFactor();
-		return rank / topHoleRank;
+		// if is already a poket pair, assig 1
+		rank = myHandHelper.isPocketPair() ? 1.0 : rank / topHoleRank;
+		return rank;
 	}
 	public double getHeroChips() {
 		return heroChips;
@@ -295,11 +307,12 @@ public class PokerSimulator {
 		// : txt;
 		// txt = currentRound > HOLE_CARDS_DEALT && myHandHelper.isOverPair() ? "Pocket pair is over pair" : txt;
 		// }
-		if (currentRound > HOLE_CARDS_DEALT) {
-			// WARNNING: two pair case is not an oportunity
+//		more than a pair on flop or turn
+		if (myHandHelper.getHandRank() > Hand.PAIR
+				&& (currentRound == FLOP_CARDS_DEALT || currentRound == TURN_CARD_DEALT)) {
 			String sts = getSignificantCards();
 			String nh = UoAHandEvaluator.nameHand(uoAHand);
-			txt = myHandHelper.getHandRank() > Hand.PAIR && sts.length() == 5 ? "Troper has " + nh + " (set)" : txt;
+			txt = sts.length() == 5 ? "Troper has " + nh + " (set)" : txt;
 		}
 		// is the nut
 		txt = currentRound > HOLE_CARDS_DEALT && getMyHandHelper().isTheNuts() ? "is the nuts" : txt;

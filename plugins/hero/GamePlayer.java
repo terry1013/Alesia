@@ -1,9 +1,5 @@
 package plugins.hero;
 
-import java.awt.*;
-import java.awt.geom.*;
-import java.security.*;
-
 import org.apache.commons.math3.stat.descriptive.*;
 
 import core.*;
@@ -39,6 +35,13 @@ public class GamePlayer {
 		this.array = Trooper.getInstance().getSensorsArray();
 		initStatistics();
 	}
+	
+	public int getId() {
+		return playerId;
+	}
+	public String getName() {
+		return name;
+	}
 	private void initStatistics() {
 		this.bettingPattern = new DescriptiveStatistics(300);
 		this.startingHands = new DescriptiveStatistics(300);
@@ -50,7 +53,7 @@ public class GamePlayer {
 	 * When this method detect a know villan, it will try to retrive pass information about him form the data base.
 	 * propabilistic information about this villan could be retribed afeter that
 	 */
-	public void update() {
+	public void update(int round) {
 
 		// record only if the player is active
 		if (!array.isActive(playerId))
@@ -96,7 +99,8 @@ public class GamePlayer {
 		}
 
 		// store the curren street. starting hans can be calculated just retrivin the values > 0;
-		startingHands.addValue(array.getPokerSimulator().getCurrentRound());
+//		startingHands.addValue(array.getPokerSimulator().getCurrentRound());
+		startingHands.addValue(round);
 		// negative for betting, positive for winnigs 0 for checks (or split pot)
 		bettingPattern.addValue(chips - prevValue);
 		prevValue = chips;
@@ -109,7 +113,7 @@ public class GamePlayer {
 	}
 	
 	public double getVariance() {
-		double var = bettingPattern.getVariance();
+		double var = bettingPattern.getStandardDeviation();
 		var = ((int) (var * 100)) / 100.0;
 		return var;
 	}
@@ -127,7 +131,7 @@ public class GamePlayer {
 
 	@Override
 	public String toString() {
-		return getMean() + "/" + getHands();
+		return getMean() + "/";// + getVariance();
 	}
 
 	public void updateDB() {

@@ -15,6 +15,8 @@ import org.apache.commons.math3.stat.descriptive.*;
 
 import com.jgoodies.common.base.*;
 
+import core.*;
+
 /**
  * This class control the array of sensor inside of the screen. This class is responsable for reading all the sensor
  * configurated in the {@link DrawingPanel} passsed as argument in the {@link #createSensorsArray(DrawingPanel)} method.
@@ -279,6 +281,7 @@ public class SensorsArray {
 		long t2 = System.currentTimeMillis() - t1;
 		pokerSimulator.setVariable("sensorArray.Look table time", sslist.size() + " sensors " + t2);
 	}
+	private GameRecorder gameRecorder;
 
 	/**
 	 * read one unit of information. This method is intented to retrive information from the enviorement in small amount
@@ -288,15 +291,64 @@ public class SensorsArray {
 	 * @param restar - <code>true</code> indicate the internal list must be reordener to the initial status.
 	 *        <code>false</code> indicate normal rotation reading
 	 */
-	public void readVillans(boolean restar) {
-		if (restar)
-			villansSensors.sort(null);
+	public void readVillans() {
+		// public void readVillans(boolean restar) {
+		// test: read all villans information whiout restart for statistical purporse.
+		// if (restar)
+		// villansSensors.sort(null);
+		// gameRecorder.takeSnapShot();
+
+		// ArrayList<ScreenSensor> tmp = new ArrayList<>(1);
+		// tmp.add(getSensor(villansSensors.get(0)));
+		// Collections.rotate(villansSensors, 1);
+		// readSensors(true, tmp);
+		//// setVariableAndLog("trooper.Assesment ", gameRecorder.getAssest(0));
+		// villansBeacon++;
+
 		ArrayList<ScreenSensor> tmp = new ArrayList<>(1);
-		tmp.add(getSensor(villansSensors.get(0)));
-		Collections.rotate(villansSensors, 1);
+		tmp.add(getSensor(villansSensors.get(villansBeacon++)));
 		readSensors(true, tmp);
+		if (villansBeacon == villansSensors.size()) {
+			villansBeacon = 0;
+			// look the comuniti cards and detect the currend round
+			List list = screenSensors.values().stream().filter(ss -> ss.isComunityCard()).collect(Collectors.toList());
+			readSensors(false, list);
+			int round = PokerSimulator.NO_CARDS_DEALT;
+			round = getSensor("flop1").isEnabled() ? PokerSimulator.FLOP_CARDS_DEALT : round;
+			round = getSensor("turn").isEnabled() ? PokerSimulator.TURN_CARD_DEALT : round;
+			round = getSensor("river").isEnabled() ? PokerSimulator.RIVER_CARD_DEALT : round;
+			gameRecorder.takeSnapShot(round);
+			gameRecorder.updateDB();
+			ArrayList<String> means = gameRecorder.getMeans();
+			StringBuffer sb = new StringBuffer();
+			means.forEach(st -> sb.append(st + ", "));
+			pokerSimulator.setVariable("trooper.Assesment", sb.substring(0, sb.length() - 2));
+		}
 	}
 
+	/**
+	 * Check for all sensor and return the current active stronger villan. The stronger villan in this functions is the
+	 * villan with more chips.
+	 * 
+	 * @return the boss or -1 in case of error or no boss detected at this time
+	 */
+	public double getBoss() {
+		ArrayList<Double> chips = new ArrayList<>();
+		for (int id = 1; id <= getVillans(); id++) {
+			if (isActive(id))
+				chips.add(getSensor("villan" + id + ".chips").getNumericOCR());
+		}
+		chips.removeIf(i -> i.doubleValue() < 0);
+		chips.sort(null);
+
+		if (chips.isEmpty())
+			return -1;
+
+		double wv = chips.get(chips.size() - 1);
+		return wv;
+	}
+
+	private int villansBeacon = 0;
 	/**
 	 * Perform read operation on the {@link ScreenSensor} acoording to the type of the sensor. The type can be any of
 	 * TYPE_ global constatn passed as argument. This method perform the OCR operation on the selected areas and update
@@ -475,8 +527,8 @@ public class SensorsArray {
 				.filter(ss -> ss.getName().startsWith("villan")).map(ScreenSensor::getName)
 				.collect(Collectors.toList());
 		villansSensors.addAll(slist);
-
 		pokerSimulator.init();
+		gameRecorder = new GameRecorder(getVillans());
 	}
 
 }

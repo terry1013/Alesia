@@ -1,6 +1,5 @@
 package plugins.hero;
 
-import java.awt.geom.*;
 import java.util.*;
 
 import core.*;
@@ -22,13 +21,18 @@ public class GameRecorder {
 
 	private Vector<GamePlayer> villans;
 
-	public GameRecorder(SensorsArray sensorsArray) {
-		int lv = sensorsArray.getVillans();
+	public GameRecorder(int vills) {
 		// 0 index is the troper
-		this.villans = new Vector<>(lv);
-		for (int i = 0; i <= lv; i++) {
+		this.villans = new Vector<>(vills);
+		for (int i = 0; i <= vills; i++) {
 			villans.add(new GamePlayer(i));
 		}
+	}
+
+	public ArrayList<String> getMeans() {
+		ArrayList<String> means = new ArrayList<>(villans.size());
+		villans.forEach(gp -> means.add(gp.toString()));
+		return means;
 	}
 	public String getAssest(int playerId) {
 		return villans.elementAt(playerId).toString();
@@ -61,7 +65,8 @@ public class GameRecorder {
 	 * is called one step before the tropper perform his action.
 	 * 
 	 */
-	public void takeSnapShot() {
-		villans.stream().forEach(v -> v.update());
+	public void takeSnapShot(int round) {
+		System.out.println("GameRecorder.takeSnapShot()   "+round);
+		villans.stream().forEach(v -> v.update(round));
 	}
 }
