@@ -182,11 +182,12 @@ public class PokerSimulator {
 	public double getHandPotential() {
 		double hp = 0.0;
 		if (myHandStatsHelper != null) {
-			int toh = Hand.STRAIGHT_FLUSH - (myHandHelper.getHandRank() + 1);
+			// int toh = Hand.STRAIGHT_FLUSH - (myHandHelper.getHandRank() + 1);
+			int toh = Hand.STRAIGHT_FLUSH - myHandHelper.getHandRank();
+			System.out.println("current rank: " + myHandHelper.getHandRank() + "toh = " + toh);
 			float[] list = myHandStatsHelper.getAllProbs();
 			for (int i = 0; i < toh; i++) {
 				hp += list[i];
-				// System.out.println("PokerSimulator.getHandPotential() " + list[i]);
 			}
 		}
 		return hp;
@@ -307,7 +308,7 @@ public class PokerSimulator {
 		// : txt;
 		// txt = currentRound > HOLE_CARDS_DEALT && myHandHelper.isOverPair() ? "Pocket pair is over pair" : txt;
 		// }
-//		more than a pair on flop or turn
+		// more than a pair on flop or turn
 		if (myHandHelper.getHandRank() > Hand.PAIR
 				&& (currentRound == FLOP_CARDS_DEALT || currentRound == TURN_CARD_DEALT)) {
 			String sts = getSignificantCards();

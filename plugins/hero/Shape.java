@@ -98,7 +98,7 @@ public class Shape {
 		center = new Point();
 		center.x = rec.x + cx;
 		center.y = rec.y + cy;
-		this.distributionX = new NormalDistribution(center.x, 4);
-		this.distributionY = new NormalDistribution(center.y, 4);
+		this.distributionX = new NormalDistribution(center.x, 3);
+		this.distributionY = new NormalDistribution(center.y, 3);
 	}
 }

@@ -172,16 +172,16 @@ public class Trooper extends Task {
 		// the chip, leave hero vulnerable to those buffons and the chips start to dropping out whiout control.
 		if (pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT && maxRekonAmmo == -1) {
 			double base = pokerSimulator.getBigBlind() * 3;
-//			TEST: allwais buy in 
-			double ammo = pokerSimulator.getBuyIn() * 0.1;
-//			double ammo = Math.max(pokerSimulator.getBuyIn() * f, pokerSimulator.getHeroChips() * f);
+			// TEST: allwais buy in
+			double ammo = pokerSimulator.getBuyIn() * 0.07;
+			// double ammo = Math.max(pokerSimulator.getBuyIn() * f, pokerSimulator.getHeroChips() * f);
 			maxRekonAmmo = base + ammo * pokerSimulator.getPreFlopHandStreng();
 		}
 
 		// PREFLOP
 		// if normal pot odd action has no action todo, check the preflopcards.
 		if (pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
-//			setPrefloopActions();
+			// setPrefloopActions();
 			setRekonMode("Preflop");
 		}
 
@@ -193,7 +193,7 @@ public class Trooper extends Task {
 			// if there is no action but is a posible draw and the troper has saved amunitions
 			String drw = pokerSimulator.isdraw();
 			if (availableActions.size() == 0 && (rekonAmunition < maxRekonAmmo && drw != null)) {
-//				setRekonMode(drw);
+				// setRekonMode(drw);
 			}
 		}
 
@@ -229,27 +229,24 @@ public class Trooper extends Task {
 	private double getAmmunitions() {
 		double hand = pokerSimulator.getCurrentHandStreng();
 		double potential = pokerSimulator.getHandPotential();
-//		double factor = hand + potential;
 		String txt1 = "Hand " + twoDigitFormat.format(hand) + " Potential " + twoDigitFormat.format(potential);
-		double chips = pokerSimulator.getHeroChips() * potential;
-		double buyIn = pokerSimulator.getBuyIn() * potential;
-		double pot = pokerSimulator.getBuyIn() * hand;
+		double chips = pokerSimulator.getHeroChips() * (hand+potential);
+		double buyIn = pokerSimulator.getBuyIn() * (hand+potential);
+//		double pot = pokerSimulator.getPotValue() * potential;
 		// minimun upper bound: chip or buy (when hero is poor)
 		double number = 0.0;
 		String ammoSrc = "";
 		// when hero is poor, this allow him to get out from poverty (or die tryin)
-
-		//		TODO: TEST: allways max is buy in
-//		if (chips < buyIn) {
+		if (chips < buyIn) {
 			number = buyIn;
-//			ammoSrc = "Buy in";
-//		} else {
-//			number = chips;
-//			ammoSrc = "Chips";
-//		}
-//		to the previous numner, add the future posibility
-		number += pot;
-		
+			ammoSrc = "Buy in";
+		} else {
+			number = chips;
+			ammoSrc = "Chips";
+		}
+		// to the hand potential add the efective amount that is already mine
+//		number += pot;
+
 		setVariableAndLog(EXPLANATION, ammoSrc + " " + txt1 + " Value " + twoDigitFormat.format(number));
 		return number;
 	}
@@ -393,14 +390,18 @@ public class Trooper extends Task {
 			if (!oportinity) {
 				availableActions.removeIf(te -> !te.getKey().equals("raise.pot;raise"));
 			} else {
-				// secont step: boss or chips
 				txt = "Using previous oportunity.";
-				double bo = sensorsArray.getBoss();
-				double amo = bo != -1 ? bo : chips;
-				availableActions.removeIf(te -> te.getValue() > amo);
-				availableActions.sort(null);
-				TEntry teval = availableActions.elementAt(availableActions.size() - 1);
-				availableActions.removeIf(te -> !te.equals(teval));
+				// secont step: hero has only one option: call an all in. all sensor are disabled except one. else, the
+				// available actions must be full of posible options
+				if (availableActions.size() > 1) {
+					// secont step: boss or chips
+					double bo = sensorsArray.getBoss();
+					double amo = bo != -1 ? bo : chips;
+					availableActions.removeIf(te -> te.getValue() > amo);
+					availableActions.sort(null);
+					TEntry teval = availableActions.elementAt(availableActions.size() - 1);
+					availableActions.removeIf(te -> !te.equals(teval));
+				}
 			}
 			oportinity = true;
 			Hero.logger.info(txt);
