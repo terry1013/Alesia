@@ -66,7 +66,6 @@ public class GameRecorder {
 	 * 
 	 */
 	public void takeSnapShot(int round) {
-		System.out.println("GameRecorder.takeSnapShot()   "+round);
 		villans.stream().forEach(v -> v.update(round));
 	}
 }

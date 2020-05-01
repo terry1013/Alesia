@@ -31,7 +31,7 @@ import net.sourceforge.tess4j.*;
 public class Hero extends TPlugin {
 
 	// protected static Tesseract iTesseract;
-	protected static ActionMap actionMap;
+	protected static ActionMap actionMap; 
 	protected static ConsolePanel consolePanel;
 	protected static SensorsPanel sensorsPanel;
 	protected static Logger logger;

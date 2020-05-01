@@ -311,13 +311,13 @@ public class SensorsArray {
 		if (villansBeacon == villansSensors.size()) {
 			villansBeacon = 0;
 			// look the comuniti cards and detect the currend round
-			List list = screenSensors.values().stream().filter(ss -> ss.isComunityCard()).collect(Collectors.toList());
-			readSensors(false, list);
-			int round = PokerSimulator.NO_CARDS_DEALT;
-			round = getSensor("flop1").isEnabled() ? PokerSimulator.FLOP_CARDS_DEALT : round;
-			round = getSensor("turn").isEnabled() ? PokerSimulator.TURN_CARD_DEALT : round;
-			round = getSensor("river").isEnabled() ? PokerSimulator.RIVER_CARD_DEALT : round;
-			gameRecorder.takeSnapShot(round);
+//			List list = screenSensors.values().stream().filter(ss -> ss.isComunityCard()).collect(Collectors.toList());
+//			readSensors(false, list);
+//			int round = PokerSimulator.NO_CARDS_DEALT;
+//			round = getSensor("flop1").isEnabled() ? PokerSimulator.FLOP_CARDS_DEALT : round;
+//			round = getSensor("turn").isEnabled() ? PokerSimulator.TURN_CARD_DEALT : round;
+//			round = getSensor("river").isEnabled() ? PokerSimulator.RIVER_CARD_DEALT : round;
+			gameRecorder.takeSnapShot(0);
 			gameRecorder.updateDB();
 			ArrayList<String> means = gameRecorder.getMeans();
 			StringBuffer sb = new StringBuffer();

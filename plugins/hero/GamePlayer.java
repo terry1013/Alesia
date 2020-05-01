@@ -131,7 +131,7 @@ public class GamePlayer {
 
 	@Override
 	public String toString() {
-		return getMean() + "/";// + getVariance();
+		return getMean() + "/"+ bettingPattern.getN();
 	}
 
 	public void updateDB() {

@@ -366,16 +366,16 @@ public class Trooper extends Task {
 		if (raise > 0 && sensorsArray.getSensor("raise.slider").isEnabled()) {
 			// check for int or double values for blinds
 			boolean isInt = (new Double(bb)).intValue() == bb && (new Double(sb)).intValue() == sb;
-			double tick = (chips - raise) / 10;
+			double tick = (chips - raise) / 10.0;
 			// not 11 because 11 is equal to allin
 			for (int c = 1; c < 10; c++) {
 				double tickVal = raise + (tick * c);
-
-				// TODO: check for double values: round value to look natural (dont write 12345. write 12340 or 12350)
+				// round value to look natural (dont write 12345. write 12340 or 12350)
 				if (isInt)
 					tickVal = ((int) (tickVal / 10)) * 10;
+//				else 
+//					tickVal = ((int) (tickVal * 100)) / 100.0;
 
-				tickVal = Math.round(tickVal);
 				String txt = isInt ? "" + (int) tickVal : twoDigitFormat.format(tickVal);
 				availableActions
 						.add(new TEntry<String, Double>("raise.text,dc;raise.text,k=" + txt + ";raise", tickVal));
@@ -606,7 +606,8 @@ public class Trooper extends Task {
 		}
 
 		// step (by observation, 1/20 of the bb)
-		double step = pokerSimulator.getBigBlind() / 20.0;
+//		double step = pokerSimulator.getBigBlind() / 20.0;
+		double step = 5.0;
 		// regret
 		double reg = (prob - PokerSimulator.probabilityThreshold) * -1 * step;
 		for (TEntry<String, Double> tEntry : list) {

@@ -117,7 +117,7 @@ public class PokerSimulator {
 		jp.add(actionsBarChart.getChartPanel(), BorderLayout.SOUTH);
 		// reportPanel.setBodyComponent(new JScrollPane(reportJLabel));
 		reportPanel.setBodyComponent(jp);
-		setTableParms(10000, 50, 100);
+		setTableParms(2, 0.01, 0.02);
 
 		// test: uper probabilitiy by street.
 		this.upperProbability = new Hashtable<>();
