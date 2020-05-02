@@ -14,7 +14,7 @@ import java.applet.*;
 import java.awt.*;
 import java.awt.Dialog.*;
 import java.awt.event.*;
-import java.io.*; 
+import java.io.*;
 import java.sql.*;
 import java.util.*;
 import java.util.logging.*;
@@ -32,7 +32,6 @@ import org.apache.shiro.session.mgt.*;
 import org.apache.shiro.subject.*;
 import org.apache.shiro.util.*;
 import org.javalite.activejdbc.*;
-import org.javalite.activejdbc.Configuration;
 import org.javalite.activejdbc.connection_config.*;
 import org.jdesktop.application.*;
 
@@ -52,13 +51,10 @@ import com.alee.skin.dark.*;
 import com.alee.utils.*;
 import com.alee.utils.CollectionUtils;
 
-import core.datasource.*;
-import core.datasource.model.*;
 import core.tasks.*;
 import gui.*;
 import gui.docking.*;
 import gui.wlaf.*;
-import plugins.hero.*;
 
 /**
  * Entrada aplicacion
@@ -136,6 +132,29 @@ public class Alesia extends Application {
 	}
 
 	/**
+	 * Open and return an instacen of {@link DB} for the given prefix. The connection parameters must be in the
+	 * database.properties file or similar.
+	 * 
+	 * @param name - prefix name of the conneciton parameters
+	 * @return instance of {@link DB}
+	 * @see #getDBProperties()
+	 */
+	public static DB openDB(String name) {
+		DB db = null;
+		try {
+			Properties prp = getDBProperties();
+			db = new DB(name);
+			ConnectionJdbcSpec spec = new ConnectionJdbcSpec(prp.getProperty(name + ".driver"),
+					prp.getProperty(name + ".url"), prp.getProperty(name + ".username"),
+					prp.getProperty(name + ".password"));
+			db.open(spec);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return db;
+	}
+
+	/**
 	 * Convenient method to open the alesia local database connection using the system enviorement variables. call this
 	 * method to create or open a new database connection and attach these to {@link Thread} that invoke this method.
 	 * <p>
@@ -145,6 +164,7 @@ public class Alesia extends Application {
 	public static void openDB() {
 		if (alesiaDB == null)
 			alesiaDB = new DB("AlesiaDatabase");
+		alesiaDB = openDB("activejdbc");
 		ConnectionJdbcSpec spec = new ConnectionJdbcSpec(System.getProperty("activejdbc.driver"),
 				System.getProperty("activejdbc.url"), System.getProperty("activejdbc.username"),
 				System.getProperty("activejdbc.password"));
@@ -257,7 +277,22 @@ public class Alesia extends Application {
 		// menu.add(new Exit());
 		// final PathSelector pcs = new PathSelector();
 	}
-	public static DB alesiaDB;
+
+	/**
+	 * Look in the Alesia.properties file, look for the property "Alesia.database.file.name" and load an return the list
+	 * of all prperties found in that file. This file contain all data base connection information.
+	 * 
+	 * @return all properties found in the database properties files
+	 */
+	private static Properties getDBProperties() throws Exception {
+		// active jdbc propertie files pointed form main alesia property file
+		Properties activeprp = new Properties();
+		// TODO: convert to urls to allow more access support ???
+		File fp = new File(System.getProperty("Alesia.database.file.name"));
+		activeprp.load(new FileInputStream(fp));
+		return activeprp;
+	}
+	private static DB alesiaDB;
 	/**
 	 * try to connect to local database. this method determine if an instance of this app is already running. in this
 	 * case, send {@link TPreferences#REQUEST_MAXIMIZE} message throwout internal comunication file (_.properties file)
@@ -269,14 +304,10 @@ public class Alesia extends Application {
 		// System.getProperties().put("socketTimeout", 10 * 1000);
 		try {
 			logger.info("Connecting to local database ...");
+			Properties activeprp = getDBProperties();
 
-			// active jdbc propertie files pointed form main alesia property file
-			Properties activeprp = new Properties();
-			// TODO: convert to urls to allow more access support ???
-			File fp = new File(System.getProperty("Alesia.database.file.name"));
-			activeprp.load(new FileInputStream(fp));
-
-			// i will load only active enviorement
+			// set the produccion connection data to the sytem variables for activejdbc use
+			// (only local database)
 			String ae = activeprp.getProperty("active_env");
 			System.setProperty("active_env", ae);
 			System.setProperty("activejdbc.url", activeprp.getProperty(ae + ".url"));

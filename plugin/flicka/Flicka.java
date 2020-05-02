@@ -11,16 +11,12 @@
 package plugin.flicka;
 
 import java.awt.event.*;
-import java.io.*;
 import java.util.*;
-import java.util.logging.*;
 
 import javax.swing.*;
 
 import core.*;
 import core.datasource.*;
-import gui.console.*;
-import plugins.hero.*;
 
 public class Flicka extends TPlugin {
 
@@ -30,6 +26,11 @@ public class Flicka extends TPlugin {
 		actionMap = Alesia.getInstance().getContext().getActionMap(this);
 	}
 	
+	@Override
+	public void startPlugin() throws Exception {
+		Alesia.openDB("flicka");
+		super.startPlugin();
+	}
 	@Override
 	public ArrayList<javax.swing.Action> getUI(String type) {
 		ArrayList<Action> alist = new ArrayList<>();
@@ -56,7 +57,7 @@ public class Flicka extends TPlugin {
 		Vector<Record> reslr = ConnectionManager.getAccessTo("reslr").search(null, field);
 		Vector<TEntry> reslrr = new Vector<TEntry>();
 		if (emptyF != null) {
-			reslrr.add(TStringUtils.getTEntry(emptyF));
+			//			reslrr.add(TStringUtils.getTEntry(emptyF));
 		}
 		for (Record rcd : reslr) {
 			String ele = (String) rcd.getFieldValue(field);
