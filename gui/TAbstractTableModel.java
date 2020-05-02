@@ -14,55 +14,35 @@ import java.util.*;
 
 import javax.swing.table.*;
 
-import core.*;
-import core.datasource.*;
+import org.javalite.activejdbc.*;
 
-/**
- * extencion de <code>AbstractTableModel</code> con soporte varios para aplicacion
- * 
- */
 public class TAbstractTableModel extends AbstractTableModel {
 
+	private LazyList<Model> lazyList;
+	private Model model;
 	private TableRowSorter rowSorter;
-	private Record rcdModel;
-	private Vector records;
-	private ServiceRequest sRequest;
-	private boolean isTranspose, allowCellEdit;
-	private String transposeColumnName;
-	private String[] showColumns;
-	private Hashtable<Integer, Hashtable> referenceColumns;
+	private boolean allowCellEdit;
+	private Hashtable<String, Hashtable> referenceColumns;
+	private Vector<String> attributeNames;
 
-	public TAbstractTableModel(ServiceRequest s) {
-		super();
-		this.records = new Vector();
+	public TAbstractTableModel() {
 		this.rowSorter = null;
-		this.referenceColumns = new Hashtable<Integer, Hashtable>();
-
-		setServiceRequest(s);
-	}
-
-	public Vector<Record> getRecords() {
-		return records;
+		this.referenceColumns = new Hashtable<String, Hashtable>();
+		this.attributeNames = new Vector<>();
 	}
 
 	public void freshen() {
-		if (sRequest == null) {
+		if (lazyList == null) {
 			return;
 		}
-		int bef_rc = records.size();
-		setServiceRequest(sRequest);
-		int aft_rc = records.size();
-
-		// System.out.println("aft_rc " + aft_rc);
-		// int rc = rowSorter.getViewRowCount();
-		// System.out.println("getViewRowCount " + rc);
-
+		int bef_rc = lazyList.size();
+		lazyList.load();
+		int aft_rc = lazyList.size();
 		rowSorter.allRowsChanged();
 		if (aft_rc == 0) {
 			return;
 		}
 		if (bef_rc != aft_rc) {
-			// temporal: eliminar registro seleccionado
 			fireTableDataChanged();
 		} else {
 			try {
@@ -79,21 +59,22 @@ public class TAbstractTableModel extends AbstractTableModel {
 
 	@Override
 	public Class getColumnClass(int idx) {
-		return isTranspose ? Object.class : rcdModel.getFieldValue(idx).getClass();
+		String atn = attributeNames.get(idx);
+		return model.get(atn).getClass();
 	}
 
 	@Override
 	public int getColumnCount() {
-		return isTranspose ? records.size() : rcdModel.getFieldCount();
+		return attributeNames.size();
 	}
 
 	@Override
 	public String getColumnName(int col) {
-		return isTranspose ? transposeColumnName + " " + col : rcdModel.getFieldName(col);
+		return attributeNames.elementAt(col);
 	}
 
-	public Record getRecordModel() {
-		return new Record(rcdModel);
+	public Model getModel() {
+		return model;
 	}
 
 	/**
@@ -103,53 +84,26 @@ public class TAbstractTableModel extends AbstractTableModel {
 	 * 
 	 * @return Record
 	 */
-	public Record getRecordAt(int row) {
+	public Model getModelAt(int row) {
 		int row1 = rowSorter == null ? row : rowSorter.convertRowIndexToModel(row);
-		return (Record) records.elementAt(row1);
+		return lazyList.get(row1);
 	}
 
 	@Override
 	public int getRowCount() {
-		return isTranspose ? showColumns.length : records.size();
-	}
-
-	/**
-	 * rturn the {@link ServiceRequest} used to buld data model
-	 * 
-	 * @return ServiceRequest
-	 */
-	public ServiceRequest getServiceRequest() {
-		return sRequest;
-	}
-
-	/**
-	 * Asociate a sublist of values for the internal value in this model. when the column value is request by JTable,
-	 * the internal value is mapped whit this list to return the meaning of the value instead the value itselft
-	 * 
-	 * @param col - column
-	 * @param dom - {@link Hashtable} with the sublist of element to map
-	 */
-	// public void setReferenceColumn(int col, Hashtable dom) {
-	public void setReferenceColumn(Hashtable refc) {
-		referenceColumns = refc;
-		// referenceColumns.put(col, dom);
+		return lazyList.size();
 	}
 
 	@Override
 	public Object getValueAt(int row, int col) {
-		Record r = (Record) records.elementAt(isTranspose ? col : row);
-		Object rv = null;
-		if (isTranspose) {
-			String fn = showColumns[row];
-			rv = r.getFieldValue(fn);
-		} else {
-			rv = r.getFieldValue(col);
-		}
+		Model model = lazyList.get(row);
+		String atn = attributeNames.elementAt(col);
+		Object rv = model.get(atn);
 
 		// check the reference by column
 		// 180311 TODO: move to celrenderer (but if its moved to cellrenderer the column sort maybe show some
 		// "sort error" because the internal value will be different form the external representation.)
-		Hashtable ht = referenceColumns.get(r.getFieldName(col));
+		Hashtable ht = referenceColumns.get(atn);
 		if (ht != null) {
 			Object rv1 = ht.get(rv);
 			// 180311: rv.tostring to allow from number, bool to key from TEntrys ( that are generaly created from
@@ -158,60 +112,41 @@ public class TAbstractTableModel extends AbstractTableModel {
 			// 180416: if no reference found, remark the value (NOTE: temp: not fully tested. wath about numbers or
 			// tentry columns??
 			rv = (rv1 == null) ? "<html><FONT COLOR='#FF0000'><i>" + rv + "</html>" : rv1;
-
 		}
 		return rv;
-	}
-	/**
-	 * retrona el indice donde se encuentra el registro parado como argumento o -1 si no esta dentro de la lista. esete
-	 * elemento verifica <code>Record.toString()</code> que retorna solo los valores de la clave de registro.
-	 * 
-	 * @param rcd - registro a localizar
-	 */
-	public int indexOf(Record rcd) {
-		return records.indexOf(rcd);
 	}
 
 	@Override
 	public boolean isCellEditable(int row, int column) {
+		String atn = attributeNames.get(column);
+		String keys[] = model.getCompositeKeys();
+		boolean ispk = false;
+		for (String k : keys) {
+			ispk = atn.equals(k) ? true : ispk;
+		}
 		// cell is editable iff allow cell edit and is not a keyfield
-		boolean kf = rcdModel.isKeyField(isTranspose ? row : column);
-		return allowCellEdit && !kf;
+		return allowCellEdit && !ispk;
 	}
 
-	public boolean isTranspose() {
-		return isTranspose;
-	}
-
-	public void setCellEditable(boolean ce, boolean ke) {
+	public void setCellEditable(boolean ce) {
 		allowCellEdit = ce;
 	}
 
+	public void setModel(Model model) {
+		lazyList.load();
+	}
+
 	/**
-	 * set the ServiceRequest to this model and process the request reloading the data
+	 * Asociate a sublist of values for the internal value in this model. when the column value is request by JTable,
+	 * the internal value is mapped whit this list to return the meaning of the value instead the value itselft
 	 * 
-	 * @param sr - ServiceRequest
+	 * @param refc - an instance of {@link Hashtable}
 	 */
-	public void setServiceRequest(ServiceRequest sr) {
-		sRequest = sr;
-		// special treatment for Clientgeneratedlist because clear destroy the generated data
-		if (!sr.getName().equals(ServiceRequest.CLIENT_GENERATED_LIST)) {
-			records.clear();
-		}
-		if (sRequest != null) {
-			ServiceResponse res = ServiceConnection.sendTransaction(sRequest);
-			records = (Vector) res.getData();
-			rcdModel = (Record) res.getParameter(ServiceResponse.RECORD_MODEL);
-		}
+	public void setReferenceColumn(Hashtable refc) {
+		referenceColumns = refc;
 	}
 
 	public void setTableRowSorter(TableRowSorter trs) {
 		this.rowSorter = trs;
-	}
-
-	public void setTransporseParameters(String cid, String cols) {
-		isTranspose = true;
-		transposeColumnName = TStringUtils.getString(cid);
-		showColumns = cols.split(";");
 	}
 }

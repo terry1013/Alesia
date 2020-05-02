@@ -10,30 +10,37 @@
  ******************************************************************************/
 package plugin.flicka;
 
+import java.awt.event.*;
+import java.io.*;
 import java.util.*;
+import java.util.logging.*;
+
+import javax.swing.*;
 
 import core.*;
 import core.datasource.*;
+import gui.console.*;
+import plugins.hero.*;
 
-/**
- * plugin entry for team work
- * 
- * @author terry
- * 
- */
-public class Flicka extends PluginAdapter {
+public class Flicka extends TPlugin {
 
+	protected static ActionMap actionMap; 
+
+	public Flicka() {
+		actionMap = Alesia.getInstance().getContext().getActionMap(this);
+	}
+	
 	@Override
-	public Object executePlugin(Object obj) {
-
-		return new FlickaAction();
+	public ArrayList<javax.swing.Action> getUI(String type) {
+		ArrayList<Action> alist = new ArrayList<>();
+		alist.add(actionMap.get("races"));
+		return alist;
 	}
 
-	@Override
-	public void startPlugin(Properties prps) throws Exception {
-		super.startPlugin(prps);
-		Record cf = ConnectionManager.getAccessTo("t_connections").exist("T_CNNAME = 'Flicka'");
-		ConnectionManager.connect(cf);
+	@org.jdesktop.application.Action
+	public void races(ActionEvent event) {
+		RaceList r = new RaceList();
+		Alesia.getMainPanel().setContentPanel(r);
 	}
 
 	/**

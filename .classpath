@@ -17,6 +17,7 @@
 	<classpathentry kind="lib" path="lib/weblaf/weblaf-ui-1.2.9.jar" sourcepath="C:/Users/terry/Documents/java/WebLaF/1.29/weblaf-ui-1.2.9-sources.jar"/>
 	<classpathentry kind="lib" path="lib/weblaf/xstream-1.4.9.jar"/>
 	<classpathentry kind="lib" path="lib/commons-csv-1.4.jar"/>
+	<classpathentry kind="lib" path="lib/mysql-connector-java-8.0.20.jar"/>
 	<classpathentry kind="lib" path="lib/hsqldb.jar"/>
 	<classpathentry kind="lib" path="lib/jcommon-1.0.23.jar"/>
 	<classpathentry kind="lib" path="lib/jgoodies-binding-2.13.0.jar"/>

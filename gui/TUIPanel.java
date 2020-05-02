@@ -55,6 +55,10 @@ public class TUIPanel extends JPanel {
 	private Action doblecClickAction;
 	private WebPanel toolBarPanel;
 
+	public TUIFormPanel getTUIFormPanel() {
+		return null;
+	}
+	
 	public WebPanel getToolBarPanel() {
 		return toolBarPanel;
 	}

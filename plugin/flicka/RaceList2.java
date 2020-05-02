@@ -26,7 +26,7 @@ import core.*;
 import core.datasource.*;
 import core.datasource.model.*;
 
-public class RaceList extends TUIPanel {
+public class RaceList2 extends TUIPanel {
 
 	private TAbstractAction newFromTable, baseNewRecord, baseEditRecord;
 	private RaceRecordFromTable recordFromTable;
@@ -34,14 +34,30 @@ private WebTable table;
 private TAbstractTableModel tableModel;
 	
 	
-	public RaceList() {		
+	public RaceList2() {		
 		showAditionalInformation(false);
 		// actionMap = Alesia.getInstance().getContext().getActionMap(this);
 		setToolBar(TActionsFactory.getActions("newRecord", "EditRecord"));
 		Action a = TActionsFactory.getAction("newRecord");
 		a.putValue(TActionsFactory.TUIPANEL, this);
 		
+		request.setParameter(ServiceRequest.ORDER_BY, "reend_pos");
+		this.baseNewRecord = new NewRecord2(this);
+		this.baseEditRecord = new EditRecord2(this);
+		this.newFromTable = new NewRecord2(this) {
+			@Override
+			public boolean validateNewRecord(Record rcd) {
+				return true;
+			}
+			@Override
+			public void actionPerformed2() {
+				recordFromTable.updateRecords();
+				dialog.dispose();
+				editableList.freshen();
+			}
+		};
 		newFromTable.setIcon("newFromTable");
+		setToolBar(baseNewRecord, baseEditRecord, newFromTable, new DeleteRecord2(this));
 //		setColumns("restar_lane;rehorse;rejockey;reend_pos;rejockey_weight;recps");
 //		setIconParameters("-1; ");
 	}
@@ -53,9 +69,9 @@ private TAbstractTableModel tableModel;
 			tuifp = new RaceRecord(rcd, newr, mode)
 		}
 		// TODO Auto-generated method stub
-		return tuifp;
+		return super.getTUIFormPanel();
 	}
-
+	@Override
 	public UIComponentPanel getUIFor(AbstractAction aa) {
 		UIComponentPanel pane = null;
 		if (aa == baseNewRecord) {

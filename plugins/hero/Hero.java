@@ -44,6 +44,7 @@ public class Hero extends TPlugin {
 		consolePanel = new ConsolePanel(logger);
 		new Trooper();
 	}
+	
 	public static Action getLoadAction() {
 		Action load = TActionsFactory.getAction("fileChooserOpen");
 		load.addPropertyChangeListener(evt -> {
@@ -111,6 +112,9 @@ public class Hero extends TPlugin {
 		sensorsPanel = new SensorsPanel();
 		Alesia.getMainPanel().setContentPanel(sensorsPanel);
 
+//		temp: change the main frame using this coordenates: 0,40 547,735
+		Alesia.mainFrame.setBounds(0, 40, 547, 735);
+		
 		// temporal
 		Trooper.getInstance().init(new File("plugins/hero/resources/ps-main table.ppt"));
 	}

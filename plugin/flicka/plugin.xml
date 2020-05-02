@@ -1,0 +1,9 @@
+<PluginInformation>
+    <id>flicka</id>
+    <title>Flicka</title>
+    <description>Horse race plugin</description>
+    <version major="1" minor="0" />
+    <disableable>true</disableable>
+    <mainClass>plugins.flicka.Flicka</mainClass>
+	<type>leftPanelUI</type>
+</PluginInformation>

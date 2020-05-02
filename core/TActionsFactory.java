@@ -10,11 +10,13 @@ import java.util.*;
 import java.util.List;
 
 import javax.swing.*;
+import javax.swing.plaf.*;
 
 import org.javalite.activejdbc.*;
 import org.jdesktop.application.*;
 import org.jdesktop.application.Action;
 
+import com.alee.laf.window.*;
 import com.alee.utils.*;
 import com.jgoodies.common.base.*;
 
@@ -51,6 +53,13 @@ public class TActionsFactory {
 		return instance.actionMap.get(key);
 	}
 
+	public static List<javax.swing.Action> getActions(String... keys) {
+		ArrayList<javax.swing.Action> l = new ArrayList<>();
+		for (String k : keys) {
+			l.add(getAction(k));
+		}
+		return l;
+	}
 	private static void disposeDialog(JComponent cmp, boolean valid) {
 		cmp.putClientProperty("validation", valid);
 		Window root = SwingUtilities.getWindowAncestor(cmp);
@@ -166,6 +175,8 @@ public class TActionsFactory {
 		}
 	}
 
+	public static String TUIPANEL= "TUIPanel";
+
 	/**
 	 * generic constant to store information about grouping or group
 	 */
@@ -210,6 +221,21 @@ public class TActionsFactory {
 			me.putValue(DATA_LOADED, obj);
 		}
 	}
+
+	@Action
+	public void newRecord(ActionEvent event) {
+		AbstractButton src = (AbstractButton) event.getSource();
+		ApplicationAction me = (ApplicationAction) src.getAction();
+		TUIPanel tuip = (TUIPanel) me.getValue(TUIPANEL);
+		TUIFormPanel tuifp = tuip.getTUIFormPanel();
+		WebDialog dlg = tuifp.createDialog();
+		dlg.setVisible(true);
+		Hashtable<String, Object> vals = tuifp.getValues();
+		if (vals != null) {
+
+		}
+	}
+
 	/**
 	 * Allow use the internal file TVARIABLE to store custom user variables. this action work in pair with
 	 * {@link #loadProperty(ActionEvent)}. This action use the following values retrive from

@@ -496,7 +496,7 @@ public class Alesia extends Application {
 
 		Alesia.mainFrame.setSplashIncrementText("Starting task manager ...");
 		Alesia.manager = new TTaskManager();
-		// requestAutentication();
+		requestAutentication();
 
 		// UserLogIn logIn = new UserLogIn();
 		// TTilePanel tilePanel = new TTilePanel();
