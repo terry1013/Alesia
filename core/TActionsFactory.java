@@ -175,7 +175,8 @@ public class TActionsFactory {
 		}
 	}
 
-	public static String TUIPANEL= "TUIPanel";
+	public static String TUIPANEL = "TUIPanel";
+	public static String TUILISTPANEL = "TUIListPanel";
 
 	/**
 	 * generic constant to store information about grouping or group
@@ -223,16 +224,48 @@ public class TActionsFactory {
 	}
 
 	@Action
-	public void newRecord(ActionEvent event) {
+	public void newModel(ActionEvent event) {
 		AbstractButton src = (AbstractButton) event.getSource();
 		ApplicationAction me = (ApplicationAction) src.getAction();
-		TUIPanel tuip = (TUIPanel) me.getValue(TUIPANEL);
-		TUIFormPanel tuifp = tuip.getTUIFormPanel();
+		TUIListPanel tuilp = (TUIListPanel) me.getValue(TUILISTPANEL);
+		TUIFormPanel tuifp = tuilp.getTUIFormPanel(me);
 		WebDialog dlg = tuifp.createDialog();
 		dlg.setVisible(true);
 		Hashtable<String, Object> vals = tuifp.getValues();
 		if (vals != null) {
+			// acept changes
 
+		}
+	}
+
+	@Action
+	public void editModel(ActionEvent event) {
+		AbstractButton src = (AbstractButton) event.getSource();
+		ApplicationAction me = (ApplicationAction) src.getAction();
+		TUIListPanel tuilp = (TUIListPanel) me.getValue(TUILISTPANEL);
+		TUIFormPanel tuifp = tuilp.getTUIFormPanel(me);
+		WebDialog dlg = tuifp.createDialog();
+		dlg.setVisible(true);
+		Hashtable<String, Object> vals = tuifp.getValues();
+		if (vals != null) {
+			// acept changes
+
+		}
+	}
+
+	@Action
+	public void deleteModel(ActionEvent event) {
+		AbstractButton src = (AbstractButton) event.getSource();
+		ApplicationAction me = (ApplicationAction) src.getAction();
+		Object[] options = {TStringUtils.getString("deleteModel.Action.confirm"),
+				TStringUtils.getString("deleteModel.Action.cancel")};
+		int o = JOptionPane.showOptionDialog(Alesia.mainFrame, TStringUtils.getString("deleteModel.Action.message"),
+				TStringUtils.getString("deleteModel.Action.title"), JOptionPane.DEFAULT_OPTION,
+				JOptionPane.WARNING_MESSAGE, null, options, options[1]);
+		if (o == JOptionPane.YES_OPTION) {
+			TUIListPanel listp = (TUIListPanel) me.getValue(TUIPANEL);
+			listp.getModel().delete();
+			listp.freshen();
 		}
 	}
 

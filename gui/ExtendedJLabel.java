@@ -100,12 +100,12 @@ public class ExtendedJLabel extends JLabel {
 		String f_value = value.toString();
 		setHorizontalAlignment(LEFT);
 
-		// si o no
-		if (value instanceof Boolean) {
-			boolean va = ((Boolean) value).booleanValue();
-			f_value = (va) ? TStringUtils.getString("extendJlabel.yes") : TStringUtils
-					.getString("extendJlabel.no");
-		}
+//		// si o no
+//		if (value instanceof Boolean) {
+//			boolean va = ((Boolean) value).booleanValue();
+//			f_value = (va) ? TStringUtils.getString(id)getBundleString("extendJlabel.yes") : TStringUtils
+//					.getBundleString("extendJlabel.no");
+//		}
 
 		// numeros
 		if (value instanceof Number) {

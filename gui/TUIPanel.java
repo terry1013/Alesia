@@ -39,7 +39,7 @@ public class TUIPanel extends JPanel {
 	public static double ASPECT_RATION_NARROW = 1.3333;
 	public static double ASPECT_RATION_DEFAULT = 1.6666;
 	public static double ASPECT_RATION_WIDE = 1.7777;
-	protected Vector<Action> actions;
+	protected Vector<Action> allActions;
 	private JComponent bodyJComponent, footerJComponent;
 	private WebLabel titleLabel;
 	private ActionMap actionMap;
@@ -52,15 +52,33 @@ public class TUIPanel extends JPanel {
 	double aspectRatio = ASPECT_RATION_DEFAULT;
 
 	private JPopupMenu popupMenu;
-	private Action doblecClickAction;
+	private Action doubleClickAction;
 	private WebPanel toolBarPanel;
-
-	public TUIFormPanel getTUIFormPanel() {
-		return null;
-	}
 	
 	public WebPanel getToolBarPanel() {
 		return toolBarPanel;
+	}
+
+	/**
+	 * Enable/Disable all the actions present in this component acordint to parametars pass as arguments.
+	 * <p>
+	 * For example. the class {@link TUIFormPanel} has the <code>Acept </code> action. this action has a paremeter
+	 * <code>acept.Action.isCommint = true</code> that mark this action as an action for commit changes to the sistem.
+	 * <p>
+	 * call this metodo <code>enableInternalActions("isCommint", "true", false)</code> means that all actions whit
+	 * property <code>.isCommit = true</code> will be disabled
+	 * 
+	 * @param property - indicate the property of the action to look for
+	 * @param value - the value of the param property must be equal tho this value
+	 * @param enable - boolean value to enable or disable de action.
+	 */
+	protected void setEnableActions(String property, String value, boolean enable) {
+		for (Action a : allActions) {
+			ApplicationAction aa = (ApplicationAction) a;
+			String isc = aa.getResourceMap().getString(aa.getName() + ".Action." + property);
+			if (isc != null && isc.equals(value))
+				aa.setEnabled(enable);
+		}
 	}
 
 	public TUIPanel(boolean showAI) {
@@ -69,7 +87,7 @@ public class TUIPanel extends JPanel {
 	}
 	public TUIPanel() {
 		super(new BorderLayout());
-		this.actions = new Vector<>();
+		this.allActions = new Vector<>();
 		this.titleLabel = new WebLabel(" ");
 		titleLabel.setFont(Alesia.title1);
 		actionMap = Alesia.getInstance().getContext().getActionMap((TUIPanel) this);
@@ -206,7 +224,6 @@ public class TUIPanel extends JPanel {
 	 * @param actions list of actions
 	 */
 	public void setFooterActions(String... actions) {
-		this.actions = new Vector<>();
 		ActionMap amap = Alesia.getActionMap();
 		Vector<JComponent> lst = new Vector<>();
 		lst.add(new JLabel());
@@ -263,7 +280,7 @@ public class TUIPanel extends JPanel {
 				JMenuItem jmi = new JMenuItem(act);
 				jmi.setIcon(null);
 				// doble click para la primera que encuentre
-				this.doblecClickAction = doblecClickAction == null ? act : doblecClickAction;
+				this.doubleClickAction = doubleClickAction == null ? act : doubleClickAction;
 				jmi.setFont(jmi.getFont().deriveFont(Font.BOLD));
 				popupMenu.add(jmi);
 			}
@@ -336,4 +353,53 @@ public class TUIPanel extends JPanel {
 			dialog.setSize((dialog.getSize()).width, newPrefHeight);
 		} while (size.height > targetHeight);
 	}
+	
+	/**
+	 * clase que presenta la instancia de <code>JPopupMenu</code> creada para la table que presenta los datos dentro de
+	 * esta clase
+	 * 
+	 */
+	public class ListMouseProcessor extends MouseAdapter {
+
+		private JComponent invoker;
+
+		public ListMouseProcessor(JComponent in) {
+			this.invoker = in;
+		}
+
+		/**
+		 * presetna menu
+		 * 
+		 * @param e - evento
+		 */
+		private void showPopup(MouseEvent e) {
+			if (e.isPopupTrigger()) {
+				// verifica null porque x autorizciones, pueden no haber elementos
+				if (popupMenu != null) {
+					popupMenu.show(invoker, e.getX(), e.getY());
+					// dynamicMenu.showMenu(invoker, e.getX(), e.getY());
+				}
+			}
+		}
+
+		@Override
+		public void mousePressed(MouseEvent e) {
+			showPopup(e);
+		}
+
+		@Override
+		public void mouseReleased(MouseEvent e) {
+			showPopup(e);
+		}
+
+		@Override
+		public void mouseClicked(MouseEvent e) {
+			if (e.getClickCount() == 2) {
+				if (doubleClickAction != null && doubleClickAction.isEnabled()) {
+					doubleClickAction.actionPerformed(null);
+				}
+			}
+		}
+	}
+
 }

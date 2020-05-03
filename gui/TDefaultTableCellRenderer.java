@@ -17,8 +17,9 @@ import java.util.*;
 import javax.swing.*;
 import javax.swing.table.*;
 
+import org.javalite.activejdbc.*;
+
 import core.*;
-import core.datasource.*;
 
 /**
  * Extension de <code>DefaultTableCellRenderer</code> que usa una instancia de <code>ExtendedJLabel</code> para
@@ -72,9 +73,7 @@ public class TDefaultTableCellRenderer extends DefaultTableCellRenderer {
 			int row, int column) {
 		super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 		TAbstractTableModel stm = (TAbstractTableModel) table.getModel();
-
-		// FIXME: 171211 remove all transpose references
-		Record r = stm.isTranspose() ? stm.getRecordAt(column) : stm.getRecordAt(row);
+		Model m = stm.getModelAt(row);
 
 		// 171211: commented in order to enable reference by columns implemented in tablemodel.
 		// FIXME: 171211 remove all external references. this class must only decarate the cell with the incoming values
@@ -108,11 +107,11 @@ public class TDefaultTableCellRenderer extends DefaultTableCellRenderer {
 
 			if (valColumn != null) {
 				if (iconName.equals("*")) {
-					imageIcon = new ImageIcon((byte[]) r.getFieldValue(valColumn));
+					imageIcon = new ImageIcon((byte[]) m.getBytes(valColumn));
 					Image i = imageIcon.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
 					imageIcon = new ImageIcon(i);
 				} else {
-					String val = stm.getRecordAt(row).getFieldValue(valColumn).toString();
+					String val = stm.getModelAt(row).getString(valColumn).toString();
 					imageIcon = TResources.getSmallIcon(iconName + val);
 				}
 			}

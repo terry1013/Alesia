@@ -16,7 +16,6 @@ import java.awt.event.*;
 import javax.swing.*;
 
 import com.alee.laf.checkbox.*;
-import com.alee.laf.separator.*;
 import com.alee.laf.text.*;
 import com.alee.managers.settings.*;
 import com.jgoodies.forms.builder.*;
@@ -24,13 +23,12 @@ import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
 
 import core.*;
-import core.datasource.*;
 
 public class UserLogIn extends TUIFormPanel implements ActionListener {
 
 	private WebCheckBox remindUser;
 	private JTextField jtf_user_id;
-	private Record usrmod;
+//	private Record usrmod;
 	private int t_usmax_attemps;
 
 	/**

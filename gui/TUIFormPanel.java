@@ -161,6 +161,16 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 		return temporalStorage;
 	}
 
+	public Model getModel(Model prototip) {
+		Hashtable<String, Object> vals = getValues();
+		Set<String> attns = prototip.attributeNames();
+		for (String attn : attns) {
+			Object val = vals.get(attn);
+			if (val != null)
+				prototip.set(attn, val);
+		}
+		return prototip;
+	}
 	/**
 	 * Return a new {@link Hashtable} with all values setted by this GUI. this method also will return all stored
 	 * parameters in the temporal storage buffer for this class
@@ -276,8 +286,14 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 		jcmp.setEnabled(enable);
 	}
 
+	/**
+	 * Enable commint actions. Commit action are actions with the property <code>.isCommint = true</code> as property
+	 * (for example, see Acept)
+	 * 
+	 * @param enable - true of false for enable/disable action
+	 */
 	public void setEnabledCommintActions(boolean enable) {
-		for (Action a : actions) {
+		for (Action a : allActions) {
 			ApplicationAction aa = (ApplicationAction) a;
 			String isc = aa.getResourceMap().getString(aa.getName() + ".Action.isCommint");
 			if (isc != null && isc.equals("true")) {
@@ -285,6 +301,17 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 			}
 		}
 		// actions.stream().filter((a) -> a.getValue("isCommint").equals("true")).forEach(a -> a.setEnabled(enable));
+	}
+
+	/**
+	 * Enable/disable <code>Action.scope = element</code> actions. "element" actions are action than act over an element
+	 * of a list. (for example, editModelAction) those action must be enabled/disables if the user select or not an
+	 * elemento form the list.
+	 * 
+	 * @param enable - true of false for enable/disable action
+	 */
+	public void setEnabledElementActions(boolean enable) {
+		setEnableActions("scope", "element", enable);
 	}
 
 	/**
@@ -361,16 +388,16 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 	 * 
 	 */
 	private void checkExtendedJLabel() {
-		Vector<JComponent> jcmplist = new Vector(fields.values());
-		for (JComponent jcmp : jcmplist) {
-			JComponent icmp = getInternal(jcmp);
-			boolean req = (Boolean) jcmp.getClientProperty("isRequired");
-			if (icmp instanceof ExtendedJLabel && req) {
-				if (!((ExtendedJLabel) icmp).isValueSet()) {
-					reasons.add(msg17);
-				}
-			}
-		}
+		// Vector<JComponent> jcmplist = new Vector(fields.values());
+		// for (JComponent jcmp : jcmplist) {
+		// JComponent icmp = getInternal(jcmp);
+		// boolean req = (Boolean) jcmp.getClientProperty("isRequired");
+		// if (icmp instanceof ExtendedJLabel && req) {
+		// if (!((ExtendedJLabel) icmp).isValueSet()) {
+		// reasons.add(msg17);
+		// }
+		// }
+		// }
 	}
 
 	/**
@@ -447,13 +474,13 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 			return val;
 		}
 		// campo solo de salida. si el valor es instancia de LTEntry, retorna clave
-		if (jcmp instanceof ExtendedJLabel) {
-			val = ((ExtendedJLabel) jcmp).getValue();
-			if (val instanceof TEntry) {
-				val = ((TEntry) val).getKey();
-			}
-			return val;
-		}
+		// if (jcmp instanceof ExtendedJLabel) {
+		// val = ((ExtendedJLabel) jcmp).getValue();
+		// if (val instanceof TEntry) {
+		// val = ((TEntry) val).getKey();
+		// }
+		// return val;
+		// }
 
 		// key element in JComboBox Tentry list.
 		// 170611: special elements (special Tentry values in constant.properties) must remain

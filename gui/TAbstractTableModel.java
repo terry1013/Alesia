@@ -25,10 +25,24 @@ public class TAbstractTableModel extends AbstractTableModel {
 	private Hashtable<String, Hashtable> referenceColumns;
 	private Vector<String> attributeNames;
 
-	public TAbstractTableModel() {
+	public TAbstractTableModel(Class model, LazyList list) {
 		this.rowSorter = null;
 		this.referenceColumns = new Hashtable<String, Hashtable>();
 		this.attributeNames = new Vector<>();
+		this.lazyList = list;
+		attributeNames = new Vector<String>(model.attributeNames());
+		System.out.println("TAbstractTableModel.TAbstractTableModel()");
+	}
+
+	/**
+	 * Return the indix of the model pass as argument. if the model is not in the list, return -1
+	 * 
+	 * @param model - {@link Model} to find
+	 * 
+	 * @return index of the model
+	 */
+	public int indexOf(Model model) {
+		return lazyList.indexOf(model);
 	}
 
 	public void freshen() {
@@ -133,6 +147,8 @@ public class TAbstractTableModel extends AbstractTableModel {
 	}
 
 	public void setModel(Model model) {
+		this.model = model;
+		attributeNames = new Vector<String>(model.attributeNames());
 		lazyList.load();
 	}
 

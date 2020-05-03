@@ -142,12 +142,24 @@ public class Alesia extends Application {
 	public static DB openDB(String name) {
 		DB db = null;
 		try {
-			Properties prp = getDBProperties();
+			Properties orgPrp = getDBProperties();
+			
+			// remove all properties except those who star whit "name"
+			Set<Object> keys = orgPrp.keySet();
+			keys.removeIf(k -> !k.toString().startsWith(name));
+			Properties properties = new Properties();
+			
+			// build a new propert list whiout the prefix. keeping only the property and value spected by the jdbc lib
+			keys.forEach(k -> properties.put(k.toString().substring(name.length() + 1), orgPrp.get(k)));
+
+			// mandatory parameters
+			String drv = properties.getProperty("driver");
+			properties.remove("driver");
+			String url = properties.getProperty("url");
+			properties.remove("url");
+
 			db = new DB(name);
-			ConnectionJdbcSpec spec = new ConnectionJdbcSpec(prp.getProperty(name + ".driver"),
-					prp.getProperty(name + ".url"), prp.getProperty(name + ".username"),
-					prp.getProperty(name + ".password"));
-			db.open(spec);
+			db.open(drv, url, properties);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -164,7 +176,7 @@ public class Alesia extends Application {
 	public static void openDB() {
 		if (alesiaDB == null)
 			alesiaDB = new DB("AlesiaDatabase");
-		alesiaDB = openDB("activejdbc");
+		// alesiaDB = openDB("activejdbc");
 		ConnectionJdbcSpec spec = new ConnectionJdbcSpec(System.getProperty("activejdbc.driver"),
 				System.getProperty("activejdbc.url"), System.getProperty("activejdbc.username"),
 				System.getProperty("activejdbc.password"));
@@ -520,14 +532,13 @@ public class Alesia extends Application {
 	}
 	@Override
 	protected void ready() {
-
 		Alesia.mainFrame.setSplashIncrementText("Loading plugins ...");
 		pluginManager = new TPluginManager();
 		pluginManager.scanPluginsDirectory();
 
 		Alesia.mainFrame.setSplashIncrementText("Starting task manager ...");
 		Alesia.manager = new TTaskManager();
-		requestAutentication();
+		// requestAutentication();
 
 		// UserLogIn logIn = new UserLogIn();
 		// TTilePanel tilePanel = new TTilePanel();

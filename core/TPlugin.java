@@ -1,15 +1,11 @@
 package core;
 
-import java.io.*;
-import java.sql.*;
 import java.util.*;
 
 import javax.swing.*;
 
 import com.alee.managers.plugin.*;
 import com.alee.managers.plugin.data.*;
-
-import core.datasource.*;
 
 public abstract class TPlugin extends Plugin {
 
@@ -45,10 +41,10 @@ public abstract class TPlugin extends Plugin {
 				false);
 		if (!pi) {
 			// execute db script
-			Connection conn = ConnectionManager.getDBConnection("");
-			ScriptRunner sr = new ScriptRunner(conn, false);
-			FileReader fr = new FileReader("script.sql");
-			sr.runScript(fr);
+//			Connection conn = ConnectionManager.getDBConnection("");
+//			ScriptRunner sr = new ScriptRunner(conn, false);
+//			FileReader fr = new FileReader("script.sql");
+//			sr.runScript(fr);
 
 			// set the plugininstalled flag
 			TPreferences.setPreference(TPreferences.PLUGIN_INSTALL_INFO, getClass().getName(), true);

@@ -27,6 +27,7 @@ import javax.swing.table.*;
 import javax.swing.table.TableColumn;
 import javax.swing.text.html.*;
 
+import org.javalite.activejdbc.*;
 import org.jdesktop.application.*;
 
 import com.alee.extended.date.*;
@@ -41,7 +42,6 @@ import com.alee.managers.style.*;
 import com.alee.utils.*;
 import com.alee.utils.swing.*;
 
-import core.datasource.*;
 import gui.*;
 import gui.wlaf.*;
 import javafx.scene.control.*;
@@ -182,9 +182,9 @@ public class TUIUtils {
 	 * 
 	 * @return {@link CheckComboBox}
 	 */
-	public static CheckComboBox getCheckComboBox(String ct, Record rcd, String fld) {
+	public static CheckComboBox getCheckComboBox(String ct, Model model, String fld) {
 		TEntry[] val = TStringUtils.getTEntryGroup(ct);
-		CheckComboBox jcbox = getCheckComboBox("tt" + fld, val, (String) rcd.getFieldValue(fld));
+		CheckComboBox jcbox = getCheckComboBox("tt" + fld, val, model.getString(fld));
 		return jcbox;
 	}
 
@@ -197,8 +197,8 @@ public class TUIUtils {
 	 * @param fmt - formato. ej: dd/MM/yyy para fechas o hh:mm:ss para horas (dependiendo del parametro slt
 	 * @return instancia de DateTimeSpinner
 	 */
-	public static DateTimeSpinner getDateTimeSpinner(Record rcd, String fn, int stl, String fmt) {
-		return getDateTimeSpinner("tt" + fn, stl, (java.util.Date) rcd.getFieldValue(fn), fmt);
+	public static DateTimeSpinner getDateTimeSpinner(Model model, String fn, int stl, String fmt) {
+		return getDateTimeSpinner("tt" + fn, stl, model.getDate(fn), fmt);
 	}
 
 	/**
@@ -219,32 +219,6 @@ public class TUIUtils {
 	}
 
 	/**
-	 * utilitario que retorna una instancia de <code>ExtendedJLabel</code> con formato usado para la representacion de
-	 * valores en lo relacionado con la edicion de docuementos
-	 * 
-	 * @param val - valor
-	 * @return <code>ExtendedJLabel</code>
-	 */
-	public static ExtendedJLabel getDocumentExtendedJLabel(Object val) {
-		ExtendedJLabel ejl = new ExtendedJLabel(val);
-		Font f = ejl.getFont().deriveFont(Font.BOLD);
-		ejl.setFont(f.deriveFont(f.getSize() + 2f));
-		return ejl;
-	}
-
-	/**
-	 * utilitario que retorna una instancia de <code>ExtendedJLabel</code> con formato usado para la representacion de
-	 * valores en la edicion de docuementos
-	 * 
-	 * @param rcd - registro
-	 * @param fld - nombre de campo
-	 * @return <code>ExtendedJLabel</code>
-	 */
-	public static ExtendedJLabel getDocumentExtendedJLabel(Record rcd, String fld) {
-		return TUIUtils.getDocumentExtendedJLabel(rcd.getFieldValue(fld));
-	}
-
-	/**
 	 * Utilitiario que retorna un <code>JLabel</code> con los atributos comunes para el entorno de edicion de documentos
 	 * 
 	 * @param fn - nombre de campo
@@ -255,25 +229,6 @@ public class TUIUtils {
 		Font f = jl.getFont();
 		jl.setFont(f.deriveFont(Font.BOLD));
 		return jl;
-	}
-
-	/**
-	 * retorna un instancia de <code>ExtendedJLabel</code>. Si el campo hace referencia a una constante, este metodo
-	 * automaticamente localiza el valor del identificador en el ResourceBundle
-	 * 
-	 * @param rcd - registro
-	 * @param fld - nombre del campo
-	 * @param b - <code>truo</code> para Font.BOLD
-	 * @return componente solo de salida
-	 */
-	public static ExtendedJLabel getExtendedJLabel(Record rcd, String fld, boolean b) {
-		ExtendedJLabel orjl = null;
-		orjl = new ExtendedJLabel(rcd.getFieldValue(fld));
-		setToolTip("tt" + fld, orjl);
-		if (b) {
-			orjl.setFont(orjl.getFont().deriveFont(Font.BOLD));
-		}
-		return orjl;
 	}
 
 	/**
@@ -403,9 +358,8 @@ public class TUIUtils {
 	 * @param fld - nombre del campo
 	 * @return JCheckBox
 	 */
-	public static JCheckBox getJCheckBox(Record rcd, String fld) {
-		boolean f = ((Boolean) rcd.getFieldValue(fld)).booleanValue();
-		JCheckBox jcb = getJCheckBox(fld, f);
+	public static JCheckBox getJCheckBox(Model model, String fld) {
+		JCheckBox jcb = getJCheckBox(fld, model.getBoolean(fld));
 		// jcb.setName(fld);
 		return jcb;
 	}
@@ -438,8 +392,8 @@ public class TUIUtils {
 	 * @param ct - id de grupo de constantes
 	 * @param rcd - registro
 	 * @param fld - nombre de campo
-	 * @return componente public static JComboBox getJComboBoxFromDB(String ct, Record rcd, String fld) { ServiceRequest
-	 *         r = new ServiceRequest(ServiceRequest.CONSTANT_GROUP, null, ct); ServiceResponse res =
+	 * @return componente public static JComboBox getJComboBoxFromDB(String ct, Model model, String fld) {
+	 *         ServiceRequest r = new ServiceRequest(ServiceRequest.CONSTANT_GROUP, null, ct); ServiceResponse res =
 	 *         ServerConnection.sendTransaction(r); Vector lst = (Vector) res.getData(); lst.remove(0); Vector cntl =
 	 *         new Vector(); for (int k = 0; k < lst.size(); k++) { Record rc = (Record) lst.elementAt(k); if
 	 *         (!rc.getFieldValue("t_sv_id").toString().startsWith("_")) { cntl.add(new
@@ -457,9 +411,9 @@ public class TUIUtils {
 	 * 
 	 * @return <code>JComboBox</code>
 	 */
-	public static TJComboBox getJComboBox(String ct, Record rcd, String fld) {
+	public static TJComboBox getJComboBox(String ct, Model model, String fld) {
 		TEntry[] val = TStringUtils.getTEntryGroup(ct);
-		TJComboBox jcbox = getJComboBox("tt" + fld, val, rcd.getFieldValue(fld));
+		TJComboBox jcbox = getJComboBox("tt" + fld, val, model.get(fld));
 		// jcbox.setName(fld);
 		return jcbox;
 	}
@@ -511,12 +465,12 @@ public class TUIUtils {
 		return jep;
 	}
 
-	public static TWebFileChooserField getWebFileChooserField(Record rcd, String fn) {
-		return getWebFileChooserField("tt" + fn, (String) rcd.getFieldValue(fn));
+	public static TWebFileChooserField getWebFileChooserField(Model model, String fn) {
+		return getWebFileChooserField("tt" + fn, model.getString(fn));
 	}
 
-	public static TWebFileChooserField getWebDirectoryChooserField(Record rcd, String fn) {
-		final TWebFileChooserField fcf = getWebFileChooserField("tt" + fn, (String) rcd.getFieldValue(fn));
+	public static TWebFileChooserField getWebDirectoryChooserField(Model model, String fn) {
+		final TWebFileChooserField fcf = getWebFileChooserField("tt" + fn, model.getString(fn));
 		WebButton wb = fcf.getChooseButton();
 		wb.removeActionListener(wb.getActionListeners()[0]);
 		wb.addActionListener(new ActionListener() {
@@ -554,8 +508,10 @@ public class TUIUtils {
 	 * 
 	 * @return <code>JFormattedTextField</code>
 	 */
-	public static JFormattedTextField getJFormattedTextField(Record rcd, String fn) {
-		JFormattedTextField jftf = getJFormattedTextField("tt" + fn, rcd.getFieldValue(fn), rcd.getFieldSize(fn), null);
+	public static JFormattedTextField getJFormattedTextField(Model model, String fn) {
+		int len = model.getMetaModel().getColumnMetadata().get(fn).getColumnSize();
+		Object val = model.get(fn);
+		JFormattedTextField jftf = getJFormattedTextField("tt" + fn, val, len, null);
 		// jftf.setName(fn);
 		return jftf;
 	}
@@ -569,8 +525,10 @@ public class TUIUtils {
 	 * 
 	 * @return <code>JFormattedTextField</code>
 	 */
-	public static JFormattedTextField getJFormattedTextField(Record rcd, String fn, Format fmt) {
-		JFormattedTextField jftf = getJFormattedTextField("tt" + fn, rcd.getFieldValue(fn), rcd.getFieldSize(fn), fmt);
+	public static JFormattedTextField getJFormattedTextField(Model model, String fn, Format fmt) {
+		int len = model.getMetaModel().getColumnMetadata().get(fn).getColumnSize();
+		Object val = model.get(fn);
+		JFormattedTextField jftf = getJFormattedTextField("tt" + fn, val, len, fmt);
 		// jftf.setName(fn);
 		return jftf;
 	}
@@ -644,8 +602,10 @@ public class TUIUtils {
 	 * @param fld - nombre del campo
 	 * @return JTextField
 	 */
-	public static JPasswordField getJPasswordField(Record rcd, String fld) {
-		JPasswordField jpf = getJPasswordField("tt" + fld, (String) rcd.getFieldValue(fld), rcd.getFieldSize(fld));
+	public static JPasswordField getJPasswordField(Model model, String fld) {
+		int len = model.getMetaModel().getColumnMetadata().get(fld).getColumnSize();
+		String val = model.getString(fld);
+		JPasswordField jpf = getJPasswordField("tt" + fld, val, len);
 		// jpf.setName(fld);
 		return jpf;
 	}
@@ -697,8 +657,10 @@ public class TUIUtils {
 	 * @param f - nombre de la columna
 	 * @return JScrollPane
 	 */
-	public static JScrollPane getJTextArea(Record r, String f) {
-		JScrollPane jsp = getJTextArea("tt" + f, (String) r.getFieldValue(f), r.getFieldSize(f), 2);
+	public static JScrollPane getJTextArea(Model model, String field) {
+		int len = model.getMetaModel().getColumnMetadata().get(field).getColumnSize();
+		String val = model.getString(field);
+		JScrollPane jsp = getJTextArea("tt" + field, val, len, 2);
 		// jsp.setName(f);
 		return jsp;
 	}
@@ -711,8 +673,10 @@ public class TUIUtils {
 	 * @param lin - Nro de lineas deseadas para el componente
 	 * @return JScrollPane
 	 */
-	public static JScrollPane getJTextArea(Record r, String f, int lin) {
-		JScrollPane jsp = getJTextArea("tt" + f, (String) r.getFieldValue(f), r.getFieldSize(f), lin);
+	public static JScrollPane getJTextArea(Model model, String field, int lin) {
+		int len = model.getMetaModel().getColumnMetadata().get(field).getColumnSize();
+		String val = model.getString(field);
+		JScrollPane jsp = getJTextArea("tt" + field, val, len, lin);
 		// jsp.setName(f);
 		return jsp;
 	}
@@ -745,8 +709,10 @@ public class TUIUtils {
 	 * @param fld - nombre de la columna
 	 * @return JTextField
 	 */
-	public static JTextField getJTextField(Record rcd, String fld) {
-		JTextField jtf = getJTextField("tt" + fld, rcd.getFieldValue(fld).toString(), rcd.getFieldSize(fld));
+	public static JTextField getJTextField(Model model, String field) {
+		int len = model.getMetaModel().getColumnMetadata().get(field).getColumnSize();
+		String val = model.getString(field);
+		JTextField jtf = getJTextField("tt" + field, val, len);
 		// jtf.setName(fld);
 		return jtf;
 	}
@@ -892,8 +858,8 @@ public class TUIUtils {
 	 * @return Component
 	 * 
 	 */
-	public static JScrollPane getTPropertyJTable(Record rcd, String fld) {
-		return getTPropertyJTable("tt" + fld, rcd.getFieldValue(fld).toString());
+	public static JScrollPane getTPropertyJTable(Model model, String fld) {
+		return getTPropertyJTable("tt" + fld, model.getString(fld).toString());
 	}
 
 	/**
@@ -919,8 +885,8 @@ public class TUIUtils {
 	 * @return {@link WebDateField}
 	 * 
 	 */
-	public static WebDateField getWebDateField(Record rcd, String fn) {
-		return getWebDateField("tt" + fn, (Date) rcd.getFieldValue(fn));
+	public static WebDateField getWebDateField(Model model, String fn) {
+		return getWebDateField("tt" + fn, model.getDate(fn));
 	}
 
 	/**
@@ -1138,7 +1104,7 @@ public class TUIUtils {
 	public static WebButton getWebButtonForToolBar(Action action) {
 		overRideIcons(16, null, action);
 		WebButton jb = new WebButton(action);
-        jb.setRequestFocusEnabled(false);
+		jb.setRequestFocusEnabled(false);
 
 		// TooltipManager.setTooltip(jb, (String) taa.getValue(TAbstractAction.SHORT_DESCRIPTION), TooltipWay.down);
 		// jb.setDrawFocus(false);

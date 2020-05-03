@@ -143,6 +143,12 @@ public class TStringUtils {
 		TEntry[] lte = (TEntry[]) lst.toArray(new TEntry[lst.size()]);
 		return lte;
 	}
+	
+	public static TEntry getTEntry(String tid) {
+		TEntry[] te = getTEntryGroup(tid);
+		return (te == null) ? new TEntry(tid, tid) : te[0];
+	}
+
 	/**
 	 * return a hex representation of digested string that has been cypher by MD5 algorithm.
 	 * 

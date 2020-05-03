@@ -20,8 +20,6 @@ import javax.swing.*;
 import core.datasource.*;
 import core.download.*;
 
-import action.*;
-
 /**
  * esta clase centraliza la verificacion, respaldo e instalacion de actuaizaciones de aplicacion. el sistema de
  * actualizaciones esta compuesto pricipalmente por 2 archivos. el manifiesto (constante <code>update_manifest</code>)
@@ -105,7 +103,8 @@ public class UpdateManager {
 		while (enume.hasMoreElements()) {
 			String nam = (String) enume.nextElement();
 			String t_n[] = prp.getProperty(nam).split(";");
-			ServiceConnection.sendTransaction(ServiceRequest.DB_EXECUTE_UPDATE, t_n[0], t_n[1]);
+			System.out.println("UpdateManager.executeDBScript()");
+//			ServiceConnection.sendTransaction(ServiceRequest.DB_EXECUTE_UPDATE, t_n[0], t_n[1]);
 		}
 		f.delete();
 	}
@@ -197,7 +196,8 @@ public class UpdateManager {
 				// consola muestra mensaje y reinicia
 				JOptionPane.showMessageDialog(null, TStringUtils.getString("update.ms01"),
 						TStringUtils.getString("r02"), JOptionPane.INFORMATION_MESSAGE);
-				Exit.restarApplication();
+				System.out.println("UpdateManager.installPTF()");
+				//				Exit.restarApplication();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
