@@ -58,7 +58,7 @@ public class FixNodeSubnodeRelation extends TAbstractAction implements PropertyC
 	public void actionPerformed(ActionEvent arg0) {
 		request = abstractTree.getServiceRequest();
 
-		selRecords = abstractTree.getRecords();
+		selRecords = abstractTree.getModels();
 		rList = (Vector) TransactionsUtilities.sendTransaction(request).getData();
 		for (Record r : selRecords) {
 			rList.remove(r);

@@ -1,6 +1,7 @@
 package gui;
 
 import java.awt.*;
+import java.awt.event.*;
 import java.io.*;
 import java.util.*;
 import java.util.List;
@@ -9,6 +10,7 @@ import javax.swing.*;
 import javax.swing.Action;
 import javax.swing.event.*;
 import javax.swing.text.*;
+import javax.xml.soap.*;
 
 import org.javalite.activejdbc.*;
 import org.jdesktop.application.*;
@@ -115,16 +117,32 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 	 * 
 	 */
 	public void checkInputVerifier() {
+		// TODO: Temporal.
 		Vector<JComponent> jcmplist = new Vector(fields.values());
 		for (JComponent jcmp : jcmplist) {
 			JComponent icmp = getInternal(jcmp);
-			if (icmp.isEnabled() && icmp.getInputVerifier() != null) {
-				TInputVerifier ver = (TInputVerifier) icmp.getInputVerifier();
-				if (!ver.verify(icmp)) {
-					reasons.add(ver.getReason());
+			boolean req = (Boolean) icmp.getClientProperty("isRequired");
+			if (icmp.isEnabled() && icmp instanceof JTextComponent && req) {
+				JTextComponent jtc = (JTextComponent) icmp;
+				String txt = jtc.getText();
+				if (txt == null || txt.trim().equals("")) {
+					reasons.add(new TError("msg01"));
+					jtc.setBackground(Color.red);
 				}
 			}
 		}
+
+		// original code
+		// Vector<JComponent> jcmplist = new Vector(fields.values());
+		// for (JComponent jcmp : jcmplist) {
+		// JComponent icmp = getInternal(jcmp);
+		// if (icmp.isEnabled() && icmp.getInputVerifier() != null) {
+		// TInputVerifier ver = (TInputVerifier) icmp.getInputVerifier();
+		// if (!ver.verify(icmp)) {
+		// reasons.add(ver.getReason());
+		// }
+		// }
+		// }
 	}
 
 	/**
@@ -161,16 +179,29 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 		return temporalStorage;
 	}
 
-	public Model getModel(Model prototip) {
-		Hashtable<String, Object> vals = getValues();
-		Set<String> attns = prototip.attributeNames();
-		for (String attn : attns) {
-			Object val = vals.get(attn);
-			if (val != null)
-				prototip.set(attn, val);
-		}
-		return prototip;
+	/**
+	 * set the {@link Model} for this component if this componet will be used as Data base CRUD operations
+	 * 
+	 * @param model - the model
+	 */
+	public void setModel(Model model) {
+		this.model = model;
 	}
+	/**
+	 * return the instance of the {@link Model} setted whit all values introduced as input in this compoment. The model
+	 * must be setted initialy using the method {@link #setModel(Model)}. All field values will be copied as are in the
+	 * input window. Only attributes present in the input window will be copyed to the model.
+	 * 
+	 * @return the Model with all attributes set.
+	 */
+	public Model getModel() {
+		if (model == null)
+			return null;
+		Hashtable<String, Object> vals = getValues();
+		model.fromMap(vals);
+		return model;
+	}
+
 	/**
 	 * Return a new {@link Hashtable} with all values setted by this GUI. this method also will return all stored
 	 * parameters in the temporal storage buffer for this class
@@ -180,7 +211,11 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 	 */
 	public Hashtable<String, Object> getValues() {
 		Hashtable h = new Hashtable(temporalStorage);
-		fields.keySet().stream().forEach((key) -> h.put(key, getValue(key)));
+		fields.keySet().stream().forEach((key) -> {
+			Object val = getValue(key);
+			if (val != null)
+				h.put(key, val);
+		});
 		return h;
 	}
 
@@ -204,8 +239,8 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 	 */
 	public void preValidate() {
 		reasons.clear();
-		setEnabledCommintActions(false);
 
+		setEnableActions("isCommint", "true", false);
 		// verifica comboboxes. si alguno no contiene elementos, no contiua
 		checkComboBoxes();
 		if (!reasons.isEmpty()) {
@@ -242,7 +277,7 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 		// }
 
 		// todos los pasos ok, habilitar default button
-		setEnabledCommintActions(true);
+		setEnableActions("isCommint", "true", true);
 	}
 
 	/**
@@ -290,29 +325,21 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 	 * Enable commint actions. Commit action are actions with the property <code>.isCommint = true</code> as property
 	 * (for example, see Acept)
 	 * 
-	 * @param enable - true of false for enable/disable action
+	 * @param enable - true of false for enable/disable action public void setEnabledCommintActions(boolean enable) {
+	 *        for (Action a : allActions) { ApplicationAction aa = (ApplicationAction) a; String isc =
+	 *        aa.getResourceMap().getString(aa.getName() + ".Action.isCommint"); if (isc != null && isc.equals("true"))
+	 *        { aa.setEnabled(enable); } } // actions.stream().filter((a) ->
+	 *        a.getValue("isCommint").equals("true")).forEach(a -> a.setEnabled(enable)); }
 	 */
-	public void setEnabledCommintActions(boolean enable) {
-		for (Action a : allActions) {
-			ApplicationAction aa = (ApplicationAction) a;
-			String isc = aa.getResourceMap().getString(aa.getName() + ".Action.isCommint");
-			if (isc != null && isc.equals("true")) {
-				aa.setEnabled(enable);
-			}
-		}
-		// actions.stream().filter((a) -> a.getValue("isCommint").equals("true")).forEach(a -> a.setEnabled(enable));
-	}
 
 	/**
 	 * Enable/disable <code>Action.scope = element</code> actions. "element" actions are action than act over an element
 	 * of a list. (for example, editModelAction) those action must be enabled/disables if the user select or not an
 	 * elemento form the list.
 	 * 
-	 * @param enable - true of false for enable/disable action
+	 * @param enable - true of false for enable/disable action public void setEnabledElementActions(boolean enable) {
+	 *        setEnableActions("scope", "element", enable); }
 	 */
-	public void setEnabledElementActions(boolean enable) {
-		setEnableActions("scope", "element", enable);
-	}
 
 	/**
 	 * este metodo establece (o remueve) los verificadores de entrada para los componentes instancias de
@@ -328,7 +355,8 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 		JComponent jcmp = getInternal(jc);
 		if ((jcmp instanceof JTextComponent)) {
 			JTextComponent jtec = (JTextComponent) jcmp;
-			jtec.setInputVerifier(verifier);
+			// TODO:
+			// jtec.setInputVerifier(verifier);
 			// jtec.addFocusListener(this);
 			jtec.getDocument().addDocumentListener(this);
 		}

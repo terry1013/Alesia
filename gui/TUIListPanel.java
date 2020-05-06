@@ -13,12 +13,15 @@ package gui;
 
 import java.awt.*;
 import java.util.*;
+import java.util.List;
+import java.util.function.*;
 
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.table.*;
 
 import org.javalite.activejdbc.*;
+import org.jdesktop.application.*;
 
 import com.alee.laf.list.*;
 import com.alee.laf.table.*;
@@ -27,11 +30,7 @@ import com.alee.laf.table.editors.*;
 import action.*;
 import core.*;
 
-public abstract class TUIListPanel extends TUIPanel
-		implements
-			ListSelectionListener,
-			ActionPerformer,
-			TableModelListener {
+public abstract class TUIListPanel extends TUIPanel implements ListSelectionListener, TableModelListener {
 
 	public class TTableCellEditor extends WebGenericEditor {
 		private String[] showColumns;
@@ -77,12 +76,13 @@ public abstract class TUIListPanel extends TUIPanel
 	private WebList tJlist;
 	private String specialFieldID;
 	private boolean cellEditable;
-
 	private Hashtable<String, Hashtable> referenceColumns;
-
 	private String iconParameters;
-
 	private String tableColumns;
+	private Map<String, ColumnMetadata> columnMetadata;
+
+	private Function<String, LazyList> function;
+	private Map<String, ColumnMetadata> columns;
 
 	/**
 	 * nueva instancia
@@ -150,10 +150,6 @@ public abstract class TUIListPanel extends TUIPanel
 		return iconParameters;
 	}
 
-	public JTable getJTable() {
-		return webTable;
-	}
-
 	/**
 	 * Return the current selected model in the List. If no element has been selectcted, return <code>null</code>
 	 * 
@@ -173,7 +169,12 @@ public abstract class TUIListPanel extends TUIPanel
 		return m;
 	}
 
-	public Model[] getRecords() {
+	/**
+	 * Return the current selected models
+	 * 
+	 * @return selected models
+	 */
+	public Model[] getModels() {
 		int[] idxs = webTable.getSelectedRows();
 		if (view == LIST_VIEW_MOSAIC || view == LIST_VIEW_VERTICAL) {
 			idxs = tJlist.getSelectedIndices();
@@ -189,7 +190,11 @@ public abstract class TUIListPanel extends TUIPanel
 		return tableModel;
 	}
 
-	abstract public TUIFormPanel getTUIFormPanel(Action action);
+	abstract public TUIFormPanel getTUIFormPanel(ApplicationAction action);
+
+	public WebTable getWebTable() {
+		return webTable;
+	}
 
 	/**
 	 * metodo de inicializacion. subclases deben implementar este metodo para completar la contruccion de la misma. Ej
@@ -233,7 +238,7 @@ public abstract class TUIListPanel extends TUIPanel
 	 * @see TDefaultTableCellRenderer#getFormats()
 	 */
 	public void setColumnFormat(int col, String fmt) {
-		TDefaultTableCellRenderer dtcr = (TDefaultTableCellRenderer) getJTable().getDefaultRenderer(Double.class);
+		TDefaultTableCellRenderer dtcr = (TDefaultTableCellRenderer) getWebTable().getDefaultRenderer(Double.class);
 		dtcr.setColumnFormat(col, fmt);
 	}
 
@@ -243,6 +248,47 @@ public abstract class TUIListPanel extends TUIPanel
 		TDefaultListCellRenderer tdlcr = (TDefaultListCellRenderer) tJlist.getCellRenderer();
 		tdlcr.setColumns(cols);
 	}
+
+	public void setDBParameters(Function<String, List<Model>> function, Map<String, ColumnMetadata> columns) {
+		if (function != null || columns != null) {
+			this.specialFieldID = (String) getClientProperty(TConstants.SPECIAL_COLUMN);
+			this.columns = columns;
+			setColumnMetadata(columns);
+			// table model
+			this.tableModel = new TAbstractTableModel(function, columns);
+			webTable.setModel(tableModel);
+			setTableColumns();
+			tableModel.setReferenceColumn(referenceColumns);
+			tableModel.addTableModelListener(this);
+
+			// cell editor for all my columns
+			tableModel.setCellEditable(cellEditable);
+			if (cellEditable) {
+				// TTableCellEditor ttce = new TTableCellEditor(tableColumns);
+				// String[] cls = tableColumns.split(";");
+				// Record mod = tableModel.getRecordModel();
+				// for (String fn : cls) {
+				// webTable.setDefaultEditor(mod.getFieldValue(fn).getClass(), ttce);
+				// }
+			}
+
+			// list model
+			this.listModel = new TAbstractListModel(tableModel);
+			tJlist.setModel(listModel);
+			if (tableModel.getRowCount() > 0) {
+				// tJlist.setPrototypeCellValue(tableModel.getRecordAt(0));
+			}
+
+			setView(view);
+			setEnableActions("scope", "element", false);
+			// setMessage(null);
+			// TTaskManager.getListUpdater().add(this);
+		} else {
+			// TTaskManager.getListUpdater().remove(this);
+			// setMessage("ui.msg11");
+		}
+	}
+
 	public void setDefaultRenderer(TDefaultTableCellRenderer tdcr) {
 		webTable.setDefaultRenderer(TEntry.class, tdcr);
 		webTable.setDefaultRenderer(String.class, tdcr);
@@ -252,6 +298,9 @@ public abstract class TUIListPanel extends TUIPanel
 		webTable.setDefaultRenderer(Long.class, tdcr);
 	}
 
+	public void setF(Function<String, LazyList> function) {
+		this.function = function;
+	}
 	/**
 	 * Indica los parametros necesarios para presentar el icono que adorna la celda. los parametros descritos en forma
 	 * parm;parm;...
@@ -285,6 +334,7 @@ public abstract class TUIListPanel extends TUIPanel
 			tdlcr.setIconParameters("document", null);
 		}
 	}
+
 	/**
 	 * Asociate a sublist of values for the internal value in this model. when the column value is request by JTable,
 	 * the internal value is mapped whit this list to return the meaning of the value instead the value itselft
@@ -299,45 +349,6 @@ public abstract class TUIListPanel extends TUIPanel
 			ht.put(te.getKey(), te.getValue());
 		}
 		referenceColumns.put(fn.toUpperCase(), ht);
-	}
-
-	public void setServiceRequest(LazyList list) {
-		if (list != null) {
-			this.specialFieldID = (String) getClientProperty(TConstants.SPECIAL_COLUMN);
-
-			// table model
-			this.tableModel = new TAbstractTableModel(list);
-			webTable.setModel(tableModel);
-			setTableColumns(tableColumns);
-			tableModel.setReferenceColumn(referenceColumns);
-			tableModel.addTableModelListener(this);
-
-			// cell editor for all my columns
-			tableModel.setCellEditable(cellEditable);
-			if (cellEditable) {
-				// TTableCellEditor ttce = new TTableCellEditor(tableColumns);
-				// String[] cls = tableColumns.split(";");
-				// Record mod = tableModel.getRecordModel();
-				// for (String fn : cls) {
-				// webTable.setDefaultEditor(mod.getFieldValue(fn).getClass(), ttce);
-				// }
-			}
-
-			// list model
-			this.listModel = new TAbstractListModel(tableModel);
-			tJlist.setModel(listModel);
-			if (tableModel.getRowCount() > 0) {
-				// tJlist.setPrototypeCellValue(tableModel.getRecordAt(0));
-			}
-
-			setView(view);
-			setEnableActions("scope", "element", false);
-			// setMessage(null);
-			// TTaskManager.getListUpdater().add(this);
-		} else {
-			// TTaskManager.getListUpdater().remove(this);
-			// setMessage("ui.msg11");
-		}
 	}
 
 	public void setView(int nv) {
@@ -381,6 +392,7 @@ public abstract class TUIListPanel extends TUIPanel
 	}
 
 	private void createJTable() {
+
 		this.webTable = new WebTable();
 		webTable.addMouseListener(new ListMouseProcessor(webTable));
 
@@ -405,16 +417,20 @@ public abstract class TUIListPanel extends TUIPanel
 		setIconParameters(null);
 	}
 
-	private void setTableColumns(String cols) {
+	private void setTableColumns() {
 		// this.init = true;
 		// this.sortableModel = uiListPanel.getTableModel();
-		String[] cls = cols.split(";");
+		String[] cls = tableColumns.split(";");
+		Vector tableCols = new Vector<>(columns.keySet());
 		DefaultTableColumnModel dtcm = new DefaultTableColumnModel();
 		// TODO: check for error in columnname??
 		// Model mod = tableModel.getModel();
 		for (int col = 0; col < cls.length; col++) {
 			// TODO: put columwith using the 2 argument contstructor
-			dtcm.addColumn(new TableColumn(col));
+			TableColumn tc = new TableColumn(tableCols.indexOf(cls[col]));
+			String en = TStringUtils.getString(cls[col]);
+			tc.setHeaderValue(en);
+			dtcm.addColumn(tc);
 		}
 		webTable.setColumnModel(dtcm);
 
@@ -427,5 +443,13 @@ public abstract class TUIListPanel extends TUIPanel
 		// this.columnModel = getColumnModel();
 		// this.init = false;
 
+	}
+
+	public Map<String, ColumnMetadata> getColumnMetadata() {
+		return columnMetadata;
+	}
+
+	public void setColumnMetadata(Map<String, ColumnMetadata> columnMetadata) {
+		this.columnMetadata = columnMetadata;
 	}
 }

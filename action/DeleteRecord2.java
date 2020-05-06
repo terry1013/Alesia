@@ -33,7 +33,7 @@ public class DeleteRecord2 extends ConfirmAction implements NoActionForSpecialRe
 
 	@Override
 	public void actionPerformed2() {
-		Record[] rcd = editableList.getRecords();
+		Record[] rcd = editableList.getModels();
 		for (Record r : rcd) {
 			boolean ok = ConnectionManager.getAccessTo(r.getTableName()).delete(r);
 			// if any error, the dbacces show the exeption. meanwhile, a suspend the delete task

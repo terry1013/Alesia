@@ -10,64 +10,47 @@ import com.jgoodies.forms.layout.*;
 import core.*;
 import gui.*;
 
-public class RaceRecord extends TUIFormPanel {
+public class RaceRecord2 extends TUIFormPanel {
 
 	public static int EVENT = 1;
 	public static int BASIC = 2;
 	public static int FULL = 3;
 	boolean newr;
 	int mode;
-	public RaceRecord(TUIListPanel listPanel, Model model, boolean newr, int mode) {
+
+	public RaceRecord2(Model model, boolean newr, int mode) {
 		this.newr = newr;
 		this.mode = mode;
-		setModel(model);
-		showAditionalInformation(false);
 		// EVENT components:
 		if (mode == EVENT || mode == FULL) {
-			addInputComponent(TUIUtils.getWebDateField(model, listPanel.getColumnMetadata().get("redate")), true, true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("rerace")), true,
-					true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("redistance")),
-					true, true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("reracetime")),
-					true, true);
-			addInputComponent(TUIUtils.getJTextField(model, listPanel.getColumnMetadata().get("reserie")), true, true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("repartial1")),
-					true, true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("repartial2")),
-					false, true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("repartial3")),
-					false, true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("repartial4")),
-					false, true);
-			addInputComponent(TUIUtils.getJTextField(model, listPanel.getColumnMetadata().get("rehorsegender")), true,
-					true);
+			addInputComponent("redate", TUIUtils.getWebDateField(model, "redate"), true, true);
+			addInputComponent("rerace", TUIUtils.getJFormattedTextField(model, "rerace"), true, true);
+			addInputComponent("redistance", TUIUtils.getJFormattedTextField(model, "redistance"), true, true);
+			addInputComponent("reracetime", TUIUtils.getJFormattedTextField(model, "reracetime"), true, true);
+			addInputComponent("reserie", TUIUtils.getJTextField(model, "reserie"), true, true);
+			addInputComponent("repartial1", TUIUtils.getJFormattedTextField(model, "repartial1"), true, true);
+			addInputComponent("repartial2", TUIUtils.getJFormattedTextField(model, "repartial2"), false, true);
+			addInputComponent("repartial3", TUIUtils.getJFormattedTextField(model, "repartial3"), false, true);
+			addInputComponent("repartial4", TUIUtils.getJFormattedTextField(model, "repartial4"), false, true);
+			addInputComponent("rehorsegender", TUIUtils.getJTextField(model, "rehorsegender"), true, true);
 		}
 
 		// BASIC components:
 		if (mode == BASIC || mode == FULL) {
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("restar_lane")),
-					true, true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("reend_pos")),
-					true, true);
+			addInputComponent("restar_lane", TUIUtils.getJFormattedTextField(model, "restar_lane"), true, true);
+			addInputComponent("reend_pos", TUIUtils.getJFormattedTextField(model, "reend_pos"), true, true);
 			TEntry[] ele = Flicka.getElemets("rehorse", "tentry.none");
 			TJComboBox jcb = TUIUtils.getJComboBox("ttrehorse", ele, model.getString("rehorse"));
 			addInputComponent("rehorse", jcb, true, true);
 			ele = Flicka.getElemets("rejockey", "tentry.none");
 			jcb = TUIUtils.getJComboBox("ttrejockey", ele, model.get("rejockey"));
 			addInputComponent("rejockey", jcb, true, true);
-			addInputComponent(
-					TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("rejockey_weight")), false,
-					true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("rerating")),
-					false, true);
-			addInputComponent(TUIUtils.getJTextField(model, listPanel.getColumnMetadata().get("reobs")), false, true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("recps")), false,
-					true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("redividend")),
-					false, false);
-			addInputComponent(TUIUtils.getJTextField(model, listPanel.getColumnMetadata().get("retrainer")), false,
-					true);
+			addInputComponent("rejockey_weight", TUIUtils.getJFormattedTextField(model, "rejockey_weight"), false, true);
+			addInputComponent("rerating", TUIUtils.getJFormattedTextField(model, "rerating"), false, true);
+			addInputComponent("reobs", TUIUtils.getJTextField(model, "reobs"), false, true);
+			addInputComponent("recps", TUIUtils.getJFormattedTextField(model, "recps"), false, true);
+			addInputComponent("redividend", TUIUtils.getJFormattedTextField(model, "redividend"), false, false);
+			addInputComponent("retrainer", TUIUtils.getJTextField(model, "retrainer"), false, true);
 		}
 
 		JPanel panel = mode == FULL ? getFullInputComponents() : null;
@@ -162,7 +145,7 @@ public class RaceRecord extends TUIFormPanel {
 
 		build.add(getLabel("reobs"), cc.xy(1, 15));
 		build.add(getInputComponent("reobs"), cc.xyw(3, 15, 5));
-
+		
 		build.add(getLabel("retrainer"), cc.xy(1, 17));
 		build.add(getInputComponent("retrainer"), cc.xyw(3, 17, 5));
 		return build.getPanel();
@@ -186,7 +169,7 @@ public class RaceRecord extends TUIFormPanel {
 		build.add(getInputComponent("reserie"), cc.xy(3, 5));
 		build.add(getLabel("rehorsegender"), cc.xy(5, 5));
 		build.add(getInputComponent("rehorsegender"), cc.xy(7, 5));
-
+		
 		build.add(getLabel("repartial1"), cc.xy(1, 7));
 		build.add(getInputComponent("repartial1"), cc.xy(3, 7));
 		build.add(getLabel("repartial2"), cc.xy(5, 7));
@@ -194,13 +177,13 @@ public class RaceRecord extends TUIFormPanel {
 		build.add(getLabel("repartial3"), cc.xy(1, 9));
 		build.add(getInputComponent("repartial3"), cc.xy(3, 9));
 		build.add(getLabel("repartial4"), cc.xy(5, 9));
-		build.add(getInputComponent("repartial4"), cc.xy(7, 9));
+		build.add(getInputComponent("repartial4"), cc.xy(7, 9));		
 		return build.getPanel();
 	}
 
 	@Override
-	public Model getModel() {
-		Model model = super.getModel();
+	public Model getModel(Model prototip) {
+		Model model = super.getModel(prototip);
 		// for new record on EVENT mode, create a dummy record
 		if (mode == EVENT && newr) {
 			model.set("rehorse", "terry");
@@ -212,7 +195,7 @@ public class RaceRecord extends TUIFormPanel {
 		// }
 		return model;
 	}
-
+	
 	/**
 	 * Copy the fileds value from source record to target record. the fields that are copied depend of the ftype
 	 * argument {@link #EVENT} or {@link #BASIC} type
@@ -222,11 +205,11 @@ public class RaceRecord extends TUIFormPanel {
 	 * @param ftype fields to copy
 	 */
 	public static void copyFields(Model srcM, Model tarM, int ftype) {
-		// TODO: Checck later
-		// int scol = ftype == EVENT ? 0 : 11;
-		// int ecol = ftype == EVENT ? 11 : srcd.getFieldCount();
-		// for (int c = scol; c < ecol; c++) {
-		// targrcd.setFieldValue(c, srcd.getFieldValue(c));
-		// }
+//		TODO: Checck later
+//		int scol = ftype == EVENT ? 0 : 11;
+//		int ecol = ftype == EVENT ? 11 : srcd.getFieldCount();
+//		for (int c = scol; c < ecol; c++) {
+//			targrcd.setFieldValue(c, srcd.getFieldValue(c));
+//		}
 	}
 }

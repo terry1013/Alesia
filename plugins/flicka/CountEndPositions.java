@@ -14,6 +14,6 @@ public class CountEndPositions extends ConfirmAction {
 
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		Selector.checkEndPositionCPS(editableList.getRecords());
+		Selector.checkEndPositionCPS(editableList.getModels());
 	}
 }

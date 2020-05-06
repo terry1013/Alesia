@@ -413,7 +413,7 @@ public class Alesia extends Application {
 
 		if (!currentUser.isAuthenticated()) {
 			UserLogIn li = new UserLogIn();
-			WebDialog dlg = li.createDialog();
+			WebDialog dlg = li.createDialog(true);
 			dlg.setVisible(true);
 			Hashtable<String, Object> vals = li.getValues();
 			if (vals == null) {

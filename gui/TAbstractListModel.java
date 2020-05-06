@@ -91,7 +91,7 @@ public class TAbstractListModel extends AbstractListModel {
 
 	@Override
 	public Object getElementAt(int index) {
-		Record r = (Record) abstractTableModel.getRecords().elementAt(index);
+		Record r = (Record) abstractTableModel.getModels().elementAt(index);
 		return r;
 	}
 }

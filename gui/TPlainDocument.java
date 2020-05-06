@@ -17,8 +17,6 @@ package gui;
 import javax.swing.*;
 import javax.swing.text.*;
 
-import core.*;
-
 
 
 
@@ -41,7 +39,7 @@ public class TPlainDocument extends PlainDocument {
 		try {
 	        replace(0, getLength(), t, null);
 		} catch (Exception ex) {
-			SystemLog.logException(ex);
+			ex.printStackTrace();
 		}
 		this.length = l;
 		this.init = false;

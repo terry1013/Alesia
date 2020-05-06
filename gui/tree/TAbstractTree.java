@@ -273,7 +273,7 @@ public abstract class TAbstractTree extends UIComponentPanel
 	}
 
 	public Record getRecord() {
-		Record[] r = getRecords();
+		Record[] r = getModels();
 		return r == null ? null : r[0];
 	}
 

@@ -52,7 +52,7 @@ import javafx.scene.control.*;
  * @author terry
  * 
  */
-public class TUIUtils {
+public class TUIUtils2 {
 
 	public static int H_GAP = 4;
 	public static int V_GAP = 4;
@@ -508,12 +508,11 @@ public class TUIUtils {
 	 * 
 	 * @return <code>JFormattedTextField</code>
 	 */
-	public static JFormattedTextField getJFormattedTextField(Model model, ColumnMetadata column) {
-		int len = column.getColumnSize();
-		String fn = column.getColumnName();
+	public static JFormattedTextField getJFormattedTextField(Model model, String fn) {
+		int len = model.getMetaModel().getColumnMetadata().get(fn).getColumnSize();
 		Object val = model.get(fn);
 		JFormattedTextField jftf = getJFormattedTextField("tt" + fn, val, len, null);
-		jftf.setName(fn);
+		// jftf.setName(fn);
 		return jftf;
 	}
 
@@ -590,8 +589,9 @@ public class TUIUtils {
 	 * @return instancia con atributos
 	 */
 	public static JLabel getJLabel(String field, boolean req, boolean ena) {
-		JLabel jl = new JLabel(TStringUtils.getString(field));
+		JLabel jl = new JLabel();
 		jl.setName(field);
+		Alesia.getResourceMap().injectComponent(jl);
 		formatJLabel(jl, req, ena);
 		return jl;
 	}
@@ -709,12 +709,11 @@ public class TUIUtils {
 	 * @param fld - nombre de la columna
 	 * @return JTextField
 	 */
-	public static JTextField getJTextField(Model model, ColumnMetadata column) {
-		String fn = column.getColumnName();
-		int len = column.getColumnSize();
-		String val = model.getString(fn);
-		JTextField jtf = getJTextField("tt" + fn, val, len);
-		jtf.setName(fn);
+	public static JTextField getJTextField(Model model, String field) {
+		int len = model.getMetaModel().getColumnMetadata().get(field).getColumnSize();
+		String val = model.getString(field);
+		JTextField jtf = getJTextField("tt" + field, val, len);
+		// jtf.setName(fld);
 		return jtf;
 	}
 
@@ -722,7 +721,10 @@ public class TUIUtils {
 		WebTextField textField = new WebTextField(cw);
 		textField.setDocument(new TPlainDocument(val, cw));
 		textField.setText(val);
+
+		// test
 		textField.setName(field);
+
 		return textField;
 	}
 	/**
@@ -883,11 +885,8 @@ public class TUIUtils {
 	 * @return {@link WebDateField}
 	 * 
 	 */
-	public static WebDateField getWebDateField(Model model, ColumnMetadata column) {
-		String name = column.getColumnName();
-		WebDateField wdf = getWebDateField("tt" + name, model.getDate(name));
-		wdf.setName(name);
-		return wdf;
+	public static WebDateField getWebDateField(Model model, String fn) {
+		return getWebDateField("tt" + fn, model.getDate(fn));
 	}
 
 	/**

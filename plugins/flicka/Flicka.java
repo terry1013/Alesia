@@ -17,6 +17,9 @@ import javax.swing.*;
 
 import org.javalite.activejdbc.*;
 
+import com.alee.laf.panel.*;
+import com.alee.laf.splitpane.*;
+
 import core.*;
 import core.datasource.model.*;
 
@@ -38,9 +41,13 @@ public class Flicka extends TPlugin {
 
 	@org.jdesktop.application.Action
 	public void races(ActionEvent event) {
+		DBExplorer dbe = new DBExplorer();		
 		RaceList r = new RaceList();
-		Alesia.getMainPanel().setContentPanel(r);
-		r.init();
+		WebSplitPane sp = new WebSplitPane(WebSplitPane.VERTICAL_SPLIT);
+		sp.add(dbe);
+		sp.add(r);
+		Alesia.getMainPanel().setContentPanel(new WebPanel(sp));
+		dbe.init();
 	}
 
 	/**

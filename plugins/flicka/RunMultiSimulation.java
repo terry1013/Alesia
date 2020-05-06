@@ -23,7 +23,7 @@ public class RunMultiSimulation extends ConfirmAction {
 
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		records = editableList.getRecords();
+		records = editableList.getModels();
 		String parms = (String) TPreferences.getPreference("RunMultiSimulation", "SimParms", "");
 		parms = JOptionPane.showInputDialog(Alesia.mainFrame, "Selected records: " + records.length
 				+ "\n\nEnter the uper value for horseSample, JockeySample & upBounds", parms);

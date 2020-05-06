@@ -485,71 +485,7 @@ public class TStringUtils {
 
 		return lookup[n][m];
 	}
-	/**
-	 * replace the given variables in patt with the corresponding field value content in <code>rcd</code>.
-	 * 
-	 * @param patt - string with standar variables in it
-	 * @param rcd - Record with values for replacement.
-	 * 
-	 * @return Formatted string
-	 */
-	public static String format(String patt, Record rcd) {
-		return format(patt, "", rcd);
-	}
 
-	/**
-	 * replace the given variables inside <code>patt</code> with the corresponding field value content in
-	 * <code>rcd</code>.
-	 * 
-	 * @param patt - string with standar variables in it
-	 * @param prefix - prefix to complete the variable inside the <code>patt</code> argument
-	 * @param rcd - Record with values for replacement.
-	 * 
-	 * @return
-	 */
-	public static String format(String patt, String prefix, Record rcd) {
-		String upatt = patt.toUpperCase();
-		Vector<String> vars = new Vector<String>();
-		String res = patt;
-		// extract all variables
-		for (int c = 0; c < rcd.getFieldCount(); c++) {
-			String ufld = ("${" + prefix + rcd.getFieldName(c) + "}").toUpperCase();
-			int ix = upatt.indexOf(ufld);
-			if (ix > -1) {
-				int le = ufld.length();
-				vars.add(patt.substring(ix, ix + le));
-			}
-		}
-		// for detected vars, replace values
-		for (String var : vars) {
-			String fld = var.substring(2, var.length() - 1);
-			fld = fld.replace(prefix, "");
-			res = res.replace(var, rcd.getFieldValue(fld).toString());
-		}
-		return res;
-	}
-
-	/**
-	 * Utility method to return all fields id, name pairs in a Hashtable acording to the service request. Sometimes is
-	 * hard to deside whether to look for field despription. this method build the list acording to the servicerequest
-	 * type.
-	 * 
-	 * @param sr - servicereques
-	 * 
-	 * @return Hashtable with the id, description pair
-	 */
-	public static Hashtable<String, String> getFieldsDescriptions(ServiceRequest sr) {
-		Hashtable<String, String> fldstxt = new Hashtable<String, String>();
-		if (sr.getName().equals(ServiceRequest.CLIENT_GENERATED_LIST)) {
-			fldstxt = (Hashtable<String, String>) sr.getParameter(ServiceResponse.RECORD_FIELDS_DESPRIPTION);
-		} else {
-			Record m = ConnectionManager.getAccessTo(sr.getTableName()).getModel();
-			for (int c = 0; c < m.getFieldCount(); c++) {
-				fldstxt.put(m.getFieldName(c), (String) getString(m.getFieldName(c)));
-			}
-		}
-		return fldstxt;
-	}
 
 	/**
 	 * Retrive a group of {@link TEntry} from the especific database table according to the selection parameters. this

@@ -10,7 +10,6 @@ import java.util.*;
 import java.util.List;
 
 import javax.swing.*;
-import javax.swing.plaf.*;
 
 import org.javalite.activejdbc.*;
 import org.jdesktop.application.*;
@@ -20,7 +19,6 @@ import com.alee.laf.window.*;
 import com.alee.utils.*;
 import com.jgoodies.common.base.*;
 
-import action.*;
 import core.datasource.model.*;
 import gui.*;
 import gui.docking.*;
@@ -60,9 +58,14 @@ public class TActionsFactory {
 		}
 		return l;
 	}
-	private static void disposeDialog(JComponent cmp, boolean valid) {
-		cmp.putClientProperty("validation", valid);
-		Window root = SwingUtilities.getWindowAncestor(cmp);
+	
+	public static javax.swing.Action getAction(Object instance, String key) {
+		return Alesia.getInstance().getContext().getActionMap(instance).get(key);
+	}
+
+	private static void disposeDialog(TUIFormPanel tuifp, ApplicationAction action) {
+		tuifp.putClientProperty("actionPerformed", action);
+		Window root = SwingUtilities.getWindowAncestor(tuifp);
 		if (root instanceof JDialog) {
 			((JDialog) root).dispose();
 		}
@@ -134,25 +137,21 @@ public class TActionsFactory {
 	 */
 	@Action
 	public void acept(ActionEvent event) {
-		Object obj = event.getSource();
-		if (obj instanceof JComponent) {
-			JComponent cnt = SwingUtils.getFirstParent((JComponent) obj, TUIFormPanel.class);
-			if (cnt != null) {
-				boolean val = ((TUIFormPanel) cnt).validateFields();
-				if (val) {
-					disposeDialog(cnt, true);
-				}
-			}
+		AbstractButton src = (AbstractButton) event.getSource();
+		ApplicationAction me = (ApplicationAction) src.getAction();
+		TUIFormPanel cnt = SwingUtils.getFirstParent((JComponent) src, TUIFormPanel.class);
+		boolean val = ((TUIFormPanel) cnt).validateFields();
+		if (val) {
+			disposeDialog(cnt, me);
 		}
 	}
 
 	@Action
 	public void cancel(ActionEvent event) {
-		Object obj = event.getSource();
-		if (obj instanceof JComponent) {
-
-		}
-		disposeDialog((JComponent) obj, false);
+		AbstractButton src = (AbstractButton) event.getSource();
+		ApplicationAction me = (ApplicationAction) src.getAction();
+		TUIFormPanel cnt = SwingUtils.getFirstParent((JComponent) src, TUIFormPanel.class);
+		disposeDialog(cnt, me);
 	}
 	/**
 	 * retrive an image store in the system clipboard. This action store the image retrived from the system clipboard in
@@ -175,7 +174,6 @@ public class TActionsFactory {
 		}
 	}
 
-	public static String TUIPANEL = "TUIPanel";
 	public static String TUILISTPANEL = "TUIListPanel";
 
 	/**
@@ -229,12 +227,11 @@ public class TActionsFactory {
 		ApplicationAction me = (ApplicationAction) src.getAction();
 		TUIListPanel tuilp = (TUIListPanel) me.getValue(TUILISTPANEL);
 		TUIFormPanel tuifp = tuilp.getTUIFormPanel(me);
-		WebDialog dlg = tuifp.createDialog();
+		WebDialog dlg = tuifp.createDialog(false);
 		dlg.setVisible(true);
-		Hashtable<String, Object> vals = tuifp.getValues();
-		if (vals != null) {
-			// acept changes
-
+		ApplicationAction aa = (ApplicationAction) tuifp.getClientProperty("actionPerformed");
+		if (aa.getName().equals("acept")) {
+			tuifp.getModel().insert();
 		}
 	}
 
@@ -244,12 +241,11 @@ public class TActionsFactory {
 		ApplicationAction me = (ApplicationAction) src.getAction();
 		TUIListPanel tuilp = (TUIListPanel) me.getValue(TUILISTPANEL);
 		TUIFormPanel tuifp = tuilp.getTUIFormPanel(me);
-		WebDialog dlg = tuifp.createDialog();
+		WebDialog dlg = tuifp.createDialog(false);
 		dlg.setVisible(true);
-		Hashtable<String, Object> vals = tuifp.getValues();
-		if (vals != null) {
-			// acept changes
-
+		ApplicationAction aa = (ApplicationAction) tuifp.getClientProperty("actionPerformed");
+		if (aa.getName().equals("acept")) {
+			tuifp.getModel().save();
 		}
 	}
 
@@ -263,7 +259,7 @@ public class TActionsFactory {
 				TStringUtils.getString("deleteModel.Action.title"), JOptionPane.DEFAULT_OPTION,
 				JOptionPane.WARNING_MESSAGE, null, options, options[1]);
 		if (o == JOptionPane.YES_OPTION) {
-			TUIListPanel listp = (TUIListPanel) me.getValue(TUIPANEL);
+			TUIListPanel listp = (TUIListPanel) me.getValue(TUILISTPANEL);
 			listp.getModel().delete();
 			listp.freshen();
 		}

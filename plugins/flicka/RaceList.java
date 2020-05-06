@@ -11,12 +11,13 @@
 package plugins.flicka;
 
 import java.beans.*;
+import java.util.*;
+import java.util.function.*;
 
 import javax.swing.*;
 
 import org.javalite.activejdbc.*;
-
-import com.alee.laf.table.*;
+import org.jdesktop.application.*;
 
 import action.*;
 import core.*;
@@ -27,27 +28,27 @@ public class RaceList extends TUIListPanel implements PropertyChangeListener {
 
 	private TAbstractAction newFromTable, baseNewRecord, baseEditRecord;
 	private RaceRecordFromTable recordFromTable;
-	private WebTable table;
 	private TAbstractTableModel tableModel;
 
 	public RaceList() {
 		showAditionalInformation(false);
 		// actionMap = Alesia.getInstance().getContext().getActionMap(this);
-		setToolBar(TActionsFactory.getActions("newModel", "editModel"));
-		Action a = TActionsFactory.getAction("newModel");
-		a.putValue(TActionsFactory.TUIPANEL, this);
+		setToolBar(TActionsFactory.getActions("newModel", "editModel", "deleteModel"));
 
-//		newFromTable.setIcon("newFromTable");
+		// newFromTable.setIcon("newFromTable");
 		setColumns("restar_lane;rehorse;rejockey;reend_pos;rejockey_weight;recps");
 		setIconParameters("-1; ");
 	}
 
 	@Override
-	public TUIFormPanel getTUIFormPanel(Action action) {
+	public TUIFormPanel getTUIFormPanel(ApplicationAction action) {
 		TUIFormPanel tuifp = null;
-		if (action.getValue(Action.NAME).equals("newRecord")) {
-			Races r = Races.create();
-			tuifp = new RaceRecord(r, true, RaceRecord.BASIC);
+		if (action.getName().equals("newModel")) {
+			Races r = new Races();
+			tuifp = new RaceRecord(this, r, true, RaceRecord.BASIC);
+		}
+		if (action.getName().equals("editModel")) {
+			tuifp = new RaceRecord(this, getModel(), true, RaceRecord.BASIC);
 		}
 		return tuifp;
 	}
@@ -75,9 +76,9 @@ public class RaceList extends TUIListPanel implements PropertyChangeListener {
 	@Override
 	public void init() {
 		// setMessage("flicka.msg01");
-		LazyList<Races> list = Races.findAll().orderBy("redate");
-		setServiceRequest(list);
-		table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+		Function<String, List<Model>> f = (par -> Races.findAll().limit(100).orderBy("redate desc"));
+		setDBParameters(f, Races.getMetaModel().getColumnMetadata());
+		getWebTable().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 	}
 
 	@Override
@@ -97,11 +98,5 @@ public class RaceList extends TUIListPanel implements PropertyChangeListener {
 		// // setVisibleToolBar(true);
 		// }
 		// }
-	}
-
-	@Override
-	public boolean executeAction(TActionEvent event) {
-		// TODO Auto-generated method stub
-		return false;
 	}
 }

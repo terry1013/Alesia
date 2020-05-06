@@ -29,7 +29,7 @@ import core.*;
  * que se emplee, se evaluaran si el contenido de los campos numericos es acorde con la conbinacion de argumentos. esta
  * clase sabe que tipo de validacion aplicar segun el contructur que sea usado.
  */
-public class TInputVerifier extends InputVerifier {
+public class TInputVerifier2 extends InputVerifier {
 
 	private boolean required;
 	private Color orgColor;
@@ -43,7 +43,7 @@ public class TInputVerifier extends InputVerifier {
 	 * @param rp - <code>RightPanel</code> donde enviar los mensajes
 	 * @param req =true, este componente no puede estar en blanco
 	 */
-	public TInputVerifier(boolean req) {
+	public TInputVerifier2(boolean req) {
 		this.required = req;
 		this.orgColor = null;
 		this.lowRange = 0;
@@ -65,7 +65,7 @@ public class TInputVerifier extends InputVerifier {
 	 * @param lr - rango inferior
 	 * @param tr - rango superior
 	 */
-	public TInputVerifier(boolean req, long lr, long tr) {
+	public TInputVerifier2(boolean req, long lr, long tr) {
 		this(req);
 		this.lowRange = lr;
 		this.highRange = tr;

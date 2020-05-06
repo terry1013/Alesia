@@ -187,7 +187,7 @@ public abstract class UIListPanel extends UIComponentPanel
 			// perform data filter
 			if (!txt.trim().toString().equals("")) {
 				Vector<Record> rlst = new Vector<Record>();
-				rlst.addAll(tableModel.getRecords());
+				rlst.addAll(tableModel.getModels());
 				Record rm = tableModel.getRecordModel();
 				TransactionsUtilities.filterList(rlst, tableColumns, txt);
 				filterRequest = new ServiceRequest(ServiceRequest.CLIENT_GENERATED_LIST, rm.getTableName(), rlst);
@@ -247,7 +247,7 @@ public abstract class UIListPanel extends UIComponentPanel
 		return tableModel.getRecordModel();
 	}
 
-	public Record[] getRecords() {
+	public Record[] getModels() {
 		int[] ridx = tJTable.getSelectedRows();
 		if (view == LIST_VIEW_MOSAIC || view == LIST_VIEW_VERTICAL) {
 			ridx = tJlist.getSelectedIndices();

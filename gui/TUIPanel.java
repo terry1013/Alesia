@@ -54,7 +54,7 @@ public class TUIPanel extends JPanel {
 	private JPopupMenu popupMenu;
 	private Action doubleClickAction;
 	private WebPanel toolBarPanel;
-	
+
 	public WebPanel getToolBarPanel() {
 		return toolBarPanel;
 	}
@@ -102,7 +102,7 @@ public class TUIPanel extends JPanel {
 		titlePanel.setLayout(new BorderLayout());
 		// titlePanel.add(titleLabel, BorderLayout.CENTER);
 		titlePanel.add(toolBarPanel, BorderLayout.CENTER);
-//		titlePanel.add(treeDotButton, BorderLayout.EAST);
+		// titlePanel.add(treeDotButton, BorderLayout.EAST);
 
 		this.additionalInfo = createReadOnlyEditorPane(null, null);
 		additionalInfo.setPreferredSize(new Dimension(0, 48));
@@ -115,14 +115,7 @@ public class TUIPanel extends JPanel {
 		add(north, BorderLayout.NORTH);
 	}
 
-	@Override
-	@Deprecated
-	public Component add(Component comp) {
-		// do nothig. force use set### methods
-		return comp;
-	}
-
-	public final WebDialog createDialog() {
+	public final WebDialog createDialog(boolean setAspectRatio) {
 		// Preconditions.checkState(EventQueue.isDispatchThread(), "You must create and show dialogs from the
 		// Event-Dispatch-Thread (EDT).");
 		// checkWindowTitle(title);
@@ -143,7 +136,10 @@ public class TUIPanel extends JPanel {
 		dialog.setContentPane(this);
 		dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 		computeAndSetInitialDialogSize();
-		setDialogAspectRatio();
+		if (setAspectRatio)
+			setDialogAspectRatio();
+		else
+			dialog.pack();
 		dialog.setLocationRelativeTo(Alesia.mainFrame);
 		return dialog;
 	}
@@ -215,23 +211,32 @@ public class TUIPanel extends JPanel {
 		additionalInfo.setText(Alesia.getResourceMap().getString(tId));
 	}
 
+
 	/**
-	 * set an standar footer area for components intendet to input data. this component is a list of {@link JButton}
-	 * ordered as the input argument styled as standar alesia button bar.
+	 * set an standar footer area for components intendet to input data.
 	 * <p>
 	 * NOTE: the actions bust be located in {@link TActionsFactory} class
 	 * 
 	 * @param actions list of actions
 	 */
 	public void setFooterActions(String... actions) {
-		ActionMap amap = Alesia.getActionMap();
+		List<Action> alist = TActionsFactory.getActions(actions);
 		Vector<JComponent> lst = new Vector<>();
 		lst.add(new JLabel());
-		// lst.addAll(createWebButtons(actions));
+		for (Action act: alist) {
+			allActions.add(act);
+			TUIUtils.overRideIcons(16, null, act);
+			WebButton wb = new WebButton(act);
+			// ApplicationAction aa = (ApplicationAction) act;
+			// String sco = aa.getResourceMap().getString(aa.getName() + ".Action.scope");
+			lst.add(wb);
+		}
+
 		GroupPanel groupPane = new GroupPanel(GroupingType.fillFirst, true,
 				(JComponent[]) lst.toArray(new JComponent[lst.size()]));
 
-		// GroupPane groupPane = new GroupPane(StyleId.grouppane, (WebButton[]) lst.toArray(new WebButton[lst.size()]));
+		// GroupPanel groupPane = new GroupPane(StyleId.grouppane, (WebButton[]) lst.toArray(new
+		// WebButton[lst.size()]));
 		// groupPane.setOrientation(SwingConstants.LEADING);
 		// SwingUtils.equalizeComponentsWidth(groupPane.getComponents());
 
@@ -258,6 +263,32 @@ public class TUIPanel extends JPanel {
 	public void setToolBar(Action... actions) {
 		setToolBar(Arrays.asList(actions));
 	}
+	
+	public void addToolBarAction(Action action) {
+		allActions.add(action);
+		WebButton wb = TUIUtils.getWebButtonForToolBar(action);
+		ApplicationAction aa = (ApplicationAction) action;
+		String sco = aa.getResourceMap().getString(aa.getName() + ".Action.scope");
+
+		// auto add the property TActionsFactory.TUILISTPANEL
+		if (sco != null && (sco.equals("element") || sco.equals("list"))) {
+			aa.putValue(TActionsFactory.TUILISTPANEL, this);
+		}
+
+		// action for popup menu
+		if (sco != null && sco.equals("element")) {
+			JMenuItem jmi = new JMenuItem(action);
+			jmi.setIcon(null);
+			// temp: doble click for editModel
+			if (aa.getName().equals("editModel")) {
+				this.doubleClickAction = action;
+				jmi.setFont(jmi.getFont().deriveFont(Font.BOLD));
+			}
+			popupMenu.add(jmi);
+		}
+		toolBarPanel.add(wb);
+
+	}
 
 	/**
 	 * set the toolbar for this component. This toolbar will replace the title label of this component. Use thid method
@@ -271,20 +302,7 @@ public class TUIPanel extends JPanel {
 		popupMenu = new JPopupMenu();
 		// ArrayList<JComponent> componets = new ArrayList<>();
 		for (Action act : actions) {
-			WebButton wb = TUIUtils.getWebButtonForToolBar(act);
-			// componets.add(wb);
-			// action scope
-			ApplicationAction aa = (ApplicationAction) act;
-			String sco = aa.getResourceMap().getString(aa.getName() + ".Action.scope");
-			if (sco != null && sco.equals("element")) {
-				JMenuItem jmi = new JMenuItem(act);
-				jmi.setIcon(null);
-				// doble click para la primera que encuentre
-				this.doubleClickAction = doubleClickAction == null ? act : doubleClickAction;
-				jmi.setFont(jmi.getFont().deriveFont(Font.BOLD));
-				popupMenu.add(jmi);
-			}
-			toolBarPanel.add(wb);
+			addToolBarAction(act);
 		}
 
 		// 171231: append some standar actions for list sublcases
@@ -353,7 +371,7 @@ public class TUIPanel extends JPanel {
 			dialog.setSize((dialog.getSize()).width, newPrefHeight);
 		} while (size.height > targetHeight);
 	}
-	
+
 	/**
 	 * clase que presenta la instancia de <code>JPopupMenu</code> creada para la table que presenta los datos dentro de
 	 * esta clase

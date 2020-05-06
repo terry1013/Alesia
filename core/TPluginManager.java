@@ -67,6 +67,10 @@ public class TPluginManager extends PluginManager<TPlugin> {
 				// This cache map is filled here since it has different usage cases
 				final DetectedPlugin<TPlugin> plugin = new DetectedPlugin<TPlugin>(file.getParent(), file.getName(),
 						info, logo);
+				
+//				TODO: temporal. add resource path here. move to starPlugins whit it works
+				TResources.addResourcePath(System.getProperty("user.dir") + "/"+file.getParent()+"/resources/");
+				
 				detectedPluginsByPath.put(FileUtils.canonicalPath(file), plugin);
 				return plugin;
 			}

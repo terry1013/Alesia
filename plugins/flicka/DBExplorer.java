@@ -10,116 +10,83 @@
  ******************************************************************************/
 package plugins.flicka;
 
-import gui.*;
-import gui.docking.*;
-
 import java.awt.event.*;
-import java.beans.*;
 import java.util.*;
+import java.util.function.*;
 
 import javax.swing.*;
 
-import com.alee.laf.combobox.*;
+import org.javalite.activejdbc.*;
+import org.jdesktop.application.*;
 
-import action.*;
 import core.*;
-import core.datasource.*;
+import core.datasource.model.*;
+import gui.*;
 
-public class DBExplorer extends UIListPanel implements DockingComponent, ActionListener {
-
-	private WebComboBox track;
+public class DBExplorer extends TUIListPanel {
 
 	public DBExplorer() {
-		super(null);
-		EditRecord2 editRecord2 = new EditRecord2() {
-			@Override
-			public void actionPerformed2() {
-				// update all generals fields for all records in this date/race
-
-				Record srcd = dataInput.getRecord();
-				Date d = (Date) srcd.getFieldValue("redate");
-				java.sql.Date d1 = new java.sql.Date(d.getTime());
-				int r = (int) srcd.getFieldValue("rerace");
-				DBAccess dba = ConnectionManager.getAccessTo(srcd.getTableName());
-				Vector<Record> rlst = dba.search("redate = '" + d1 + "' AND rerace = " + r, null);
-				for (Record rcd : rlst) {
-					RaceRecord.copyFields(srcd, rcd, RaceRecord.EVENT);
-					dba.update(rcd);
-				}
-				dialog.dispose();
-				editableList.freshen();
-			}
-		};
-		editRecord2.setEditableList(this);
-		TEntry[] t = TStringUtils.getTEntryGroup("track_");
-//		this.track = TUIUtils.getJComboBox("tttack", t, "lr");
-		// track.s
-		track = new WebComboBox(new TEntry[]{new TEntry("lr", "La rinconada"), new TEntry("val", "Valencia")});
-		track.addActionListener(this);
-//		track.setDrawBorder(false);
-		track.setDrawFocus(false);
-
-		getToolBar().add(track);
-		setToolBar(new NewRecord2(this), editRecord2);
-		addToolBarAction(new RunSimulation(this, "bySpeed"), new RunSimulation(this, "byPosition"),
-				new RunMultiSimulation(this, "byPosition"), new CountEndPositions(this));
+		showAditionalInformation(false);
+		setToolBar(TActionsFactory.getActions("newModel", "editModel", "deleteModel"));
+		addToolBarAction(TActionsFactory.getAction(this, "runSimulation"));
 		setColumns("redate;rerace;redistance;reracetime;reserie;repartial1;repartial2;repartial3;repartial4");
 		setIconParameters("0;gender-;rehorsegender");
-		getJTable().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 	}
 
-	@Override
-	public UIComponentPanel getUIFor(AbstractAction aa) {
-		Record rcd = getRecord();
-		boolean newr = false;
-		if (aa instanceof NewRecord2) {
-			rcd = getRecordModel();
-			rcd.setFieldValue("retrack", ((TEntry) track.getSelectedItem()).getKey());
-			newr = true;
+	@org.jdesktop.application.Action
+	public void runSimulation(ActionEvent event) {
+		AbstractButton src = (AbstractButton) event.getSource();
+		ApplicationAction me = (ApplicationAction) src.getAction();
+		TUIListPanel tuilp = (TUIListPanel) me.getValue(TActionsFactory.TUILISTPANEL);
+		Model[] models = tuilp.getModels();
+
+		String parms = (String) TPreferences.getPreference("RunMultiSimulation", "SimParms", "");
+		parms = JOptionPane.showInputDialog(Alesia.mainFrame,
+				"Selected records: " + models.length + "\n\nEnter the uper value for horseSample, JockeySample", parms);
+		if (parms != null) {
+			try {
+				int horseSample = Integer.parseInt(parms.substring(0, 1));
+				int jockeySample = Integer.parseInt(parms.substring(1, 2));
+				// Selector.runSimulation(models, horseSample);
+			} catch (NumberFormatException e) {
+				JOptionPane.showMessageDialog(Alesia.mainFrame, "Error in input parameters", "Error",
+						JOptionPane.ERROR_MESSAGE);
+			}
 		}
-		return new RaceRecord(rcd, newr, RaceRecord.EVENT);
 	}
 
 	@Override
-	public void freshen() {
-		getTableModel().setServiceRequest(filterReslr());
-		super.freshen();
+	public TUIFormPanel getTUIFormPanel(ApplicationAction action) {
+		// if (action.getName().equals("newModel")) {
+		Races r = Races.create("retrack", "lr");
+		// }
+		return new RaceRecord(this, r, true, RaceRecord.EVENT);
 	}
 
 	@Override
 	public void init() {
-		setServiceRequest(filterReslr());
+		// setMessage("flicka.msg01");
+		Function<String, List<Model>> f = (par -> filterReslr());
+		setDBParameters(f, Races.getMetaModel().getColumnMetadata());
+		getWebTable().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 	}
 
-	@Override
-	public void propertyChange(PropertyChangeEvent evt) {
+	private List<Model> filterReslr() {
+		List<Races> reslr = Races.find("retrack = ?", "lr").orderBy("redate DESC");
+		List<Model> reslrr = new ArrayList<Model>();
 
-	}
-
-	private ServiceRequest filterReslr() {
-		String tk = (String) ((TEntry) track.getSelectedItem()).getKey();
-		Vector<Record> reslr = ConnectionManager.getAccessTo("reslr").search("retrack = '" + tk + "'", "redate DESC");
-		Vector<Record> reslrr = new Vector<Record>();
 		int race = 0;
 		Date prevDate = null;
 		Date date = null;
-		for (Record rcd : reslr) {
+		for (Races races : reslr) {
 			// retrive one race by date
-			if (!(rcd.getFieldValue("redate").equals(date) && rcd.getFieldValue("rerace").equals(race))) {
-				date = (Date) rcd.getFieldValue("redate");
+			if (!(races.getDate("redate").equals(date) && races.getInteger("rerace").equals(race))) {
+				date = races.getDate("redate");
 				prevDate = (prevDate == null) ? date : prevDate; // init prevdate at first time
-				race = (Integer) rcd.getFieldValue("rerace");
-				reslrr.add(rcd);
+				race = races.getInteger("rerace");
+				reslrr.add(races);
 			}
 		}
-		Record mod = ConnectionManager.getAccessTo("reslr").getModel();
-		ServiceRequest sr = new ServiceRequest(ServiceRequest.CLIENT_GENERATED_LIST, "reslr", reslrr);
-		sr.setParameter(ServiceResponse.RECORD_MODEL, mod);
-		return sr;
-	}
-
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		freshen();
+		return reslrr;
 	}
 }

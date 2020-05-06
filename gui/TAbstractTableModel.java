@@ -11,6 +11,7 @@
 package gui;
 
 import java.util.*;
+import java.util.function.*;
 
 import javax.swing.table.*;
 
@@ -18,22 +19,21 @@ import org.javalite.activejdbc.*;
 
 public class TAbstractTableModel extends AbstractTableModel {
 
-	private LazyList<Model> lazyList;
-	private Model model;
+	private List<Model> lazyList;
 	private TableRowSorter rowSorter;
 	private boolean allowCellEdit;
 	private Hashtable<String, Hashtable> referenceColumns;
 	private Vector<String> attributeNames;
-
-	public TAbstractTableModel(Class model, LazyList list) {
-		this.rowSorter = null;
-		this.referenceColumns = new Hashtable<String, Hashtable>();
-		this.attributeNames = new Vector<>();
-		this.lazyList = list;
-		attributeNames = new Vector<String>(model.attributeNames());
-		System.out.println("TAbstractTableModel.TAbstractTableModel()");
+	private Function<String, List<Model>> function;
+	public TAbstractTableModel(Function function, Map<String, ColumnMetadata> colums) {
+		setDBParameters(function, colums);
 	}
-
+	public void setDBParameters(Function<String, List<Model>> function, Map<String, ColumnMetadata> colums) {
+		this.function = function;
+		this.lazyList = function.apply(null);
+		this.referenceColumns = new Hashtable<String, Hashtable>();
+		this.attributeNames = new Vector<>(colums.keySet());
+	}
 	/**
 	 * Return the indix of the model pass as argument. if the model is not in the list, return -1
 	 * 
@@ -50,7 +50,7 @@ public class TAbstractTableModel extends AbstractTableModel {
 			return;
 		}
 		int bef_rc = lazyList.size();
-		lazyList.load();
+		lazyList = function.apply(null);
 		int aft_rc = lazyList.size();
 		rowSorter.allRowsChanged();
 		if (aft_rc == 0) {
@@ -74,7 +74,8 @@ public class TAbstractTableModel extends AbstractTableModel {
 	@Override
 	public Class getColumnClass(int idx) {
 		String atn = attributeNames.get(idx);
-		return model.get(atn).getClass();
+		Model m = lazyList.get(0);
+		return m.get(atn).getClass();
 	}
 
 	@Override
@@ -85,10 +86,6 @@ public class TAbstractTableModel extends AbstractTableModel {
 	@Override
 	public String getColumnName(int col) {
 		return attributeNames.elementAt(col);
-	}
-
-	public Model getModel() {
-		return model;
 	}
 
 	/**
@@ -132,24 +129,20 @@ public class TAbstractTableModel extends AbstractTableModel {
 
 	@Override
 	public boolean isCellEditable(int row, int column) {
-		String atn = attributeNames.get(column);
-		String keys[] = model.getCompositeKeys();
+		// TODO: Check later.
+		// String atn = attributeNames.get(column);
+		// Model m = lazyList.get(row);
+		// String keys[] = m.getCompositeKeys();
 		boolean ispk = false;
-		for (String k : keys) {
-			ispk = atn.equals(k) ? true : ispk;
-		}
+		// for (String k : keys) {
+		// ispk = atn.equals(k) ? true : ispk;
+		// }
 		// cell is editable iff allow cell edit and is not a keyfield
 		return allowCellEdit && !ispk;
 	}
 
 	public void setCellEditable(boolean ce) {
 		allowCellEdit = ce;
-	}
-
-	public void setModel(Model model) {
-		this.model = model;
-		attributeNames = new Vector<String>(model.attributeNames());
-		lazyList.load();
 	}
 
 	/**

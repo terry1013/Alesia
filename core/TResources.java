@@ -24,26 +24,24 @@ import org.omg.CORBA.portable.*;
 
 import com.jgoodies.common.base.*;
 
-import core.datasource.*;
-
 public class TResources {
 
 	public static String LOGGER_CONSOLE = "Console";
 	public static String LOGGER_FULL = "Full";
-//
-//	public static org.slf4j.Logger getSlf4jLogger(String name) {
-//		System.setProperty("org.slf4j.simpleLogger.showDateTime", "false");
-//		System.setProperty("org.slf4j.simpleLogger.showThreadName", "false");
-//		
-//		// set a system property such that Simple Logger will include timestamp in the given format
-//		System.setProperty("org.slf4j.simpleLogger.dateTimeFormat", "dd-MM-yy HH:mm:ss");
-//		// set minimum log level for SLF4J Simple Logger at warn
-//		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "trace");
-//		// configure SLF4J Simple Logger to redirect output to a file
-////		System.setProperty("org.slf4j.simpleLogger.logFile", "_.log");
-//		SimpleLogger sl = (SimpleLogger) LoggerFactory.getLogger(name);
-//		return sl;
-//	}
+	//
+	// public static org.slf4j.Logger getSlf4jLogger(String name) {
+	// System.setProperty("org.slf4j.simpleLogger.showDateTime", "false");
+	// System.setProperty("org.slf4j.simpleLogger.showThreadName", "false");
+	//
+	// // set a system property such that Simple Logger will include timestamp in the given format
+	// System.setProperty("org.slf4j.simpleLogger.dateTimeFormat", "dd-MM-yy HH:mm:ss");
+	// // set minimum log level for SLF4J Simple Logger at warn
+	// System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "trace");
+	// // configure SLF4J Simple Logger to redirect output to a file
+	//// System.setProperty("org.slf4j.simpleLogger.logFile", "_.log");
+	// SimpleLogger sl = (SimpleLogger) LoggerFactory.getLogger(name);
+	// return sl;
+	// }
 	//
 	// public static Logger getLogger(String name, String flavor) {
 	// String fmt = System.getProperty("java.util.logging.SimpleFormatter.format");
@@ -166,25 +164,6 @@ public class TResources {
 	}
 
 	/**
-	 * TODO: metodo viejo
-	 * 
-	 * @param addid
-	 * @return
-	 */
-	public static String findAndFormatAddrees(Integer addid) {
-		ServiceRequest addr_req = new ServiceRequest(ServiceRequest.DB_EXIST, "Address", null);
-		addr_req.setData("address_id = " + addid);
-		ServiceResponse resp = ServiceConnection.sendTransaction(addr_req);
-		Record radd = (Record) resp.getData();
-		String fa = addid.toString();
-		if (radd != null) {
-			fa = TResources.formatAddress(radd);
-		}
-		return fa;
-
-	}
-
-	/**
 	 * return a list of files which file name contain the substring {@code subst}. this method look recursibily starting
 	 * form the <code>dir</code> argument
 	 * 
@@ -205,29 +184,6 @@ public class TResources {
 			e.printStackTrace();
 		}
 		return v;
-	}
-
-	/**
-	 * Retorna formato estandar para las direcciones largas. Si el campo obligatorio <code>urbanitation</code> esta
-	 * vacio, retorna ""
-	 * 
-	 * @param adr - Registro con direccion a dar formato
-	 * @return direccion
-	 */
-	public static String formatAddress(Record adr) {
-		String addrpatt = TStringUtils.getString("address_patt");
-		for (int i = 0; i < adr.getFieldCount(); i++) {
-			String ap = "<" + adr.getFieldName(i) + ">";
-			if (addrpatt.contains(ap)) {
-				addrpatt = addrpatt.replace(ap, (String) adr.getFieldValue(i));
-
-			}
-		}
-		// verifica solo uno de los campos oblicatorios.
-		if (((String) adr.getFieldValue("city")).equals("")) {
-			addrpatt = "";
-		}
-		return addrpatt;
 	}
 
 	/**
