@@ -11,9 +11,10 @@
 package gui.docking;
 
 import java.awt.*;
-import java.awt.event.*;
+import java.beans.*;
 import java.text.*;
 import java.util.*;
+import java.util.List;
 
 import javax.swing.*;
 import javax.swing.border.*;
@@ -23,6 +24,7 @@ import com.alee.extended.transition.*;
 import com.alee.laf.button.*;
 import com.alee.laf.label.*;
 import com.alee.managers.style.*;
+import com.alee.utils.*;
 
 import core.*;
 
@@ -40,11 +42,28 @@ public class DockingContainer extends JPanel {
 		add(contentPanel, BorderLayout.CENTER);
 		setVisible(true);
 	}
-	
+
+	/**
+	 * Adds a PropertyChangeListener to the listener list of target component identified by <code>className</code>.
+	 * 
+	 * @param className - class name of internal component of View which property are interested in
+	 * @param propertyName - property name
+	 * @param listener - the property listener to add
+	 */
+	public void addPropertyChangeListener(Class Clazz, String propertyName, PropertyChangeListener listener) {
+		List<Container> cnts = SwingUtils.collectAllContainers(this);
+		cnts.removeIf(cnt -> !cnt.getClass().equals(Clazz));
+		for (Container changer : cnts) {
+			// avoid mutiple propertyChange invocation on listener
+			changer.removePropertyChangeListener(propertyName, listener);
+			changer.addPropertyChangeListener(propertyName, listener);
+		}
+	}
+
 	public TLeftPanel getLeftPanel() {
 		return leftPanel;
 	}
-	
+
 	public DockingContainer() {
 		super(new BorderLayout());
 		leftPanel = new TLeftPanel(this);

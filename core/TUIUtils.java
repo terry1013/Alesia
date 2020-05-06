@@ -898,7 +898,7 @@ public class TUIUtils {
 	 * @return {@link WebDateField}
 	 */
 	public static WebDateField getWebDateField(String tt, Date val) {
-		WebDateField wdf = val.equals(TStringUtils.ZERODATE) ? new WebDateField() : new WebDateField(val);
+		WebDateField wdf = val == null ? new WebDateField() : new WebDateField(val);
 		wdf.setDateFormat(new SimpleDateFormat("dd/MM/yyy"));
 		setDimensionForTextComponent(wdf, 10);
 		setToolTip(tt, wdf);

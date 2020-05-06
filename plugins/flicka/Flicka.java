@@ -14,14 +14,17 @@ import java.awt.event.*;
 import java.util.*;
 
 import javax.swing.*;
+import javax.swing.Action;
 
 import org.javalite.activejdbc.*;
+import org.jdesktop.application.*;
 
 import com.alee.laf.panel.*;
 import com.alee.laf.splitpane.*;
 
 import core.*;
 import core.datasource.model.*;
+import gui.*;
 
 public class Flicka extends TPlugin {
 
@@ -30,6 +33,7 @@ public class Flicka extends TPlugin {
 	public Flicka() {
 		actionMap = Alesia.getInstance().getContext().getActionMap(this);
 		Alesia.openDB("flicka");
+		TActionsFactory.insertActions(actionMap);
 	}
 	
 	@Override
@@ -37,6 +41,28 @@ public class Flicka extends TPlugin {
 		ArrayList<Action> alist = new ArrayList<>();
 		alist.add(actionMap.get("races"));
 		return alist;
+	}
+
+	@org.jdesktop.application.Action
+	public void runSimulation(ActionEvent event) {
+		AbstractButton src = (AbstractButton) event.getSource();
+		ApplicationAction me = (ApplicationAction) src.getAction();
+		TUIListPanel tuilp = (TUIListPanel) me.getValue(TActionsFactory.TUILISTPANEL);
+		Model[] models = tuilp.getModels();
+
+		String parms = (String) TPreferences.getPreference("RunMultiSimulation", "SimParms", "");
+		parms = JOptionPane.showInputDialog(Alesia.mainFrame,
+				"Selected records: " + models.length + "\n\nEnter the uper value for horseSample, JockeySample", parms);
+		if (parms != null) {
+			try {
+				int horseSample = Integer.parseInt(parms.substring(0, 1));
+				int jockeySample = Integer.parseInt(parms.substring(1, 2));
+				// Selector.runSimulation(models, horseSample);
+			} catch (NumberFormatException e) {
+				JOptionPane.showMessageDialog(Alesia.mainFrame, "Error in input parameters", "Error",
+						JOptionPane.ERROR_MESSAGE);
+			}
+		}
 	}
 
 	@org.jdesktop.application.Action

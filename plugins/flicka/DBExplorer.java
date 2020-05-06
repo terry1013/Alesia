@@ -27,33 +27,11 @@ public class DBExplorer extends TUIListPanel {
 
 	public DBExplorer() {
 		showAditionalInformation(false);
-		setToolBar(TActionsFactory.getActions("newModel", "editModel", "deleteModel"));
-		addToolBarAction(TActionsFactory.getAction(this, "runSimulation"));
+		setToolBar(TActionsFactory.getActions("newModel", "editModel", "deleteModel", "runSimulation"));
 		setColumns("redate;rerace;redistance;reracetime;reserie;repartial1;repartial2;repartial3;repartial4");
 		setIconParameters("0;gender-;rehorsegender");
 	}
 
-	@org.jdesktop.application.Action
-	public void runSimulation(ActionEvent event) {
-		AbstractButton src = (AbstractButton) event.getSource();
-		ApplicationAction me = (ApplicationAction) src.getAction();
-		TUIListPanel tuilp = (TUIListPanel) me.getValue(TActionsFactory.TUILISTPANEL);
-		Model[] models = tuilp.getModels();
-
-		String parms = (String) TPreferences.getPreference("RunMultiSimulation", "SimParms", "");
-		parms = JOptionPane.showInputDialog(Alesia.mainFrame,
-				"Selected records: " + models.length + "\n\nEnter the uper value for horseSample, JockeySample", parms);
-		if (parms != null) {
-			try {
-				int horseSample = Integer.parseInt(parms.substring(0, 1));
-				int jockeySample = Integer.parseInt(parms.substring(1, 2));
-				// Selector.runSimulation(models, horseSample);
-			} catch (NumberFormatException e) {
-				JOptionPane.showMessageDialog(Alesia.mainFrame, "Error in input parameters", "Error",
-						JOptionPane.ERROR_MESSAGE);
-			}
-		}
-	}
 
 	@Override
 	public TUIFormPanel getTUIFormPanel(ApplicationAction action) {

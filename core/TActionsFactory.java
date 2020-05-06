@@ -47,6 +47,13 @@ public class TActionsFactory {
 		instance = this;
 	}
 
+	public static void insertActions(ActionMap actionMap) {
+		Object[] keys = actionMap.allKeys();
+		for (Object key : keys) {
+			instance.actionMap.put(key, actionMap.get(key));
+		}
+	}
+	
 	public static javax.swing.Action getAction(String key) {
 		return instance.actionMap.get(key);
 	}
@@ -57,10 +64,6 @@ public class TActionsFactory {
 			l.add(getAction(k));
 		}
 		return l;
-	}
-	
-	public static javax.swing.Action getAction(Object instance, String key) {
-		return Alesia.getInstance().getContext().getActionMap(instance).get(key);
 	}
 
 	private static void disposeDialog(TUIFormPanel tuifp, ApplicationAction action) {
@@ -225,12 +228,12 @@ public class TActionsFactory {
 	public void newModel(ActionEvent event) {
 		AbstractButton src = (AbstractButton) event.getSource();
 		ApplicationAction me = (ApplicationAction) src.getAction();
-		TUIListPanel tuilp = (TUIListPanel) me.getValue(TUILISTPANEL);
+		TUIListPanel  tuilp = SwingUtils.getFirstParent((JComponent) event.getSource(), TUIListPanel.class);
 		TUIFormPanel tuifp = tuilp.getTUIFormPanel(me);
 		WebDialog dlg = tuifp.createDialog(false);
 		dlg.setVisible(true);
 		ApplicationAction aa = (ApplicationAction) tuifp.getClientProperty("actionPerformed");
-		if (aa.getName().equals("acept")) {
+		if (aa != null && aa.getName().equals("acept")) {
 			tuifp.getModel().insert();
 		}
 	}
@@ -239,12 +242,12 @@ public class TActionsFactory {
 	public void editModel(ActionEvent event) {
 		AbstractButton src = (AbstractButton) event.getSource();
 		ApplicationAction me = (ApplicationAction) src.getAction();
-		TUIListPanel tuilp = (TUIListPanel) me.getValue(TUILISTPANEL);
+		TUIListPanel  tuilp = SwingUtils.getFirstParent((JComponent) event.getSource(), TUIListPanel.class);
 		TUIFormPanel tuifp = tuilp.getTUIFormPanel(me);
 		WebDialog dlg = tuifp.createDialog(false);
 		dlg.setVisible(true);
 		ApplicationAction aa = (ApplicationAction) tuifp.getClientProperty("actionPerformed");
-		if (aa.getName().equals("acept")) {
+		if (aa != null && aa.getName().equals("acept")) {
 			tuifp.getModel().save();
 		}
 	}

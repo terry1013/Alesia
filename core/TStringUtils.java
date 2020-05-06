@@ -30,7 +30,7 @@ import core.datasource.*;
  */
 public class TStringUtils {
 
-	public final static java.sql.Date ZERODATE = java.sql.Date.valueOf("1899-12-31");
+//	public final static java.sql.Date ZERODATE = java.sql.Date.valueOf("1899-12-31");
 
 	private static SimpleDateFormat dateFormat = new SimpleDateFormat();
 	private static Random random = new Random();

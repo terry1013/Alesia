@@ -29,6 +29,7 @@ public class RaceList extends TUIListPanel implements PropertyChangeListener {
 	private TAbstractAction newFromTable, baseNewRecord, baseEditRecord;
 	private RaceRecordFromTable recordFromTable;
 	private TAbstractTableModel tableModel;
+	private Races sourceModel;
 
 	public RaceList() {
 		showAditionalInformation(false);
@@ -76,27 +77,25 @@ public class RaceList extends TUIListPanel implements PropertyChangeListener {
 	@Override
 	public void init() {
 		// setMessage("flicka.msg01");
-		Function<String, List<Model>> f = (par -> Races.findAll().limit(100).orderBy("redate desc"));
-		setDBParameters(f, Races.getMetaModel().getColumnMetadata());
 		getWebTable().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+		Alesia.getMainPanel().addPropertyChangeListener(DBExplorer.class, TUIListPanel.MODEL_SELECTED, this);
 	}
-
 	@Override
 	public void propertyChange(PropertyChangeEvent evt) {
-		// Object src = evt.getSource();
-		// Object newv = evt.getNewValue();
-		// if (src instanceof DBExplorer) {
-		// this.sourceRcd = (Record) newv;
-		// if (sourceRcd != null) {
-		// Date d = (Date) sourceRcd.getFieldValue("redate");
-		// int r = (int) sourceRcd.getFieldValue("rerace");
-		// String wc = "redate = '" + d + "' AND rerace = " + r;
-		// request.setData(wc);
-		// setServiceRequest(request);
-		// } else {
-		// setMessage("flicka.msg01");
-		// // setVisibleToolBar(true);
-		// }
-		// }
+		Object src = evt.getSource();
+		Object newv = evt.getNewValue();
+		if (src instanceof DBExplorer) {
+			this.sourceModel = (Races) newv;
+			if (sourceModel != null) {
+				Date d = sourceModel.getDate("redate");
+				int r = sourceModel.getInteger("rerace");
+				Function<String, List<Model>> f = (par -> Races.find("redate = ? AND rerace = ?", d, r)
+						.orderBy("redate DESC"));
+				setDBParameters(f, Races.getMetaModel().getColumnMetadata());
+			} else {
+				// setMessage("flicka.msg01");
+				// setVisibleToolBar(true);
+			}
+		}
 	}
 }
