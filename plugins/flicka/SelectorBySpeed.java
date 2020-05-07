@@ -82,7 +82,7 @@ public class SelectorBySpeed {
 		sel.writeStatistics = false;
 		sel.clearTables();
 		sel.select();
-		DockingContainer.signalFreshgen(PDistribution.class.getName());
+		DockingContainer.signalFreshgen(PDistributionList.class.getName());
 	}
 
 	public static void runSimulation(Record[] rcdList, int hs) {

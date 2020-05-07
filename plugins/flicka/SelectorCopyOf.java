@@ -99,7 +99,7 @@ public class SelectorCopyOf {
 				pddba.add(sel.countEndPosition(js, "rejockey", (String) elem.getFieldValue("rejockey")));
 			}
 		}
-		DockingContainer.signalFreshgen(PDistribution.class.getName());
+		DockingContainer.signalFreshgen(PDistributionList.class.getName());
 	}
 	public static void runSimulation(int race, Date date) {
 		runSimulation(race, date, 4, 6);
@@ -112,7 +112,7 @@ public class SelectorCopyOf {
 		sel.writeStatistics = false;
 		sel.clearTables();
 		sel.select();
-		DockingContainer.signalFreshgen(PDistribution.class.getName());
+		DockingContainer.signalFreshgen(PDistributionList.class.getName());
 	}
 
 	public static void runSimulation(Record[] rcdList, int hs, int js) {

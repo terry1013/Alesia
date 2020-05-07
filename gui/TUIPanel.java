@@ -7,6 +7,7 @@ import java.util.List;
 
 import javax.swing.*;
 import javax.swing.Action;
+import javax.swing.border.*;
 import javax.swing.event.*;
 
 import org.jdesktop.application.*;
@@ -33,7 +34,7 @@ import core.*;
  * @author terry
  *
  */
-public class TUIPanel extends JPanel {
+public class TUIPanel extends WebPanel {
 
 	public static double ASPECT_RATION_NONE = 0.0;
 	public static double ASPECT_RATION_NARROW = 1.3333;
@@ -44,6 +45,8 @@ public class TUIPanel extends JPanel {
 	private WebLabel titleLabel;
 	private ActionMap actionMap;
 	private WebButton treeDotButton;
+	private Box bodyMessageJComponent;
+	private JLabel blkinfoLabel;
 
 	private JEditorPane additionalInfo;
 
@@ -106,6 +109,15 @@ public class TUIPanel extends JPanel {
 
 		this.additionalInfo = createReadOnlyEditorPane(null, null);
 		additionalInfo.setPreferredSize(new Dimension(0, 48));
+
+		// noListPanel are used to display a message when instances of this component show a list of elements and
+		// such list has no elements to display.
+		this.bodyMessageJComponent = Box.createVerticalBox();
+		this.blkinfoLabel = new JLabel();
+		blkinfoLabel.setBorder(new EmptyBorder(4, 4, 4, 4));
+		bodyMessageJComponent.add(Box.createVerticalStrut(8));
+		bodyMessageJComponent.add(blkinfoLabel);
+		bodyMessageJComponent.add(Box.createVerticalGlue());
 
 		WebPanel north = new WebPanel(StyleId.panelTransparent);
 		north.setLayout(new BorderLayout());
@@ -207,10 +219,48 @@ public class TUIPanel extends JPanel {
 		add(body, BorderLayout.CENTER);
 	}
 
+	/**
+	 * replace the {@link JComponent} set using the metod {@link #setBodyComponent(JComponent)} and present a new
+	 * componet to display the selected mensaje. If the msgId parameter is <code>null</code>, hide the message componet
+	 * and present the body component
+	 * 
+	 * @param msgId - message id for text
+	 * @param visibleTB - indicati if the toolbarpanel will be visible or not visible
+	 * @param msgData - Sustitution data
+	 * 
+	 * @see UIComponentPanel#getToolBar()
+	 */
+	public void setMessage(String msgId, boolean visibleTB, Object... msgData) {
+		if (msgId == null) {
+			toolBarPanel.setVisible(true);
+			remove(bodyMessageJComponent);
+			add(bodyJComponent, BorderLayout.CENTER);
+		} else {
+			TError te = new TError(msgId, msgData);
+			blkinfoLabel.setIcon(te.getExceptionIcon());
+			blkinfoLabel.setText(te.getMessage());
+			// blkinfoLabel.setVerticalTextPosition(JLabel.TOP);
+
+			toolBarPanel.setVisible(visibleTB);
+			remove(bodyJComponent);
+			add(bodyMessageJComponent, BorderLayout.CENTER);
+		}
+		repaint();
+	}
+
+	/**
+	 * Same as {@link #setMessage(String, boolean, Object...)} but set the toolbar no visible
+	 * 
+	 * @param msgId - message id for text
+	 * @param msgData - Sustitution data
+	 */
+	public void setMessage(String msgId, Object... msgData) {
+		setMessage(msgId, false, msgData);
+	}
+
 	public void setDescription(String tId) {
 		additionalInfo.setText(Alesia.getResourceMap().getString(tId));
 	}
-
 
 	/**
 	 * set an standar footer area for components intendet to input data.
@@ -223,7 +273,7 @@ public class TUIPanel extends JPanel {
 		List<Action> alist = TActionsFactory.getActions(actions);
 		Vector<JComponent> lst = new Vector<>();
 		lst.add(new JLabel());
-		for (Action act: alist) {
+		for (Action act : alist) {
 			allActions.add(act);
 			TUIUtils.overRideIcons(16, null, act);
 			WebButton wb = new WebButton(act);
@@ -263,7 +313,7 @@ public class TUIPanel extends JPanel {
 	public void setToolBar(Action... actions) {
 		setToolBar(Arrays.asList(actions));
 	}
-	
+
 	public void addToolBarAction(Action action) {
 		allActions.add(action);
 		WebButton wb = TUIUtils.getWebButtonForToolBar(action);

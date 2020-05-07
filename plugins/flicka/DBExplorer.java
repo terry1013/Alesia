@@ -10,7 +10,6 @@
  ******************************************************************************/
 package plugins.flicka;
 
-import java.awt.event.*;
 import java.util.*;
 import java.util.function.*;
 
@@ -36,7 +35,7 @@ public class DBExplorer extends TUIListPanel {
 	@Override
 	public TUIFormPanel getTUIFormPanel(ApplicationAction action) {
 		// if (action.getName().equals("newModel")) {
-		Races r = Races.create("retrack", "lr");
+		Race r = Race.create("retrack", "lr");
 		// }
 		return new RaceRecord(this, r, true, RaceRecord.EVENT);
 	}
@@ -45,18 +44,18 @@ public class DBExplorer extends TUIListPanel {
 	public void init() {
 		// setMessage("flicka.msg01");
 		Function<String, List<Model>> f = (par -> filterReslr());
-		setDBParameters(f, Races.getMetaModel().getColumnMetadata());
+		setDBParameters(f, Race.getMetaModel().getColumnMetadata());
 		getWebTable().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 	}
 
 	private List<Model> filterReslr() {
-		List<Races> reslr = Races.find("retrack = ?", "lr").orderBy("redate DESC");
+		List<Race> reslr = Race.find("retrack = ?", "lr").orderBy("redate DESC");
 		List<Model> reslrr = new ArrayList<Model>();
 
 		int race = 0;
 		Date prevDate = null;
 		Date date = null;
-		for (Races races : reslr) {
+		for (Race races : reslr) {
 			// retrive one race by date
 			if (!(races.getDate("redate").equals(date) && races.getInteger("rerace").equals(race))) {
 				date = races.getDate("redate");

@@ -15,11 +15,13 @@ import java.io.*;
 import java.io.InputStream;
 import java.net.*;
 import java.util.*;
+import java.util.List;
 import java.util.jar.*;
 import java.util.zip.*;
 
 import javax.swing.*;
 
+import org.jdesktop.application.*;
 import org.omg.CORBA.portable.*;
 
 import com.jgoodies.common.base.*;
@@ -124,8 +126,16 @@ public class TResources {
 		td.mkdir();
 		return td;
 	}
-	public static void addResourcePath(String rp) {
-		resourcePath.add(rp);
+	
+	/**
+	 * @since 2.3
+	 * 
+	 * @param rPath
+	 * @param properties
+	 */
+	public static void addResources(String rPath, List<File> files) {
+		resourcePath.add(rPath);
+		TStringUtils.addProperties(files);
 	}
 	/**
 	 * crea y retorna un archivo .zip con el arrego de archivos pasados como argumento.

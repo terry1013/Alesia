@@ -36,7 +36,7 @@ public class FlickaAction extends TAbstractAction {
 				DockingContainer.createDynamicView(HorseHistory.class.getName()),
 				DockingContainer.createDynamicView(JockeyHistory.class.getName()),
 				DockingContainer.createDynamicView(Statistics.class.getName()),
-				DockingContainer.createDynamicView(PDistribution.class.getName()),
+				DockingContainer.createDynamicView(PDistributionList.class.getName()),
 		DockingContainer.createDynamicView(PDistributionBySpeed.class.getName())};
 		TabWindow tw = new TabWindow(v1);
 		SplitWindow sw = new SplitWindow(false, 0.6f, DockingContainer.createDynamicView(EntryPanel.class.getName()),

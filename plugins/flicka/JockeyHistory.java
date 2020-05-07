@@ -59,7 +59,7 @@ public class JockeyHistory extends UIListPanel implements DockingComponent {
 				date = (Date) rcd.getFieldValue("redate");
 			}
 		}
-		if (src instanceof PDistribution) {
+		if (src instanceof PDistributionList) {
 			if (rcd != null && rcd.getFieldValue("pdfield").equals("rejockey")) {
 				joceky = (String) rcd.getFieldValue("pdvalue");
 				date = (Date) rcd.getFieldValue("pddate");

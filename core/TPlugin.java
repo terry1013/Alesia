@@ -37,9 +37,9 @@ public abstract class TPlugin extends Plugin {
 
 		// perform standar installation & instalation
 		// test plugin instalation
-		boolean pi = (Boolean) TPreferences.getPreference(TPreferences.PLUGIN_INSTALL_INFO, getClass().getName(),
-				false);
-		if (!pi) {
+//		boolean pi = (Boolean) TPreferences.getPreference(TPreferences.PLUGIN_INSTALL_INFO, getClass().getName(),
+//				false);
+//		if (!pi) {
 			// execute db script
 //			Connection conn = ConnectionManager.getDBConnection("");
 //			ScriptRunner sr = new ScriptRunner(conn, false);
@@ -47,8 +47,8 @@ public abstract class TPlugin extends Plugin {
 //			sr.runScript(fr);
 
 			// set the plugininstalled flag
-			TPreferences.setPreference(TPreferences.PLUGIN_INSTALL_INFO, getClass().getName(), true);
-		}
+//			TPreferences.setPreference(TPreferences.PLUGIN_INSTALL_INFO, getClass().getName(), true);
+		//		}
 	}
 	public void endPlugin() {
 

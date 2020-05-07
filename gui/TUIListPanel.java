@@ -289,6 +289,12 @@ public abstract class TUIListPanel extends TUIPanel implements ListSelectionList
 		}
 	}
 
+	/**
+	 * set the cellRenderer for the {@link WebTable}. all know class inside of the table will be dispay using this
+	 * renderer
+	 * 
+	 * @param tdcr instance of {@link TDefaultTableCellRenderer}
+	 */
 	public void setDefaultRenderer(TDefaultTableCellRenderer tdcr) {
 		webTable.setDefaultRenderer(TEntry.class, tdcr);
 		webTable.setDefaultRenderer(String.class, tdcr);

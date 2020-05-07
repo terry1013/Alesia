@@ -19,6 +19,8 @@ import javax.swing.*;
 import org.javalite.activejdbc.*;
 import org.jdesktop.application.*;
 
+import com.alee.laf.text.*;
+
 import action.*;
 import core.*;
 import core.datasource.model.*;
@@ -29,7 +31,7 @@ public class RaceList extends TUIListPanel implements PropertyChangeListener {
 	private TAbstractAction newFromTable, baseNewRecord, baseEditRecord;
 	private RaceRecordFromTable recordFromTable;
 	private TAbstractTableModel tableModel;
-	private Races sourceModel;
+	private Race sourceModel;
 
 	public RaceList() {
 		showAditionalInformation(false);
@@ -39,13 +41,14 @@ public class RaceList extends TUIListPanel implements PropertyChangeListener {
 		// newFromTable.setIcon("newFromTable");
 		setColumns("restar_lane;rehorse;rejockey;reend_pos;rejockey_weight;recps");
 		setIconParameters("-1; ");
+		getWebTable().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 	}
 
 	@Override
 	public TUIFormPanel getTUIFormPanel(ApplicationAction action) {
 		TUIFormPanel tuifp = null;
 		if (action.getName().equals("newModel")) {
-			Races r = new Races();
+			Race r = new Race();
 			tuifp = new RaceRecord(this, r, true, RaceRecord.BASIC);
 		}
 		if (action.getName().equals("editModel")) {
@@ -76,25 +79,23 @@ public class RaceList extends TUIListPanel implements PropertyChangeListener {
 
 	@Override
 	public void init() {
-		// setMessage("flicka.msg01");
-		getWebTable().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-		Alesia.getMainPanel().addPropertyChangeListener(DBExplorer.class, TUIListPanel.MODEL_SELECTED, this);
+		 setMessage("flicka.msg01");
 	}
 	@Override
 	public void propertyChange(PropertyChangeEvent evt) {
 		Object src = evt.getSource();
 		Object newv = evt.getNewValue();
 		if (src instanceof DBExplorer) {
-			this.sourceModel = (Races) newv;
+			this.sourceModel = (Race) newv;
 			if (sourceModel != null) {
 				Date d = sourceModel.getDate("redate");
 				int r = sourceModel.getInteger("rerace");
-				Function<String, List<Model>> f = (par -> Races.find("redate = ? AND rerace = ?", d, r)
+				Function<String, List<Model>> f = (par -> Race.find("redate = ? AND rerace = ?", d, r)
 						.orderBy("redate DESC"));
-				setDBParameters(f, Races.getMetaModel().getColumnMetadata());
+				setDBParameters(f, Race.getMetaModel().getColumnMetadata());
+				setMessage(null);
 			} else {
-				// setMessage("flicka.msg01");
-				// setVisibleToolBar(true);
+				setMessage("flicka.msg01");
 			}
 		}
 	}

@@ -10,51 +10,45 @@
  ******************************************************************************/
 package plugins.flicka;
 
-import gui.*;
-import gui.docking.*;
-
 import java.awt.*;
 import java.beans.*;
+import java.util.List;
+import java.util.function.*;
 
 import javax.swing.*;
 
-import action.*;
-import core.datasource.*;
-import core.reporting.*;
+import org.javalite.activejdbc.*;
+import org.jdesktop.application.*;
 
-public class PDistribution extends UIListPanel implements DockingComponent {
+import core.*;
+import core.datasource.model.*;
+import gui.*;
 
-	ServiceRequest request;
+public class PDistributionList extends TUIListPanel implements PropertyChangeListener {
 
-	public PDistribution() {
-		super(null);
-		// this.request = new ServiceRequest(ServiceRequest.DB_QUERY, "pdistribution", "pd_decision > 0");
-		this.request = new ServiceRequest(ServiceRequest.DB_QUERY, "pdistribution", null);
-		request.setParameter(ServiceRequest.ORDER_BY, "pdprediction");
-		setToolBar(new DeleteRecord2(this), new ExportToFileAction(this, ""));
+	public PDistributionList() {
+		showAditionalInformation(false);
+//		this toolbar hat new ExportToFileAction(this, "") warum???
+		setToolBar(TActionsFactory.getActions("deleteModel"));
 		setColumns("pdrace;pdvalue;pdhits;pdmasscenter;pdprediction;pddecision;pdevent");
-		getJTable().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-		// putClientProperty(TConstants.ICON_PARAMETERS,"0;/plugin/flicka/flicka");
+		getWebTable().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 	}
 
-	@Override
-	public UIComponentPanel getUIFor(AbstractAction aa) {
-		UIComponentPanel pane = null;
-		return pane;
-	}
 
 	@Override
 	public void init() {
+
+		// super cellrenderer invented
 		TDefaultTableCellRenderer tdcr = new TDefaultTableCellRenderer() {
 			@Override
 			public void setBackgroud(JTable table, Object value, boolean isSelected, boolean hasFocus, int row,
 					int column) {
 				TAbstractTableModel stm = (TAbstractTableModel) table.getModel();
-				Record r = stm.getRecordAt(row);
+				Model r = stm.getModelAt(row);
 				if (!isSelected) {
-					int evt = (Integer) r.getFieldValue("pdevent");
-					int dec = (Integer) r.getFieldValue("pddecision");
-					int sr = (Integer) r.getFieldValue("pdselrange");
+					int evt = r.getInteger("pdevent");
+					int dec = r.getInteger("pddecision");
+					int sr = r.getInteger("pdselrange");
 					setBackground(pair_color);
 
 					// decision
@@ -74,11 +68,19 @@ public class PDistribution extends UIListPanel implements DockingComponent {
 			}
 		};
 		setDefaultRenderer(tdcr);
-		setServiceRequest(request);
+		Function<String, List<Model>> f = (par -> PDistribution.findAll().orderBy("pdprediction"));
+		setDBParameters(f, PDistribution.getMetaModel().getColumnMetadata());
 	}
 
 	@Override
 	public void propertyChange(PropertyChangeEvent evt) {
 
+	}
+
+
+	@Override
+	public TUIFormPanel getTUIFormPanel(ApplicationAction action) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

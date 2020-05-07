@@ -13,7 +13,7 @@ import com.alee.managers.plugin.data.*;
 import com.alee.utils.*;
 
 /**
- * extension of {@link PluginManager} for load plugins from the file folder 
+ * extension of {@link PluginManager} for load plugins from the file folder
  * 
  * @since 2.3
  * @author terry
@@ -67,10 +67,15 @@ public class TPluginManager extends PluginManager<TPlugin> {
 				// This cache map is filled here since it has different usage cases
 				final DetectedPlugin<TPlugin> plugin = new DetectedPlugin<TPlugin>(file.getParent(), file.getName(),
 						info, logo);
-				
-//				TODO: temporal. add resource path here. move to starPlugins when it works
-				TResources.addResourcePath(System.getProperty("user.dir") + "/"+file.getParent()+"/resources/");
-				
+
+				// TODO: temporal. add resource path here. move to starPlugins when it works
+				// resource path
+				String path = System.getProperty("user.dir") + "/" + file.getParent() + "/resources/";
+				// all .properties files form the plugin resource
+				List<File> prps = FileUtils.findFilesRecursively(file.getParent(),
+						(f -> f.getName().endsWith(".properties")));
+				TResources.addResources(path, prps);
+
 				detectedPluginsByPath.put(FileUtils.canonicalPath(file), plugin);
 				return plugin;
 			}

@@ -27,6 +27,7 @@ import com.alee.managers.style.*;
 import com.alee.utils.*;
 
 import core.*;
+import gui.*;
 
 public class DockingContainer extends JPanel {
 
@@ -40,24 +41,48 @@ public class DockingContainer extends JPanel {
 		contentPanel = null;
 		contentPanel = cpanel;
 		add(contentPanel, BorderLayout.CENTER);
+
+		// auto select listener for model select property
+		List<Container> cnts = SwingUtils.collectAllContainers(contentPanel);
+		for (Container cnt : cnts) {
+			if (cnt instanceof TUIListPanel)
+				((TUIListPanel) cnt).init();
+			
+			if (cnt instanceof PropertyChangeListener && cnt instanceof TUIListPanel) {
+				PropertyChangeListener pcl = (PropertyChangeListener) cnt;
+				addChangeListener(TUIListPanel.MODEL_SELECTED, pcl);
+			}
+		}
 		setVisible(true);
 	}
 
 	/**
-	 * Adds a PropertyChangeListener to the listener list of target component identified by <code>className</code>.
+	 * add the listener all containers instances of <code>soruceClazz</code> inside of this component content panel.
 	 * 
-	 * @param className - class name of internal component of View which property are interested in
-	 * @param propertyName - property name
-	 * @param listener - the property listener to add
+	 * @param sourceClazz - the class source of the property
+	 * @param propertyName - the name
+	 * @param listener - the listener interested in recive notification
 	 */
-	public void addPropertyChangeListener(Class Clazz, String propertyName, PropertyChangeListener listener) {
+	public void addChangeListener(String propertyName, PropertyChangeListener listener) {
 		List<Container> cnts = SwingUtils.collectAllContainers(this);
-		cnts.removeIf(cnt -> !cnt.getClass().equals(Clazz));
-		for (Container changer : cnts) {
+		// avoid to add listerner to the "listener" itselft and other class disticg to TUIListPanel
+		cnts.removeIf(cnt -> cnt == listener || !(cnt instanceof TUIListPanel));
+		for (Container source : cnts) {
 			// avoid mutiple propertyChange invocation on listener
-			changer.removePropertyChangeListener(propertyName, listener);
-			changer.addPropertyChangeListener(propertyName, listener);
+			source.removePropertyChangeListener(propertyName, listener);
+			source.addPropertyChangeListener(propertyName, listener);
 		}
+
+		// for (String cn : vs) {
+		// // check not addPropertyChangeListener to myself
+		// if (!dview.getName().equals(cn)) {
+		// addPropertyChangeListener(cn, TConstants.RECORD_SELECTED, lst);
+		// addPropertyChangeListener(cn, TConstants.FIND_TEXT, lst);
+		// addPropertyChangeListener(cn, TConstants.LOG_MESSAGE, lst);
+		// }
+		// }
+		// }
+
 	}
 
 	public TLeftPanel getLeftPanel() {

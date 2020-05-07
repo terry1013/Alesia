@@ -82,12 +82,12 @@ public class TError {
 	/**
 	 * nueva instancia
 	 * 
-	 * @param mid - identificador de mensaje.
-	 * @param dta - datos para ejecutar
+	 * @param msgID - identificador de mensaje.
+	 * @param msgData - datos para ejecutar
 	 */
-	public TError(String mid, Object... dta) {
-		this(mid);
-		message = MessageFormat.format(message, dta);
+	public TError(String msgID, Object... msgData) {
+		this(msgID);
+		message = MessageFormat.format(message, msgData);
 	}
 
 	/**

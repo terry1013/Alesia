@@ -39,7 +39,7 @@ public class Flicka extends TPlugin {
 	@Override
 	public ArrayList<javax.swing.Action> getUI(String type) {
 		ArrayList<Action> alist = new ArrayList<>();
-		alist.add(actionMap.get("races"));
+		alist.add(actionMap.get("flicka"));
 		return alist;
 	}
 
@@ -50,14 +50,13 @@ public class Flicka extends TPlugin {
 		TUIListPanel tuilp = (TUIListPanel) me.getValue(TActionsFactory.TUILISTPANEL);
 		Model[] models = tuilp.getModels();
 
-		String parms = (String) TPreferences.getPreference("RunMultiSimulation", "SimParms", "");
 		parms = JOptionPane.showInputDialog(Alesia.mainFrame,
 				"Selected records: " + models.length + "\n\nEnter the uper value for horseSample, JockeySample", parms);
 		if (parms != null) {
 			try {
 				int horseSample = Integer.parseInt(parms.substring(0, 1));
 				int jockeySample = Integer.parseInt(parms.substring(1, 2));
-				// Selector.runSimulation(models, horseSample);
+				Selector.runSimulation(models, horseSample);
 			} catch (NumberFormatException e) {
 				JOptionPane.showMessageDialog(Alesia.mainFrame, "Error in input parameters", "Error",
 						JOptionPane.ERROR_MESSAGE);
@@ -66,14 +65,17 @@ public class Flicka extends TPlugin {
 	}
 
 	@org.jdesktop.application.Action
-	public void races(ActionEvent event) {
+	public void flicka(ActionEvent event) {
 		DBExplorer dbe = new DBExplorer();		
-		RaceList r = new RaceList();
+		RaceList races = new RaceList();
+		PDistributionList pdistri = new PDistributionList();
 		WebSplitPane sp = new WebSplitPane(WebSplitPane.VERTICAL_SPLIT);
 		sp.add(dbe);
-		sp.add(r);
-		Alesia.getMainPanel().setContentPanel(new WebPanel(sp));
-		dbe.init();
+		sp.add(pdistri);
+		WebSplitPane sp1 = new WebSplitPane(WebSplitPane.HORIZONTAL_SPLIT);
+		sp1.add(sp);
+		sp1.add(races);
+		Alesia.getMainPanel().setContentPanel(new WebPanel(sp1));
 	}
 
 	/**
@@ -84,13 +86,13 @@ public class Flicka extends TPlugin {
 	 * @return subset of reslr table with one element of the fileter argument
 	 */
 	public static TEntry[] getElemets(String field, String emptyF) {
-		LazyList<Races> races = Races.findAll();
+		LazyList<Race> races = Race.findAll();
 		Vector<String> tmpList = new Vector<String>();
 		Vector<TEntry> reslrr = new Vector<TEntry>();
 		if (emptyF != null) {
 			reslrr.add(TStringUtils.getTEntry(emptyF));
 		}
-		for (Races race : races) {
+		for (Race race : races) {
 			String ele = race.getString(field);
 			if (!tmpList.contains(ele)) {
 				tmpList.add(ele);

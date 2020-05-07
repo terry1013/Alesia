@@ -1,6 +1,6 @@
 <SettingsGroup id="SG-1kf5Q-Vyt4N-mPWYz-TaZ1E-ID" name="Alesia">
   <logging.level type="ComboBoxState" selectedIndex="3"/>
-  <TWebFrame type="WindowState" location="26,92" size="922,549" state="0"/>
+  <TWebFrame type="WindowState" location="26,95" size="1122,530" state="0"/>
   <PokerSimulator.HelperFilter type="ComboBoxState" selectedIndex="5"/>
   <SensorsPanel.tabbedPanel type="TabbedPaneState" selectedIndex="2"/>
   <SensorPanel.filter type="ComboBoxState" selectedIndex="9"/>

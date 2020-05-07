@@ -6,6 +6,6 @@ import org.javalite.activejdbc.annotations.*;
 @DbName("flicka")
 @Table("reslr")
 @CompositePK({ "redate", "rerace", "rehorse" })
-public class Races extends Model {
+public class Race extends Model {
 
 }

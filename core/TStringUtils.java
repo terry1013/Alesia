@@ -30,10 +30,9 @@ import core.datasource.*;
  */
 public class TStringUtils {
 
-//	public final static java.sql.Date ZERODATE = java.sql.Date.valueOf("1899-12-31");
-
 	private static SimpleDateFormat dateFormat = new SimpleDateFormat();
 	private static Random random = new Random();
+	private static ArrayList<Properties> properties = new ArrayList<>();
 
 	/**
 	 * init enviorement
@@ -143,7 +142,7 @@ public class TStringUtils {
 		TEntry[] lte = (TEntry[]) lst.toArray(new TEntry[lst.size()]);
 		return lte;
 	}
-	
+
 	public static TEntry getTEntry(String tid) {
 		TEntry[] te = getTEntryGroup(tid);
 		return (te == null) ? new TEntry(tid, tid) : te[0];
@@ -215,17 +214,23 @@ public class TStringUtils {
 	}
 
 	/**
-	 * retorna <code>String</code> designada dentro de <code>ResourceBundle</code> cliente para el identificador pasado
-	 * como argumento. si no se encuetra una cadena de caracteres asociadas al identificador se debuelve el
-	 * identificador
+	 * @since 2.3
 	 * 
-	 * @param id - id
-	 * @return String
+	 * @param id
+	 * @return
 	 */
 	public static String getString(String id) {
+		// try alesia resource map.
 		ResourceMap rm = Alesia.getResourceMap();
-		// intenta cadena original, si no existe, retorna el mismo identificador
 		String text = rm.getString(id);
+
+		// try properties files injected by plugins
+		if (text == null) {
+			for (Properties prps : properties) {
+				Object obj = prps.get(id);
+				text = obj == null ? text : obj.toString();
+			}
+		}
 		return (text == null) ? id : text;
 	}
 
@@ -486,7 +491,6 @@ public class TStringUtils {
 		return lookup[n][m];
 	}
 
-
 	/**
 	 * Retrive a group of {@link TEntry} from the especific database table according to the selection parameters. this
 	 * method accept an aditional TEntry usefull for list that allow espetial entrys like <code>*none</code> or
@@ -550,5 +554,21 @@ public class TStringUtils {
 			entrys.add(new TEntry(ele.get(key), ele.get(value)));
 		}
 		return entrys;
+	}
+
+	/**
+	 * @since 2.3
+	 * @param properties
+	 */
+	public static void addProperties(List<File> files) {
+		try {
+			for (File file : files) {
+				Properties prp = new Properties();
+				prp.load(new FileInputStream(file));
+				TStringUtils.properties.add(prp);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }
