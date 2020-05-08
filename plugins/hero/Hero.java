@@ -23,8 +23,10 @@ import javax.swing.Action;
 import org.jdesktop.application.*;
 
 import com.alee.laf.*;
+import com.alee.utils.*;
 
 import core.*;
+import gui.*;
 import gui.console.*;
 import net.sourceforge.tess4j.*;
 
@@ -45,16 +47,6 @@ public class Hero extends TPlugin {
 		new Trooper();
 	}
 	
-	public static Action getLoadAction() {
-		Action load = TActionsFactory.getAction("fileChooserOpen");
-		load.addPropertyChangeListener(evt -> {
-			if (evt.getPropertyName().equals(TActionsFactory.DATA_LOADED)) {
-				Trooper.getInstance().init((File) load.getValue(TActionsFactory.DATA_LOADED));
-			}
-		});
-		return load;
-	}
-
 	public static Tesseract geTesseract() {
 		// TODO: no visible performance improve by setting every sensor with his own teseract instance
 		Tesseract iTesseract = new Tesseract(); // JNA Interface Mapping
@@ -68,6 +60,16 @@ public class Hero extends TPlugin {
 		// TODO: recheck performanece. no visible performance improve setting this variable
 		// iTesseract.setOcrEngineMode(0); // Run Tesseract only - fastest
 		return iTesseract;
+	}
+
+	public static Action getLoadAction() {
+		Action load = TActionsFactory.getAction("fileChooserOpen");
+		load.addPropertyChangeListener(evt -> {
+			if (evt.getPropertyName().equals(TActionsFactory.DATA_LOADED)) {
+				Trooper.getInstance().init((File) load.getValue(TActionsFactory.DATA_LOADED));
+			}
+		});
+		return load;
 	}
 	/**
 	 * This metod is separated because maybe in the future we will need diferents robot for diferent graphics
@@ -104,7 +106,7 @@ public class Hero extends TPlugin {
 
 	@org.jdesktop.application.Action
 	public Task runTrooper(ActionEvent event) {
-		return start(false);
+		return start(event);
 	}
 
 	@org.jdesktop.application.Action
@@ -128,21 +130,21 @@ public class Hero extends TPlugin {
 	}
 
 	@org.jdesktop.application.Action
-	public void takeCardSample(ActionEvent event) {
-		Trooper.getInstance().getSensorsArray().takeCardSample();
-	}
-
-	@org.jdesktop.application.Action
 	public void takeActionSample(ActionEvent event) {
 		Trooper.getInstance().getSensorsArray().takeActionSample();
 	}
 
 	@org.jdesktop.application.Action
-	public Task testTrooper(ActionEvent event) {
-		return start(true);
+	public void takeCardSample(ActionEvent event) {
+		Trooper.getInstance().getSensorsArray().takeCardSample();
 	}
 
-	private Task start(boolean test) {
+	@org.jdesktop.application.Action
+	public Task testTrooper(ActionEvent event) {
+		return start(event);
+	}
+
+	private Task start(ActionEvent event) {
 		WebLookAndFeel.setForceSingleEventsThread(false);
 		Trooper t = new Trooper(Trooper.getInstance());
 		PropertyChangeListener tl = new PropertyChangeListener() {
@@ -153,7 +155,9 @@ public class Hero extends TPlugin {
 			}
 		};
 		t.addPropertyChangeListener(tl);
-		t.setTestMode(test);
+		ApplicationAction aa = (ApplicationAction) ((AbstractButton) event.getSource()).getAction();
+		t.getPokerSimulator().setTableParms(buyin, sb, bb);
+		t.setTestMode(aa.getName().equals("testTrooper"));
 		actionMap.get("testTrooper").setEnabled(false);
 		actionMap.get("runTrooper").setEnabled(false);
 		actionMap.get("pauseTrooper").setEnabled(true);

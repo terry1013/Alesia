@@ -72,13 +72,13 @@ public class UserRecord extends AbstractRecordDataInput {
 		addInputComponent("t_usmc_ssimb", TUIUtils.getJCheckBox(rcd, "t_usmc_ssimb"), false,
 				true);
 		addInputComponent("t_uspass_mlen",
-				TUIUtils.getJFormattedTextField(rcd, "t_uspass_mlen"), true, true,
+				TUIUtils.getWebFormattedTextField(rcd, "t_uspass_mlen"), true, true,
 				SystemVariables.getintVar("passMinLength"),
 				SystemVariables.getintVar("passMaxLength"));
 
 		;;
 		addInputComponent("t_usmax_attemps",
-				TUIUtils.getJFormattedTextField(rcd, "t_usmax_attemps"), true, true,
+				TUIUtils.getWebFormattedTextField(rcd, "t_usmax_attemps"), true, true,
 				SystemVariables.getintVar("loginMinAttemps"),
 				SystemVariables.getintVar("loginMaxAttemps"));
 		addInputComponent("t_usstatus", TUIUtils.getJComboBox("rcd_sts", rcd, "t_usstatus"),

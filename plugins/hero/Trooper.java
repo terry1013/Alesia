@@ -65,6 +65,10 @@ public class Trooper extends Task {
 	private Properties preflopHands;
 	long stepMillis;
 
+	public PokerSimulator getPokerSimulator() {
+		return pokerSimulator;
+	}
+	
 	// This variable is ONLY used and cleaned by ensuregametable method
 	private String lastHoleCards = "";
 
@@ -230,9 +234,9 @@ public class Trooper extends Task {
 		double hand = pokerSimulator.getCurrentHandStreng();
 		double potential = pokerSimulator.getHandPotential();
 		String txt1 = "Hand " + twoDigitFormat.format(hand) + " Potential " + twoDigitFormat.format(potential);
-		double chips = pokerSimulator.getHeroChips() * (hand+potential);
-		double buyIn = pokerSimulator.getBuyIn() * (hand+potential);
-//		double pot = pokerSimulator.getPotValue() * potential;
+		double chips = pokerSimulator.getHeroChips() * (hand + potential);
+		double buyIn = pokerSimulator.getBuyIn() * (hand + potential);
+		// double pot = pokerSimulator.getPotValue() * potential;
 		// minimun upper bound: chip or buy (when hero is poor)
 		double number = 0.0;
 		String ammoSrc = "";
@@ -245,7 +249,7 @@ public class Trooper extends Task {
 			ammoSrc = "Chips";
 		}
 		// to the hand potential add the efective amount that is already mine
-//		number += pot;
+		// number += pot;
 
 		setVariableAndLog(EXPLANATION, ammoSrc + " " + txt1 + " Value " + twoDigitFormat.format(number));
 		return number;
@@ -373,8 +377,8 @@ public class Trooper extends Task {
 				// round value to look natural (dont write 12345. write 12340 or 12350)
 				if (isInt)
 					tickVal = ((int) (tickVal / 10)) * 10;
-//				else 
-//					tickVal = ((int) (tickVal * 100)) / 100.0;
+				// else
+				// tickVal = ((int) (tickVal * 100)) / 100.0;
 
 				String txt = isInt ? "" + (int) tickVal : twoDigitFormat.format(tickVal);
 				availableActions
@@ -512,8 +516,8 @@ public class Trooper extends Task {
 			// canceled ?
 			if (isCancelled())
 				return false;
-			sensorsArray.readVillans();
-			// sensorsArray.readVillans(restarChips);
+			// TODO: removed temporaly to test performance
+			// sensorsArray.readVillans();
 			restarChips = false;
 
 			sensorsArray.read(SensorsArray.TYPE_ACTIONS);
@@ -606,7 +610,7 @@ public class Trooper extends Task {
 		}
 
 		// step (by observation, 1/20 of the bb)
-//		double step = pokerSimulator.getBigBlind() / 20.0;
+		// double step = pokerSimulator.getBigBlind() / 20.0;
 		double step = 5.0;
 		// regret
 		double reg = (prob - PokerSimulator.probabilityThreshold) * -1 * step;

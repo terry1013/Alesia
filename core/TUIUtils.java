@@ -15,10 +15,8 @@ import java.awt.event.*;
 import java.awt.geom.*;
 import java.awt.image.*;
 import java.io.*;
-import java.sql.*;
 import java.text.*;
 import java.util.*;
-import java.util.Date;
 
 import javax.swing.*;
 import javax.swing.Action;
@@ -186,36 +184,6 @@ public class TUIUtils {
 		TEntry[] val = TStringUtils.getTEntryGroup(ct);
 		CheckComboBox jcbox = getCheckComboBox("tt" + fld, val, model.getString(fld));
 		return jcbox;
-	}
-
-	/**
-	 * retorna <code>DateTimeSpinner</code> para edicion de fechas/horas
-	 * 
-	 * @param rcd - registro de donde obtener la fecha
-	 * @param fn - nombre de campo
-	 * @param stl - DateTimeSpinner.TIME o DateTimeSpinner.DATE
-	 * @param fmt - formato. ej: dd/MM/yyy para fechas o hh:mm:ss para horas (dependiendo del parametro slt
-	 * @return instancia de DateTimeSpinner
-	 */
-	public static DateTimeSpinner getDateTimeSpinner(Model model, String fn, int stl, String fmt) {
-		return getDateTimeSpinner("tt" + fn, stl, model.getDate(fn), fmt);
-	}
-
-	/**
-	 * retorna <code>DateTimeSpinner</code> para edicion de fechas/horas
-	 * 
-	 * @param tt - identificador para tooltip
-	 * @param stl - estilo: DateTimeSpinner.TIME o DateTimeSpinner.DATE
-	 * @param val - objecto valor
-	 * @param fmt - formato. ej: dd/MM/yyy para fechas o hh:mm:ss para horas (dependiendo del parametro slt
-	 * @return instancia de DateTimeSpinner
-	 */
-	public static DateTimeSpinner getDateTimeSpinner(String tt, int stl, java.util.Date val, String fmt) {
-		java.util.Date d = stl == DateTimeSpinner.TIME ? new Time(val.getTime()) : new Date(val.getTime());
-		DateTimeSpinner jftf = new DateTimeSpinner(d, stl, fmt);
-		setDimensionForTextComponent(jftf, fmt.length());
-		setToolTip(tt, jftf);
-		return jftf;
 	}
 
 	/**
@@ -508,61 +476,33 @@ public class TUIUtils {
 	 * 
 	 * @return <code>JFormattedTextField</code>
 	 */
-	public static JFormattedTextField getJFormattedTextField(Model model, ColumnMetadata column) {
+	public static JFormattedTextField getWebFormattedTextField(Model model, ColumnMetadata column) {
 		int len = column.getColumnSize();
 		String fn = column.getColumnName();
 		Object val = model.get(fn);
-		JFormattedTextField jftf = getJFormattedTextField("tt" + fn, val, len, null);
-		jftf.setName(fn);
+		WebFormattedTextField jftf = getWebFormattedTextField(fn, val, len, null);
 		return jftf;
 	}
 
-	/**
-	 * retorna <code>JFormattedTextField</code> aplicando el formato <code>fmt</code>
-	 * 
-	 * @param rcd - instancia de registro de datos
-	 * @param fld - id de campo con valor
-	 * @param fmt - isntacia de {@link Formatter} a aplicar
-	 * 
-	 * @return <code>JFormattedTextField</code>
-	 */
-	public static JFormattedTextField getJFormattedTextField(Model model, String fn, Format fmt) {
-		int len = model.getMetaModel().getColumnMetadata().get(fn).getColumnSize();
-		Object val = model.get(fn);
-		JFormattedTextField jftf = getJFormattedTextField("tt" + fn, val, len, fmt);
-		// jftf.setName(fn);
-		return jftf;
+	public static WebFormattedTextField getWebFormattedTextField(String name, Object val, int cw) {
+		return getWebFormattedTextField(name, val, cw, null);
 	}
 
-	public static JFormattedTextField getJFormattedTextField(String ttn, Object val, int cw) {
-		return getJFormattedTextField(ttn, val, cw, null);
-	}
-
-	/**
-	 * retorna <code>JFormattedTextField</code> estandar. NOTA: solo implementacion para numeros y fechas.
-	 * 
-	 * TODO: MEJORARRRRRRRRRRRRRR
-	 * 
-	 * @param ttn - id de tooltip
-	 * @param val - valor para el objeto
-	 * @param cw - ancho medido en caracteres
-	 * 
-	 * @return JFormattedTextField
-	 */
-	public static JFormattedTextField getJFormattedTextField(String ttn, Object val, int cw, Format fmt) {
-		JFormattedTextField jftf;
+	public static WebFormattedTextField getWebFormattedTextField(String name, Object val, int cw, Format fmt) {
+		WebFormattedTextField jftf;
 		if (fmt != null) {
-			jftf = new JFormattedTextField(fmt);
+			jftf = new WebFormattedTextField(fmt);
 			jftf.setValue(val);
 		} else {
-			jftf = new JFormattedTextField(val);
+			jftf = new WebFormattedTextField(val);
 		}
 		jftf.setColumns(cw);
+		jftf.setName(name);
 		if (val instanceof java.lang.Number) {
 			jftf.setHorizontalAlignment(JTextField.RIGHT);
 		}
 		setDimensionForTextComponent(jftf, cw);
-		setToolTip(ttn, jftf);
+		setToolTip(name, jftf);
 		// 180614: implement focus listener
 		FocusAdapter fa = new FocusAdapter() {
 			@Override
@@ -718,11 +658,11 @@ public class TUIUtils {
 		return jtf;
 	}
 
-	public static WebTextField getWebTextField(String field, String val, int cw) {
+	public static WebTextField getWebTextField(String name, String val, int cw) {
 		WebTextField textField = new WebTextField(cw);
 		textField.setDocument(new TPlainDocument(val, cw));
 		textField.setText(val);
-		textField.setName(field);
+		textField.setName(name);
 		return textField;
 	}
 	/**

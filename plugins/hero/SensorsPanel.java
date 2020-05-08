@@ -17,6 +17,7 @@ import javax.swing.*;
 
 import com.alee.laf.combobox.*;
 import com.alee.laf.tabbedpane.*;
+import com.alee.laf.text.*;
 import com.alee.managers.settings.*;
 
 import core.*;
@@ -100,19 +101,31 @@ public class SensorsPanel extends TUIPanel {
 
 		// set tool bar clear al previous toolbar components
 		setToolBar(loadAction, Hero.actionMap.get("runTrooper"), Hero.actionMap.get("testTrooper"),
-				Hero.actionMap.get("stopTrooper"), Hero.actionMap.get("pauseTrooper"),
-				Hero.actionMap.get("takeCardSample"), Hero.actionMap.get("takeActionSample"));
+				Hero.actionMap.get("stopTrooper"), Hero.actionMap.get("pauseTrooper"));
+//				Hero.actionMap.get("takeCardSample"), Hero.actionMap.get("takeActionSample"));
+		WebFormattedTextField wetBuy = TUIUtils.getWebFormattedTextField("buyIn", null, 5);
+		WebFormattedTextField wetSB = TUIUtils.getWebFormattedTextField("smallBlid", null, 5);
+		WebFormattedTextField wetBB = TUIUtils.getWebFormattedTextField("bigBlid", null, 5);
+		getToolBarPanel().add(wetBuy);
+		getToolBarPanel().add(wetSB);
+		getToolBarPanel().add(wetBB);
 
 		sensorsPanelMain.getToolBarPanel().removeAll();
 		sensorsPanelMain.getToolBarPanel().add(sensorTypeComboBox, imageTypeComboBox);
+		wetBuy.setText(SettingsManager.get("buyIn", ""));
+		wetSB.setText(SettingsManager.get("smallBlid", ""));
+		wetBB.setText(SettingsManager.get("bigBlid", ""));
 
 		// after all component has been created
 		imageTypeComboBox.registerSettings(new Configuration<ComboBoxState>("SensorPanel.imageType"));
 		sensorTypeComboBox.registerSettings(new Configuration<ComboBoxState>("SensorPanel.filter"));
-
+		wetBuy.registerSettings(new Configuration<TextComponentState>("SensorPanel.buyIn"));
+		wetSB.registerSettings(new Configuration<TextComponentState>("SensorPanel.smallBlid"));
+		wetBB.registerSettings(new Configuration<TextComponentState>("SensorPanel.bigBlid"));
+		
 		setVisible(true);
 	}
-
+	
 	private void filterSensors() {
 		sensorsPanel.setVisible(false);
 		String filter = ((TEntry) sensorTypeComboBox.getSelectedItem()).getKey().toString();

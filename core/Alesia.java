@@ -17,6 +17,7 @@ import java.awt.event.*;
 import java.io.*;
 import java.sql.*;
 import java.util.*;
+import java.util.List;
 import java.util.logging.*;
 
 import javax.swing.*;
@@ -48,8 +49,12 @@ import com.alee.managers.plugin.data.*;
 import com.alee.managers.settings.*;
 import com.alee.managers.style.*;
 import com.alee.skin.dark.*;
-import com.alee.utils.*;
 import com.alee.utils.CollectionUtils;
+import com.alee.utils.FileUtils;
+import com.sun.jna.*;
+import com.sun.jna.platform.*;
+import com.sun.jna.platform.win32.*;
+import com.sun.jna.platform.win32.WinDef.*;
 
 import core.tasks.*;
 import gui.*;
@@ -90,6 +95,16 @@ public class Alesia extends Application {
 	public static ResourceMap getResourceMap() {
 		return getInstance().getContext().getResourceMap();
 	}
+
+//	public interface TUser32 extends Library {
+//		TUser32 INSTANCE = (TUser32) Native.loadLibrary("user32", TUser32.class);
+//		HWND FindWindow(String lpClassName, String lpWindowName);
+//		int GetWindowRect(HWND handle, int[] rect);
+//		boolean EnumWindows(WinUser.WNDENUMPROC lpEnumFunc, Pointer data);
+//		boolean GetWindowInfo(WinDef.HWND hWnd, WinUser.WINDOWINFO pwi);
+//		WinDef.HWND	GetActiveWindow();
+//	}
+
 	/**
 	 * inicio de aplicacion
 	 * 
@@ -97,6 +112,20 @@ public class Alesia extends Application {
 	 */
 	public static void main(String[] args) {
 		Locale.setDefault(Locale.US);
+
+// List<DesktopWindow> winds = WindowUtils.getAllWindows(true);
+//		WinDef.HWND hwnd = TUser32.INSTANCE.GetActiveWindow();
+//		WinUser.WINDOWINFO info = new WinUser.WINDOWINFO();
+//		TUser32.INSTANCE.GetWindowInfo(hwnd, info);
+
+//		for (DesktopWindow win : winds) {
+//			System.out.println(win.getTitle());
+//		}
+		// HWND hwnd = TUser32.INSTANCE.FindWindow("Eclipse", null);
+		// int[] rect = {0, 0, 0, 0};
+		// int result = TUser32.INSTANCE.GetWindowRect(hwnd, rect);
+//		System.out.println("Ok.");
+
 
 		// Loggin configuration. this step is performed here for conbenence
 		// TODO: For slf4j: the bridge betwen slf4j is set using the slf4j-jdk14-1.7.25 jar lib
@@ -143,12 +172,12 @@ public class Alesia extends Application {
 		DB db = null;
 		try {
 			Properties orgPrp = getDBProperties();
-			
+
 			// remove all properties except those who star whit "name"
 			Set<Object> keys = orgPrp.keySet();
 			keys.removeIf(k -> !k.toString().startsWith(name));
 			Properties properties = new Properties();
-			
+
 			// build a new propert list whiout the prefix. keeping only the property and value spected by the jdbc lib
 			keys.forEach(k -> properties.put(k.toString().substring(name.length() + 1), orgPrp.get(k)));
 

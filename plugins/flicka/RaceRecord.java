@@ -25,20 +25,20 @@ public class RaceRecord extends TUIFormPanel {
 		// EVENT components:
 		if (mode == EVENT || mode == FULL) {
 			addInputComponent(TUIUtils.getWebDateField(model, listPanel.getColumnMetadata().get("redate")), true, true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("rerace")), true,
+			addInputComponent(TUIUtils.getWebFormattedTextField(model, listPanel.getColumnMetadata().get("rerace")), true,
 					true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("redistance")),
+			addInputComponent(TUIUtils.getWebFormattedTextField(model, listPanel.getColumnMetadata().get("redistance")),
 					true, true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("reracetime")),
+			addInputComponent(TUIUtils.getWebFormattedTextField(model, listPanel.getColumnMetadata().get("reracetime")),
 					true, true);
 			addInputComponent(TUIUtils.getJTextField(model, listPanel.getColumnMetadata().get("reserie")), true, true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("repartial1")),
+			addInputComponent(TUIUtils.getWebFormattedTextField(model, listPanel.getColumnMetadata().get("repartial1")),
 					true, true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("repartial2")),
+			addInputComponent(TUIUtils.getWebFormattedTextField(model, listPanel.getColumnMetadata().get("repartial2")),
 					false, true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("repartial3")),
+			addInputComponent(TUIUtils.getWebFormattedTextField(model, listPanel.getColumnMetadata().get("repartial3")),
 					false, true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("repartial4")),
+			addInputComponent(TUIUtils.getWebFormattedTextField(model, listPanel.getColumnMetadata().get("repartial4")),
 					false, true);
 			addInputComponent(TUIUtils.getJTextField(model, listPanel.getColumnMetadata().get("rehorsegender")), true,
 					true);
@@ -46,9 +46,9 @@ public class RaceRecord extends TUIFormPanel {
 
 		// BASIC components:
 		if (mode == BASIC || mode == FULL) {
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("restar_lane")),
+			addInputComponent(TUIUtils.getWebFormattedTextField(model, listPanel.getColumnMetadata().get("restar_lane")),
 					true, true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("reend_pos")),
+			addInputComponent(TUIUtils.getWebFormattedTextField(model, listPanel.getColumnMetadata().get("reend_pos")),
 					true, true);
 			TEntry[] ele = Flicka.getElemets("rehorse", "tentry.none");
 			TJComboBox jcb = TUIUtils.getJComboBox("ttrehorse", ele, model.getString("rehorse"));
@@ -57,14 +57,14 @@ public class RaceRecord extends TUIFormPanel {
 			jcb = TUIUtils.getJComboBox("ttrejockey", ele, model.get("rejockey"));
 			addInputComponent("rejockey", jcb, true, true);
 			addInputComponent(
-					TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("rejockey_weight")), false,
+					TUIUtils.getWebFormattedTextField(model, listPanel.getColumnMetadata().get("rejockey_weight")), false,
 					true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("rerating")),
+			addInputComponent(TUIUtils.getWebFormattedTextField(model, listPanel.getColumnMetadata().get("rerating")),
 					false, true);
 			addInputComponent(TUIUtils.getJTextField(model, listPanel.getColumnMetadata().get("reobs")), false, true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("recps")), false,
+			addInputComponent(TUIUtils.getWebFormattedTextField(model, listPanel.getColumnMetadata().get("recps")), false,
 					true);
-			addInputComponent(TUIUtils.getJFormattedTextField(model, listPanel.getColumnMetadata().get("redividend")),
+			addInputComponent(TUIUtils.getWebFormattedTextField(model, listPanel.getColumnMetadata().get("redividend")),
 					false, false);
 			addInputComponent(TUIUtils.getJTextField(model, listPanel.getColumnMetadata().get("retrainer")), false,
 					true);

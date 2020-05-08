@@ -58,9 +58,9 @@ public class DateRange extends AbstractDataInput {
 		ComponentTitledPane ctp = new ComponentTitledPane(jrb, b);
 
 		// intervalo de fechas
-		addInputComponent("startDate", TUIUtils.getJFormattedTextField("ttp13", new Date(), 10),
+		addInputComponent("startDate", TUIUtils.getWebFormattedTextField("ttp13", new Date(), 10),
 			true, true);
-		addInputComponent("endDate", TUIUtils.getJFormattedTextField("ttp14", new Date(), 10),
+		addInputComponent("endDate", TUIUtils.getWebFormattedTextField("ttp14", new Date(), 10),
 			true, true);
 
 		JPanel jp = TUIUtils.getInHorizontalBox(new JComponent[] {

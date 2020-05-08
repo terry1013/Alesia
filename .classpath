@@ -52,5 +52,7 @@
 	<classpathentry kind="lib" path="lib/jfreechart-1.5.0.jar" sourcepath="C:/Users/terry/Documents/java/jfree/jfreechart-1.5.0-sources.jar"/>
 	<classpathentry kind="lib" path="plugins/hero/lib/commons-io-2.6.jar"/>
 	<classpathentry kind="lib" path="plugins/hero/lib/marvin_1.5.5.jar" sourcepath="C:/Users/terry/Documents/java/CV/marvin/MarvinProject_1.4.3.zip"/>
+	<classpathentry kind="lib" path="lib/jna-5.2.0.jar"/>
+	<classpathentry kind="lib" path="lib/jna-platform-5.2.0.jar" sourcepath="C:/Users/terry/Documents/java/native interation/jna/jna-platform-5.2.0-sources.jar"/>
 	<classpathentry kind="output" path=""/>
 </classpath>
