@@ -20,7 +20,8 @@ import javax.crypto.*;
 import javax.crypto.spec.*;
 
 import org.javalite.activejdbc.*;
-import org.jdesktop.application.*;
+
+import com.alee.utils.*;
 
 import core.datasource.*;
 
@@ -32,25 +33,11 @@ public class TStringUtils {
 
 	private static SimpleDateFormat dateFormat = new SimpleDateFormat();
 	private static Random random = new Random();
-	private static ArrayList<Properties> properties = new ArrayList<>();
-
 	/**
-	 * init enviorement
-	 * 
-	 * @throws Exception
+	 * contains all the .propertie files. (Alesia core) and detected plugins.
 	 */
-	public static void init() {
-		Vector<File> files = TResources.findFiles(new File(System.getProperty("user.dir") + "/"), ".properties");
-		for (File f : files) {
-			try {
-				// TODO: complete implementation.
-				PropertyResourceBundle prb = new PropertyResourceBundle(new FileInputStream(f));
-				Alesia.logger.info("property file " + f.getName() + " found.");
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
+	private static Properties allProperties = new Properties();
+	// private static ArrayList<Properties> properties = new ArrayList<>();
 
 	/**
 	 * Return a formatted string representing the speed or time of the input argument. The incomming argument represent
@@ -121,19 +108,37 @@ public class TStringUtils {
 	}
 
 	/**
+	 * return a {@link Hashtable} of string whit all element inside of {@link Alesia#getResourceMap()} that start whit
+	 * the give group constant
+	 * 
+	 * @param group - prefix of the property to look
+	 * 
+	 * @return
+	 */
+	public static Hashtable<String, String> getStrings(String group) {
+		ArrayList<String> keys = new ArrayList(allProperties.keySet());
+		Hashtable<String, String> list = new Hashtable<>();
+		for (String key : keys) {
+			if (key.startsWith(group)) {
+				list.put(key, allProperties.getProperty(key));
+			}
+		}
+		return list;
+	}
+	/**
 	 * busca y retorna el grupo de constantes que comienzen con el parametro <code>ty</code>. este metodo intenta
 	 * primero localizar la lista de constantes en los archivos <code>.properties</code> cargados durante la
 	 * inicializacion. si no se encuentran alli, intenta en el archive de referencias en la base de datos principal
 	 * 
-	 * @param ty - tipo de constantes
+	 * @param group - tipo de constantes
 	 * @return arreglo de constantes
 	 */
-	public static TEntry[] getTEntryGroup(String ty) {
-		ArrayList<String> keys = new ArrayList(Alesia.getResourceMap().keySet());
+	public static TEntry[] getTEntryGroup(String group) {
+		ArrayList<String> keys = new ArrayList(allProperties.keySet());
 		Vector lst = new Vector();
 		for (String key : keys) {
-			if (key.startsWith(ty)) {
-				String[] kv = Alesia.getResourceMap().getString(key).split(";");
+			if (key.startsWith(group)) {
+				String[] kv = allProperties.getProperty(key).split(";");
 				if (kv.length > 1) {
 					lst.add(new TEntry(kv[0], kv[1]));
 				}
@@ -216,22 +221,12 @@ public class TStringUtils {
 	/**
 	 * @since 2.3
 	 * 
-	 * @param id
+	 * @param key
 	 * @return
 	 */
-	public static String getString(String id) {
-		// try alesia resource map.
-		ResourceMap rm = Alesia.getResourceMap();
-		String text = rm.getString(id);
-
-		// try properties files injected by plugins
-		if (text == null) {
-			for (Properties prps : properties) {
-				Object obj = prps.get(id);
-				text = obj == null ? text : obj.toString();
-			}
-		}
-		return (text == null) ? id : text;
+	public static String getString(String key) {
+		String txt = allProperties.getProperty(key);
+		return (txt == null) ? key : txt;
 	}
 
 	/**
@@ -492,34 +487,6 @@ public class TStringUtils {
 	}
 
 	/**
-	 * Retrive a group of {@link TEntry} from the especific database table according to the selection parameters. this
-	 * method accept an aditional TEntry usefull for list that allow espetial entrys like <code>*none</code> or
-	 * <code>*all</code>
-	 * 
-	 * @param tn - table name
-	 * @param kf - key field
-	 * @param vf - value field
-	 * @param wc - where clause
-	 * @param ite - aditional {@link TEntry} denoting spetial value like like <code>*none</code> or <code>*all</code>
-	 * 
-	 * @return TEntry array
-	 */
-	public static TEntry[] getTEntryGroupFrom(String tn, String kf, String vf, String wc, TEntry ite) {
-		Vector lst = new Vector();
-		// initial tentry
-		if (ite != null) {
-			lst.add(ite);
-		}
-		Vector kls = ConnectionManager.getAccessTo(tn).search(wc, null);
-		for (int i = 0; i < kls.size(); i++) {
-			Record rcd = (Record) kls.elementAt(i);
-			lst.add(new TEntry(rcd.getFieldValue(kf), rcd.getFieldValue(vf)));
-		}
-		TEntry[] lte = (TEntry[]) lst.toArray(new TEntry[lst.size()]);
-		return lte;
-	}
-
-	/**
 	 * Return a standar decimal format pattern when is necesary display all decimal places. this implementation show
 	 * until 10 decimal places. this method return the standar 2 places decimal digits if dp < 3.
 	 * 
@@ -560,12 +527,13 @@ public class TStringUtils {
 	 * @since 2.3
 	 * @param properties
 	 */
-	public static void addProperties(List<File> files) {
+	public static void addProperties(String dir) {
 		try {
+			List<File> files = FileUtils.findFilesRecursively(dir, f -> f.getName().endsWith(".properties"));
 			for (File file : files) {
 				Properties prp = new Properties();
 				prp.load(new FileInputStream(file));
-				TStringUtils.properties.add(prp);
+				allProperties.putAll(prp);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

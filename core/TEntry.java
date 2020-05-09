@@ -142,9 +142,10 @@ public class TEntry<K, V> implements Entry<K, V>, java.io.Serializable, Comparab
 		return value.toString();
 	}
 
-
 	@Override
 	public int compareTo(TEntry<K, V> o) {
+		// Natural order by value
+		// ----------------------
 		if (o instanceof TEntry) {
 			Comparable oval = (Comparable) o.getValue();
 			Comparable valc = (Comparable) value;

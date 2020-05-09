@@ -71,10 +71,8 @@ public class TPluginManager extends PluginManager<TPlugin> {
 				// TODO: temporal. add resource path here. move to starPlugins when it works
 				// resource path
 				String path = System.getProperty("user.dir") + "/" + file.getParent() + "/resources/";
-				// all .properties files form the plugin resource
-				List<File> prps = FileUtils.findFilesRecursively(file.getParent(),
-						(f -> f.getName().endsWith(".properties")));
-				TResources.addResources(path, prps);
+				TResources.resourcePath.add(path);
+				TStringUtils.addProperties(path);
 
 				detectedPluginsByPath.put(FileUtils.canonicalPath(file), plugin);
 				return plugin;

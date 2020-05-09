@@ -34,8 +34,10 @@ import com.alee.extended.image.*;
 import com.alee.extended.panel.*;
 import com.alee.laf.button.*;
 import com.alee.laf.checkbox.*;
+import com.alee.laf.combobox.*;
 import com.alee.laf.text.*;
 import com.alee.laf.toolbar.*;
+import com.alee.managers.settings.Configuration;
 import com.alee.managers.style.*;
 import com.alee.utils.*;
 import com.alee.utils.swing.*;
@@ -353,60 +355,31 @@ public class TUIUtils {
 		return jcb;
 	}
 
-	/**
-	 * retorna un <code>JComboBox</code> igual al estandar exeptuando que las lista de constantes es buscada dentro del
-	 * archivo de constantes en el servidor. este metodo elimina las constantes especiales
-	 * 
-	 * @param ct - id de grupo de constantes
-	 * @param rcd - registro
-	 * @param fld - nombre de campo
-	 * @return componente public static JComboBox getJComboBoxFromDB(String ct, Model model, String fld) {
-	 *         ServiceRequest r = new ServiceRequest(ServiceRequest.CONSTANT_GROUP, null, ct); ServiceResponse res =
-	 *         ServerConnection.sendTransaction(r); Vector lst = (Vector) res.getData(); lst.remove(0); Vector cntl =
-	 *         new Vector(); for (int k = 0; k < lst.size(); k++) { Record rc = (Record) lst.elementAt(k); if
-	 *         (!rc.getFieldValue("t_sv_id").toString().startsWith("_")) { cntl.add(new
-	 *         LTEntry(rc.getFieldValue("t_sv_id"), rc.getFieldValue(t_svvalue))); } } LTEntry[] val = (LTEntry[])
-	 *         cntl.toArray(new LTEntry[cntl.size()]); JComboBox jcbox = getJComboBox("tt" + fld, val,
-	 *         rcd.getFieldValue(fld)); return jcbox; }
-	 */
-
-	/**
-	 * construye y retorna un <code>JComboBox</code> estandar.
-	 * 
-	 * @param ct - identificador de tipo de constantes
-	 * @param rcd - instancia del registro de datos
-	 * @param fld - Nombre del campo
-	 * 
-	 * @return <code>JComboBox</code>
-	 */
-	public static TJComboBox getJComboBox(String ct, Model model, String fld) {
-		TEntry[] val = TStringUtils.getTEntryGroup(ct);
-		TJComboBox jcbox = getJComboBox("tt" + fld, val, model.get(fld));
-		// jcbox.setName(fld);
+	public static TWebComboBox getTWebComboBox(String name, Model model, String listId) {
+		TEntry[] entries = TStringUtils.getTEntryGroup(listId);
+		TWebComboBox jcbox = getTWebComboBox(name, entries, model.get(name));
 		return jcbox;
 	}
 
-	/**
-	 * construye y retorna un <code>JComboBox</code> estandar.
-	 * 
-	 * @param tid - id de tooltip
-	 * @param val - arreglo de valores
-	 * @param sel - valor seleccionado
-	 * @return JComboBox
-	 */
-	public static TJComboBox getJComboBox(String tid, TEntry[] val, Object sel) {
-		// si no hay datos, no selecciono nada
-		int row = val.length > 0 ? 0 : -1;
+	public static TWebComboBox getTWebComboBox(String name, String listId) {
+		TEntry[] entries = TStringUtils.getTEntryGroup(listId);
+		return getTWebComboBox(name, entries, null);
+	}
 
-		for (int l = 0; l < val.length; l++) {
-			if (val[l].getKey().equals(sel)) {
+	public static TWebComboBox getTWebComboBox(String name, TEntry[] entries, Object sel) {
+		// si no hay datos, no selecciono nada
+		int row = entries.length > 0 ? 0 : -1;
+
+		for (int l = 0; l < entries.length; l++) {
+			if (entries[l].getKey().equals(sel)) {
 				row = l;
 			}
 		}
-		TJComboBox jcbox = new TJComboBox(val);
-		jcbox.setSelectedIndex(row);
-		setToolTip(tid, jcbox);
-		return jcbox;
+		TWebComboBox twcb = new TWebComboBox(entries);
+		twcb.setSelectedIndex(row);
+		twcb.setName(name);
+		twcb.putClientProperty("settingsProcessor", new Configuration<ComboBoxState>(name));
+		return twcb;
 	}
 
 	/**
@@ -518,6 +491,7 @@ public class TUIUtils {
 			}
 		};
 		jftf.addFocusListener(fa);
+		jftf.putClientProperty("settingsProcessor", new Configuration<TextComponentState>(name));
 		return jftf;
 	}
 

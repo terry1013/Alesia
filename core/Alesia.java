@@ -519,6 +519,7 @@ public class Alesia extends Application {
 		// Properties prp = System.getProperties();
 
 		TResources.init();
+		TStringUtils.addProperties(TResources.USER_DIR + "/core/resources/");
 
 		// local storage configuration
 		// File lf = new File("LocalStorage.txt").getParentFile();

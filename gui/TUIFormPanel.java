@@ -1,22 +1,20 @@
 package gui;
 
 import java.awt.*;
-import java.awt.event.*;
 import java.io.*;
 import java.util.*;
 import java.util.List;
 
 import javax.swing.*;
-import javax.swing.Action;
 import javax.swing.event.*;
 import javax.swing.text.*;
-import javax.xml.soap.*;
 
 import org.javalite.activejdbc.*;
-import org.jdesktop.application.*;
 
 import com.alee.extended.date.*;
 import com.alee.extended.filechooser.*;
+import com.alee.managers.settings.*;
+import com.alee.managers.settings.Configuration;
 import com.jgoodies.common.base.*;
 import com.jgoodies.forms.builder.*;
 import com.jgoodies.forms.factories.*;
@@ -204,7 +202,8 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 
 	/**
 	 * Return a new {@link Hashtable} with all values setted by this GUI. this method also will return all stored
-	 * parameters in the temporal storage buffer for this class
+	 * parameters in the temporal storage buffer for this class. Fields whit values <code>null</code> will not be
+	 * returned
 	 * 
 	 * @return Hashtable with fields name and values found in this UI
 	 * @see #getTemporalStorage()
@@ -212,7 +211,7 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 	public Hashtable<String, Object> getValues() {
 		Hashtable h = new Hashtable(temporalStorage);
 		fields.keySet().stream().forEach((key) -> {
-			Object val = getValue(key);
+			Object val = getFieldValue(key);
 			if (val != null)
 				h.put(key, val);
 		});
@@ -360,13 +359,6 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 			// jtec.addFocusListener(this);
 			jtec.getDocument().addDocumentListener(this);
 		}
-		if ((jcmp instanceof DateTimeSpinner)) {
-			DateTimeSpinner ttf = (DateTimeSpinner) jcmp;
-			// JSpinner.DateEditor jce = (JSpinner.DateEditor) ttf.getEditor();
-			// ttf.setInputVerfier(this);
-			ttf.getTextField().getDocument().addDocumentListener(this);
-			// ttf.getTextField().addFocusListener(this);
-		}
 	}
 	/**
 	 * verifica instancias de <code>DateTimeSpinner</code> obligatorias y que se encuentran habilitadas
@@ -377,23 +369,6 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 	private void checkDateFields() {
 		Vector<JComponent> jcmplist = new Vector(fields.values());
 		for (JComponent jcmp : jcmplist) {
-			if (jcmp instanceof DateTimeSpinner && jcmp.isEnabled()) {
-				DateTimeSpinner ttf = (DateTimeSpinner) jcmp;
-				ttf.resetColor();
-				boolean req = (Boolean) jcmp.getClientProperty("isRequired");
-				Date d = TStringUtils.ZERODATE;
-				try {
-					// System.out.println(ttf.dateFormat.toLocalizedPattern());
-					d = ttf.dateFormat.parse(ttf.getTextField().getText());
-				} catch (Exception e) {
-					// e.printStackTrace();
-					// ya d esta como zerodate
-				}
-				if (d.equals(TStringUtils.ZERODATE) && req) {
-					reasons.add(msg18);
-					ttf.setErrorColor(msg18.getExceptionColor());
-				}
-			}
 			if (jcmp instanceof WebDateField && jcmp.isEnabled()) {
 				WebDateField wdf = (WebDateField) jcmp;
 				Color bgc = UIManager.getColor("TextField.background");
@@ -440,7 +415,7 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 	 * @param field - internal field id
 	 * @return value
 	 */
-	private Object getValue(String field) {
+	private Object getFieldValue(String field) {
 		JComponent jcmp = fields.get(field);
 
 		if (jcmp instanceof JScrollPane) {
@@ -460,11 +435,6 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 		// numeros
 		if (jcmp instanceof JFormattedTextField) {
 			val = ((JFormattedTextField) jcmp).getValue();
-			return val;
-		}
-		// fecha o hora
-		if (jcmp instanceof DateTimeSpinner) {
-			val = ((DateTimeSpinner) jcmp).getDate();
 			return val;
 		}
 		// texto
@@ -538,7 +508,29 @@ public class TUIFormPanel extends TUIPanel implements DocumentListener, FilesSel
 		// nothig found
 		throw new NullPointerException("No value fount for field " + field);
 	}
+	protected void addInputComponent(JComponent cmp) {
+		addInputComponent(cmp, false, true);
+	}
 
+	/**
+	 * Registers all input component for settings auto-save. All WebComponent that suport {@link SettingsMethods} will
+	 * be registred. the client property <code>settingsProcessor</code> muss be setted whit a valid instance of
+	 * {@link Configuration}.
+	 * 
+	 * <p>
+	 * To get a valid web component whit the correct configuration, use any of the factory methods in {@link TUIUtils}
+	 * 
+	 * @see SettingsMethods#registerSettings(Configuration)
+	 */
+	public void registreSettings() {
+		Collection<JComponent> cmps = fields.values();
+		for (JComponent cmp : cmps) {
+			if (cmp instanceof SettingsMethods) {
+				Configuration cnf = (Configuration) cmp.getClientProperty("settingsProcessor");
+				((SettingsMethods) cmp).registerSettings(cnf);
+			}
+		}
+	}
 	protected void addInputComponent(JComponent cmp, boolean required, boolean enable) {
 		String name = cmp.getName();
 		Preconditions.checkNotNull(name, "the component name can't be null");

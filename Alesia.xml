@@ -1,14 +1,18 @@
 <SettingsGroup id="SG-1kf5Q-Vyt4N-mPWYz-TaZ1E-ID" name="Alesia">
-  <buyIn type="string"></buyIn>
-  <logging.level type="ComboBoxState" selectedIndex="3"/>
+  <table.bigBlid type="TextComponentState" text="100" caretPosition="3"/>
+  <logging.level type="ComboBoxState" selectedIndex="2"/>
   <SensorPanel.smallBlid type="TextComponentState" text="2" caretPosition="1"/>
-  <TWebFrame type="WindowState" location="0,40" size="547,735" state="0"/>
   <PokerSimulator.HelperFilter type="ComboBoxState" selectedIndex="5"/>
-  <SensorsPanel.tabbedPanel type="TabbedPaneState" selectedIndex="0"/>
+  <SensorsPanel.tabbedPanel type="TabbedPaneState" selectedIndex="1"/>
   <SensorPanel.bigBlid type="TextComponentState" text="" caretPosition="0"/>
+  <SensorPanel.filter type="ComboBoxState" selectedIndex="8"/>
+  <SensorPanel.imageType type="ComboBoxState" selectedIndex="0"/>
+  <buyIn type="string"></buyIn>
+  <preflopStrategy type="ComboBoxState" selectedIndex="1"/>
+  <TWebFrame type="WindowState" location="0,40" size="547,735" state="0"/>
+  <table.smallBlid type="TextComponentState" text="50" caretPosition="2"/>
   <smallBlid type="string"></smallBlid>
   <SensorPanel.buyIn type="TextComponentState" text="1" caretPosition="1"/>
-  <SensorPanel.filter type="ComboBoxState" selectedIndex="9"/>
-  <SensorPanel.imageType type="ComboBoxState" selectedIndex="2"/>
+  <table.buyIn type="TextComponentState" text="10000" caretPosition="5"/>
   <bigBlid type="string"></bigBlid>
 </SettingsGroup>

@@ -19,23 +19,23 @@ import core.*;
  */
 public class GameRecorder {
 
-	private Vector<GamePlayer> villans;
+	private Vector<GamePlayer> players;
 
 	public GameRecorder(int vills) {
 		// 0 index is the troper
-		this.villans = new Vector<>(vills);
+		this.players = new Vector<>(vills);
 		for (int i = 0; i <= vills; i++) {
-			villans.add(new GamePlayer(i));
+			players.add(new GamePlayer(i));
 		}
 	}
 
-	public ArrayList<String> getMeans() {
-		ArrayList<String> means = new ArrayList<>(villans.size());
-		villans.forEach(gp -> means.add(gp.toString()));
+	public ArrayList<String> getAssesment() {
+		ArrayList<String> means = new ArrayList<>(players.size());
+		players.forEach(gp -> means.add(gp.toString()));
 		return means;
 	}
 	public String getAssest(int playerId) {
-		return villans.elementAt(playerId).toString();
+		return players.elementAt(playerId).toString();
 	}
 
 	/**
@@ -44,17 +44,21 @@ public class GameRecorder {
 	 * 
 	 */
 	public void updateDB() {
-		villans.forEach(gr -> gr.updateDB());
+		players.forEach(gr -> gr.updateDB());
 	}
 
 	private ArrayList<TEntry<String, Double>> tempList = new ArrayList<>();
+	
+	/**
+	 * Return the Boss. The boss of the villans is the villan with the hihest mean
+	 * 
+	 * @return
+	 */
 	public String getBoss() {
 		tempList.clear();
-		for (int i = 1; i < villans.size(); i++) {
-			GamePlayer gp = villans.elementAt(i);
-			double mean = gp.getMean() * Trooper.getInstance().getSensorsArray().getPokerSimulator().getBuyIn();
-			double var = gp.getVariance();
-			tempList.add(new TEntry<>(gp.toString(), mean + var));
+		for (int i = 1; i < players.size(); i++) {
+			GamePlayer gp = players.elementAt(i);
+			tempList.add(new TEntry<>(gp.toString(), gp.getMean()));
 		}
 		tempList.sort(null);
 		String boss = tempList.size() > 0 ? tempList.get(tempList.size() - 1).getKey() : "No boss detected.";
@@ -65,7 +69,7 @@ public class GameRecorder {
 	 * is called one step before the tropper perform his action.
 	 * 
 	 */
-	public void takeSnapShot(int round) {
-		villans.stream().forEach(v -> v.update(round));
+	public void takeSnapShot() {
+		players.stream().forEach(v -> v.update());
 	}
 }

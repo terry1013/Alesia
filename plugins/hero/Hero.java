@@ -35,16 +35,14 @@ public class Hero extends TPlugin {
 	// protected static Tesseract iTesseract;
 	protected static ActionMap actionMap; 
 	protected static ConsolePanel consolePanel;
-	protected static SensorsPanel sensorsPanel;
+	protected static HeroPanel heroPanel;
 	protected static Logger logger;
 
 	public Hero() {
-
 		// iTesseract.setLanguage("pok");
 		actionMap = Alesia.getInstance().getContext().getActionMap(this);
 		logger = Logger.getLogger("Hero");
 		consolePanel = new ConsolePanel(logger);
-		new Trooper();
 	}
 	
 	public static Tesseract geTesseract() {
@@ -90,7 +88,7 @@ public class Hero extends TPlugin {
 	@Override
 	public ArrayList<javax.swing.Action> getUI(String type) {
 		ArrayList<Action> alist = new ArrayList<>();
-		alist.add(actionMap.get("screenRegions"));
+		alist.add(actionMap.get("heroPanel"));
 		return alist;
 	}
 
@@ -106,19 +104,20 @@ public class Hero extends TPlugin {
 
 	@org.jdesktop.application.Action
 	public Task runTrooper(ActionEvent event) {
-		return start(event);
+		return start(false);
 	}
 
 	@org.jdesktop.application.Action
-	public void screenRegions(ActionEvent event) {
-		sensorsPanel = new SensorsPanel();
-		Alesia.getMainPanel().setContentPanel(sensorsPanel);
+	public void heroPanel(ActionEvent event) {
+		heroPanel = new HeroPanel();
+		Alesia.getMainPanel().setContentPanel(heroPanel);
 
 //		temp: change the main frame using this coordenates: 0,40 547,735
 		Alesia.mainFrame.setBounds(0, 40, 547, 735);
 		
 		// temporal
-		Trooper.getInstance().init(new File("plugins/hero/resources/ps-main table.ppt"));
+		Trooper t = new Trooper();
+		t.init(new File("plugins/hero/resources/ps-main table.ppt"));
 	}
 
 	@org.jdesktop.application.Action
@@ -141,12 +140,13 @@ public class Hero extends TPlugin {
 
 	@org.jdesktop.application.Action
 	public Task testTrooper(ActionEvent event) {
-		return start(event);
+		return start(true);
 	}
 
-	private Task start(ActionEvent event) {
+	private Task start(boolean isTest) {
 		WebLookAndFeel.setForceSingleEventsThread(false);
-		Trooper t = new Trooper(Trooper.getInstance());
+		Trooper t = new Trooper();
+		t.init(new File("plugins/hero/resources/ps-main table.ppt"));
 		PropertyChangeListener tl = new PropertyChangeListener() {
 			public void propertyChange(PropertyChangeEvent evt) {
 				if (Trooper.PROP_DONE.equals(evt.getPropertyName())) {
@@ -154,10 +154,9 @@ public class Hero extends TPlugin {
 				}
 			}
 		};
+		t.getPokerSimulator().setParameter();
 		t.addPropertyChangeListener(tl);
-		ApplicationAction aa = (ApplicationAction) ((AbstractButton) event.getSource()).getAction();
-		t.getPokerSimulator().setTableParms(buyin, sb, bb);
-		t.setTestMode(aa.getName().equals("testTrooper"));
+		t.setTestMode(isTest);
 		actionMap.get("testTrooper").setEnabled(false);
 		actionMap.get("runTrooper").setEnabled(false);
 		actionMap.get("pauseTrooper").setEnabled(true);

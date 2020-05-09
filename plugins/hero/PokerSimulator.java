@@ -117,7 +117,6 @@ public class PokerSimulator {
 		jp.add(actionsBarChart.getChartPanel(), BorderLayout.SOUTH);
 		// reportPanel.setBodyComponent(new JScrollPane(reportJLabel));
 		reportPanel.setBodyComponent(jp);
-		setTableParms(2, 0.01, 0.02);
 
 		// test: uper probabilitiy by street.
 		this.upperProbability = new Hashtable<>();
@@ -179,6 +178,11 @@ public class PokerSimulator {
 		return currentRound;
 	}
 
+	/**
+	 * This methos return the propability of my hand will become a better hand in termns of probabilities.
+	 * 
+	 * @return
+	 */
 	public double getHandPotential() {
 		double hp = 0.0;
 		if (myHandStatsHelper != null) {
@@ -258,7 +262,7 @@ public class PokerSimulator {
 	 * 
 	 * @return information component
 	 */
-	public JComponent getReportPanel() {
+	public TUIPanel getReportPanel() {
 		return reportPanel;
 	}
 	public double getSmallBlind() {
@@ -291,7 +295,7 @@ public class PokerSimulator {
 		callValue = -1;
 		raiseValue = -1;
 		heroChips = -1;
-		// cleanReport();
+		setParameter();;
 	}
 	public String isdraw() {
 		String drw = null;
@@ -405,10 +409,18 @@ public class PokerSimulator {
 	public void setRaiseValue(double raiseValue) {
 		this.raiseValue = raiseValue;
 	}
-	public void setTableParms(double buyin, double sb, double bb) {
-		this.buyIn = buyin;
-		this.smallBlind = sb;
-		this.bigBlind = bb;
+
+	/**
+	 * Read the fields values from {@link TrooperPanel} and colect the necesery values
+	 * 
+	 */
+	public void setParameter() {
+		if (Hero.heroPanel != null) {
+			Hashtable<String, Object> vals = Hero.heroPanel.getTrooperPanel().getValues();
+			this.buyIn = (Double) vals.get("table.buyIn");
+			this.smallBlind = (Double) vals.get("table.smallBlid");
+			this.bigBlind = (Double) vals.get("table.bigBlid");
+		}
 	}
 	public void setTablePosition(int tp) {
 		this.tablePosition = tp;

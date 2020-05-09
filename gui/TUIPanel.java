@@ -84,10 +84,6 @@ public class TUIPanel extends WebPanel {
 		}
 	}
 
-	public TUIPanel(boolean showAI) {
-		this();
-		showAditionalInformation(showAI);
-	}
 	public TUIPanel() {
 		super(new BorderLayout());
 		this.allActions = new Vector<>();
@@ -123,6 +119,9 @@ public class TUIPanel extends WebPanel {
 		north.setLayout(new BorderLayout());
 		north.add(titlePanel, BorderLayout.NORTH);
 		north.add(additionalInfo, BorderLayout.CENTER);
+
+		// by default
+		showAditionalInformation(false);
 
 		add(north, BorderLayout.NORTH);
 	}

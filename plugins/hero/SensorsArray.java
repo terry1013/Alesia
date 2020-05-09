@@ -15,8 +15,6 @@ import org.apache.commons.math3.stat.descriptive.*;
 
 import com.jgoodies.common.base.*;
 
-import core.*;
-
 /**
  * This class control the array of sensor inside of the screen. This class is responsable for reading all the sensor
  * configurated in the {@link DrawingPanel} passsed as argument in the {@link #createSensorsArray(DrawingPanel)} method.
@@ -63,7 +61,7 @@ public class SensorsArray {
 	private ShapeAreas screenAreas;
 	DescriptiveStatistics tesseractTime = new DescriptiveStatistics(10);
 	DescriptiveStatistics imageDiffereceTime = new DescriptiveStatistics(10);
-	private ArrayList<String> villansSensors;
+	private ArrayList<String> statSensors;
 
 	public SensorsArray() {
 		this.pokerSimulator = new PokerSimulator();
@@ -71,7 +69,7 @@ public class SensorsArray {
 		this.readingBorder = new LineBorder(Color.BLUE, 2);
 		this.lookingBorder = new LineBorder(Color.GREEN, 2);
 		this.standByBorder = new LineBorder(new JPanel().getBackground(), 2);
-		this.villansSensors = new ArrayList();
+		this.statSensors = new ArrayList();
 		this.screenSensors = new TreeMap<>();
 	}
 
@@ -126,8 +124,8 @@ public class SensorsArray {
 	 */
 	public boolean isActive(int id) {
 		String prefix = id == 0 ? "hero" : "villan" + id;
-		ScreenSensor vc1 = getSensor(prefix + ".card1");
-		ScreenSensor vc2 = getSensor(prefix + ".card2");
+		ScreenSensor vc1 = getSensor(prefix + ".name");
+		ScreenSensor vc2 = getSensor(prefix + ".chips");
 		return vc1.isEnabled() && vc2.isEnabled();
 	}
 	/**
@@ -173,23 +171,24 @@ public class SensorsArray {
 		return screenAreas;
 	}
 	/**
-	 * retriva an array of sensor.s names acording to the type argument. For example, to retrive all "call" sensors,
-	 * pass to thid method ".call" will return sensor hero.call, villan1.call etc. <code>null</code> argument return all
-	 * configured sensors.
+	 * retriva a list of sensor.s names acording to the <code>subString</code> argument.
+	 * <p>
+	 * For example, to retrive all "call" sensors, pass to this method ".call" will return sensor hero.call,
+	 * villan1.call etc. <code>null</code> argument return all configured sensors.
 	 * 
 	 * <p>
 	 * the list is sorted
 	 * 
-	 * @param type - type of sensor or <code>null</code> for all
+	 * @param subString - sub string to look inside of the sensor name
 	 * 
 	 * @return list of sensors or empty list if no sensor was found
 	 */
-	public List<ScreenSensor> getSensors(String type) {
+	public List<ScreenSensor> getSensors(String subString) {
 		List<ScreenSensor> list;
-		if (type == null)
+		if (subString == null)
 			list = screenSensors.values().stream().collect(Collectors.toList());
 		else
-			list = screenSensors.values().stream().filter(ss -> ss.getName().contains(type))
+			list = screenSensors.values().stream().filter(ss -> ss.getName().contains(subString))
 					.collect(Collectors.toList());
 		return list;
 	}
@@ -209,7 +208,7 @@ public class SensorsArray {
 	/**
 	 * Return the number of villans configurated in this table.
 	 * 
-	 * @see SensorsPanel
+	 * @see HeroPanel
 	 * 
 	 * @return total villans
 	 */
@@ -221,9 +220,7 @@ public class SensorsArray {
 	 * initialize this sensor array. clearing all sensor and all variables
 	 */
 	public void init() {
-		// test: don.t delete the idle time information list
-		screenSensors.values().stream().filter(ss -> !villansSensors.contains(ss.getName())).forEach(ss -> ss.init());
-		// screenSensors.values().forEach((ss) -> ss.init());
+		screenSensors.values().forEach((ss) -> ss.init());
 		pokerSimulator.init();
 	}
 
@@ -291,37 +288,23 @@ public class SensorsArray {
 	 * @param restar - <code>true</code> indicate the internal list must be reordener to the initial status.
 	 *        <code>false</code> indicate normal rotation reading
 	 */
-	public void readVillans() {
-		// public void readVillans(boolean restar) {
-		// test: read all villans information whiout restart for statistical purporse.
-		// if (restar)
-		// villansSensors.sort(null);
-		// gameRecorder.takeSnapShot();
-
-		// ArrayList<ScreenSensor> tmp = new ArrayList<>(1);
-		// tmp.add(getSensor(villansSensors.get(0)));
-		// Collections.rotate(villansSensors, 1);
-		// readSensors(true, tmp);
-		//// setVariableAndLog("trooper.Assesment ", gameRecorder.getAssest(0));
-		// villansBeacon++;
-
-		ArrayList<ScreenSensor> tmp = new ArrayList<>(1);
-		tmp.add(getSensor(villansSensors.get(villansBeacon++)));
-		readSensors(true, tmp);
-		if (villansBeacon == villansSensors.size()) {
-			villansBeacon = 0;
-			// look the comuniti cards and detect the currend round
-//			List list = screenSensors.values().stream().filter(ss -> ss.isComunityCard()).collect(Collectors.toList());
-//			readSensors(false, list);
-//			int round = PokerSimulator.NO_CARDS_DEALT;
-//			round = getSensor("flop1").isEnabled() ? PokerSimulator.FLOP_CARDS_DEALT : round;
-//			round = getSensor("turn").isEnabled() ? PokerSimulator.TURN_CARD_DEALT : round;
-//			round = getSensor("river").isEnabled() ? PokerSimulator.RIVER_CARD_DEALT : round;
-			gameRecorder.takeSnapShot(0);
+	public void readPlayerStat() {
+		List<ScreenSensor> list;
+		if (villansBeacon == -1) {
+			list = new ArrayList<>();
+			list.add(getSensor("hero.name"));
+			list.add(getSensor("hero.chips"));
+		} else
+			list = getSensors("villan" + villansBeacon);
+		villansBeacon++;
+		readSensors(true, list);
+		if (villansBeacon > getVillans()) {
+			villansBeacon = -1;
+			gameRecorder.takeSnapShot();
 			gameRecorder.updateDB();
-			ArrayList<String> means = gameRecorder.getMeans();
+			ArrayList<String> means = gameRecorder.getAssesment();
 			StringBuffer sb = new StringBuffer();
-			means.forEach(st -> sb.append(st + ", "));
+			means.forEach(st -> sb.append(st + " "));
 			pokerSimulator.setVariable("trooper.Assesment", sb.substring(0, sb.length() - 2));
 		}
 	}
@@ -348,7 +331,7 @@ public class SensorsArray {
 		return wv;
 	}
 
-	private int villansBeacon = 0;
+	private int villansBeacon = -1;
 	/**
 	 * Perform read operation on the {@link ScreenSensor} acoording to the type of the sensor. The type can be any of
 	 * TYPE_ global constatn passed as argument. This method perform the OCR operation on the selected areas and update
@@ -401,6 +384,13 @@ public class SensorsArray {
 						pokerSimulator.getCardsBuffer().put(ss.getName(), ocr);
 				}
 			}
+
+			// temp? look the villans infor to detect active and inactive ones
+			slist = allSensors.stream()
+					.filter(sn -> sn.getName().startsWith("villan")
+							&& (sn.getName().contains("name") || sn.getName().contains("chips")))
+					.collect(Collectors.toList());
+			readSensors(false, slist);
 
 			pokerSimulator.setNunOfPlayers(getActiveVillans() + 1);
 			pokerSimulator.runSimulation();
@@ -520,13 +510,11 @@ public class SensorsArray {
 		setStandByBorder();
 
 		// information that must be readed in idle time. this info never must be cleared
-		Collection<ScreenSensor> allSensors = screenSensors.values();
-		villansSensors = new ArrayList<>();
-		List<String> slist = allSensors.stream()
-				// .filter(ss -> ss.getName().contains(".chips") || ss.getName().contains(".name"))
-				.filter(ss -> ss.getName().startsWith("villan")).map(ScreenSensor::getName)
-				.collect(Collectors.toList());
-		villansSensors.addAll(slist);
+		// Collection<ScreenSensor> allSensors = screenSensors.values();
+		// List<String> slist = allSensors.stream()
+		// // .filter(ss -> ss.getName().contains(".chips") || ss.getName().contains(".name"))
+		// .filter(ss -> ss.getName().startsWith("villan")).map(ScreenSensor::getName)
+		// .collect(Collectors.toList());
 		pokerSimulator.init();
 		gameRecorder = new GameRecorder(getVillans());
 	}

@@ -61,25 +61,20 @@ public class Trooper extends Task {
 	private long time1;
 	private DescriptiveStatistics outGameStats;
 	private boolean paused = false;
+	private Hashtable<String, Object> parameters;
+	private Hashtable<String, String> preflopHands;
 
-	private Properties preflopHands;
 	long stepMillis;
 
-	public PokerSimulator getPokerSimulator() {
-		return pokerSimulator;
-	}
-	
 	// This variable is ONLY used and cleaned by ensuregametable method
 	private String lastHoleCards = "";
 
 	private double rekonAmunition;
+
 	private double maxRekonAmmo;
 	boolean oportinity = false;
 
 	public Trooper() {
-		this(null);
-	}
-	public Trooper(Trooper clone) {
 		super(Alesia.getInstance());
 		this.robotActuator = new RobotActuator();
 		availableActions = new Vector<>();
@@ -87,17 +82,8 @@ public class Trooper extends Task {
 		this.sensorsArray = new SensorsArray();
 		this.pokerSimulator = sensorsArray.getPokerSimulator();
 		instance = this;
-		this.preflopHands = new Properties();
-		try {
-			preflopHands.load(new FileInputStream("preflop.properties"));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		if (clone != null && clone.file != null) {
-			init(clone.file);
-		}
+		this.preflopHands = TStringUtils.getStrings("preflop.card");
 	}
-
 	public static Trooper getInstance() {
 		return instance;
 	}
@@ -105,6 +91,10 @@ public class Trooper extends Task {
 	public void cancelTrooper(boolean interrupt) {
 		setVariableAndLog(STATUS, "Trooper Canceled.");
 		super.cancel(interrupt);
+	}
+
+	public PokerSimulator getPokerSimulator() {
+		return pokerSimulator;
 	}
 
 	public SensorsArray getSensorsArray() {
@@ -121,7 +111,7 @@ public class Trooper extends Task {
 		this.availableActions.clear();
 		sensorsArray.createSensorsArray(sDisp);
 		robotActuator.setEnviorement(sDisp);
-		Hero.sensorsPanel.setArray(sensorsArray);
+		Hero.heroPanel.setArray(sensorsArray);
 	}
 	public boolean isPaused() {
 		return paused;
@@ -138,6 +128,10 @@ public class Trooper extends Task {
 		this.isTestMode = isTestMode;
 	}
 
+	/**
+	 * clear the enviorement for a new round.
+	 * 
+	 */
 	private void clearEnviorement() {
 		sensorsArray.init();
 		rekonAmunition = 0;
@@ -148,6 +142,8 @@ public class Trooper extends Task {
 		long tt = time1 == 0 ? 10000 : System.currentTimeMillis() - time1;
 		outGameStats.addValue(tt);
 		time1 = System.currentTimeMillis();
+		// read troper variables again
+		this.parameters = Hero.heroPanel.getTrooperPanel().getValues();
 		Hero.logger.fine("Game play time average=" + TStringUtils.formatSpeed((long) outGameStats.getMean()));
 	}
 	/**
@@ -185,20 +181,13 @@ public class Trooper extends Task {
 		// PREFLOP
 		// if normal pot odd action has no action todo, check the preflopcards.
 		if (pokerSimulator.getCurrentRound() == PokerSimulator.HOLE_CARDS_DEALT) {
-			// setPrefloopActions();
-			setRekonMode("Preflop");
+			setPrefloopActions();
 		}
 
 		// FLOP AND FUTHER
 		if (pokerSimulator.getCurrentRound() > PokerSimulator.HOLE_CARDS_DEALT) {
 			double number = getAmmunitions();
 			setOddActions(ODDS_MREV, "from ammunition value", number);
-
-			// if there is no action but is a posible draw and the troper has saved amunitions
-			String drw = pokerSimulator.isdraw();
-			if (availableActions.size() == 0 && (rekonAmunition < maxRekonAmmo && drw != null)) {
-				// setRekonMode(drw);
-			}
 		}
 
 		// if the list of available actions are empty, i habe no option but fold/check
@@ -280,44 +269,61 @@ public class Trooper extends Task {
 		pokerSimulator.setActionsData(selact, availableActions);
 		return selact;
 	}
+
 	/**
-	 * return <code>true</code> if the hero cards are inside of the predefinde hand distributions for pre-flop. This
-	 * implementation only contain a roky based card selection. this selecction is only here because has a "common
-	 * sense" card distribution for preflop decision.
+	 * Check acordig to the <code>preflopStrategy</code> parameter, if this hand is a good preflop hand. if this metod
+	 * return <code>null</code>, it is because this hand is not a good preflopa hand
 	 * 
 	 * TODO: Check Loky from UoA. there is a table with a complete hand distribution for preflop
 	 * 
+	 * return a String text for explanation. <code>null</code> for not good preflop hand
 	 */
 	private String isGoodPreflopHand() {
 		String txt = null;
+		String strategy = (String) parameters.get("preflopStrategy");
+
+		// play all cards
+		if (strategy.equals("ALL")) {
+			txt = "strategy = ALL";
+			return txt;
+		}
+
 		HoleCards hc = pokerSimulator.getMyHoleCards();
-		String s = hc.isSuited() ? "s" : "";
-		String c1 = hc.getFirstCard().toString().substring(0, 1) + hc.getSecondCard().toString().substring(0, 1);
-		String c2 = hc.getSecondCard().toString().substring(0, 1) + hc.getFirstCard().toString().substring(0, 1);
-		boolean inList = preflopHands.containsValue(c1 + s) || preflopHands.containsValue(c2 + s);
-		if (inList) {
-			txt = "In positive EV list";
+
+		// play only preflop list
+		if (strategy.equals("PRELIST")) {
+			String s = hc.isSuited() ? "s" : "";
+			String c1 = hc.getFirstCard().toString().substring(0, 1) + hc.getSecondCard().toString().substring(0, 1);
+			String c2 = hc.getSecondCard().toString().substring(0, 1) + hc.getFirstCard().toString().substring(0, 1);
+			boolean inList = preflopHands.containsValue(c1 + s) || preflopHands.containsValue(c2 + s);
+			txt = inList ? "Preflop hand it is in positive EV list" : null;
+			return txt;
 		}
-		// pocket pair
-		if (pokerSimulator.getMyHandHelper().isPocketPair()) {
-			txt = "A pocket pair";
+
+		// naive prflop selection
+		if (strategy.equals("NAIVE")) {
+			// pocket pair
+			if (pokerSimulator.getMyHandHelper().isPocketPair()) {
+				txt = "A pocket pair";
+			}
+
+			// suited
+			if (pokerSimulator.getMyHoleCards().isSuited())
+				txt = "preflop hand is suited";
+
+			// connected: cernters cards separated only by 1 or 2 cards provides de best probabilities (>6%)
+			double sp = pokerSimulator.getMyHandStatsHelper().getStraightProb();
+			if (sp >= 0.060)
+				txt = "Posible straight";
+
+			// J or higher
+			Card[] heroc = pokerSimulator.getMyHoleCards().getCards();
+			if (heroc[0].getRank() > Card.TEN && heroc[1].getRank() > Card.TEN)
+				txt = "J or higher";
+
+			return txt;
 		}
-
-		// suited
-		// if (pokerSimulator.getMyHoleCards().isSuited())
-		// txt = "preflop hand is suited";
-
-		// connected: cernters cards separated only by 1 or 2 cards provides de best probabilities (>6%)
-		double sp = pokerSimulator.getMyHandStatsHelper().getStraightProb();
-		if (sp >= 0.060)
-			txt = "Posible straight";
-
-		// J or higher
-		// Card[] heroc = pokerSimulator.getMyHoleCards().getCards();
-		// if (heroc[0].getRank() > Card.TEN&& heroc[1].getRank() > Card.TEN)
-		// txt = "J or higher";
-
-		return txt;
+		return null;
 	}
 
 	private boolean isMyTurnToPlay() {
@@ -506,7 +512,6 @@ public class Trooper extends Task {
 		// try during x seg. Some round on PS long like foreeeeveeerr
 		long tottime = 300 * 1000;
 		long t1 = System.currentTimeMillis();
-		boolean restarChips = true;
 		while (System.currentTimeMillis() - t1 < tottime) {
 			// pause ?
 			if (paused) {
@@ -516,9 +521,7 @@ public class Trooper extends Task {
 			// canceled ?
 			if (isCancelled())
 				return false;
-			// TODO: removed temporaly to test performance
-			// sensorsArray.readVillans();
-			restarChips = false;
+			sensorsArray.readPlayerStat();
 
 			sensorsArray.read(SensorsArray.TYPE_ACTIONS);
 

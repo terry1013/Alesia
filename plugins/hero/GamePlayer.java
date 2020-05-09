@@ -35,7 +35,7 @@ public class GamePlayer {
 		this.array = Trooper.getInstance().getSensorsArray();
 		initStatistics();
 	}
-	
+
 	public int getId() {
 		return playerId;
 	}
@@ -53,12 +53,11 @@ public class GamePlayer {
 	 * When this method detect a know villan, it will try to retrive pass information about him form the data base.
 	 * propabilistic information about this villan could be retribed afeter that
 	 */
-	public void update(int round) {
+	public void update() {
 
 		// record only if the player is active
 		if (!array.isActive(playerId))
 			return;
-
 		// amunitions
 		double chips = 0.0;
 		if (playerId == 0) {
@@ -99,10 +98,11 @@ public class GamePlayer {
 		}
 
 		// store the curren street. starting hans can be calculated just retrivin the values > 0;
-//		startingHands.addValue(array.getPokerSimulator().getCurrentRound());
-		startingHands.addValue(round);
-		// negative for betting, positive for winnigs 0 for checks (or split pot)
-		bettingPattern.addValue(chips - prevValue);
+		// startingHands.addValue(array.getPokerSimulator().getCurrentRound());
+		// startingHands.addValue(round);
+		// negative for betting, positive for winnigs (don.t record 0 value because affect statistical values)
+		if (chips - prevValue != 0)
+			bettingPattern.addValue(chips - prevValue);
 		prevValue = chips;
 	}
 
@@ -111,27 +111,30 @@ public class GamePlayer {
 		mean = ((int) (mean * 100)) / 100.0;
 		return mean;
 	}
-	
+	public long getN() {
+		return bettingPattern.getN();
+	}
+
 	public double getVariance() {
 		double var = bettingPattern.getStandardDeviation();
 		var = ((int) (var * 100)) / 100.0;
 		return var;
 	}
 
-	public int getHands() {
-		int hands = 0;
-		for (int i = 1; i < startingHands.getN(); i++) {
-			if (startingHands.getElement(i) == PokerSimulator.FLOP_CARDS_DEALT
-					&& startingHands.getElement(i - 1) == PokerSimulator.HOLE_CARDS_DEALT) {
-				hands++;
-			}
-		}
-		return hands;
-	}
+	// public int getHands() {
+	// int hands = 0;
+	// for (int i = 1; i < startingHands.getN(); i++) {
+	// if (startingHands.getElement(i) == PokerSimulator.FLOP_CARDS_DEALT
+	// && startingHands.getElement(i - 1) == PokerSimulator.HOLE_CARDS_DEALT) {
+	// hands++;
+	// }
+	// }
+	// return hands;
+	// }
 
 	@Override
 	public String toString() {
-		return getMean() + "/"+ bettingPattern.getN();
+		return getMean() + "/" + getN();
 	}
 
 	public void updateDB() {

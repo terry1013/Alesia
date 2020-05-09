@@ -51,10 +51,10 @@ public class RaceRecord extends TUIFormPanel {
 			addInputComponent(TUIUtils.getWebFormattedTextField(model, listPanel.getColumnMetadata().get("reend_pos")),
 					true, true);
 			TEntry[] ele = Flicka.getElemets("rehorse", "tentry.none");
-			TJComboBox jcb = TUIUtils.getJComboBox("ttrehorse", ele, model.getString("rehorse"));
+			TWebComboBox jcb = TUIUtils.getTWebComboBox("ttrehorse", ele, model.getString("rehorse"));
 			addInputComponent("rehorse", jcb, true, true);
 			ele = Flicka.getElemets("rejockey", "tentry.none");
-			jcb = TUIUtils.getJComboBox("ttrejockey", ele, model.get("rejockey"));
+			jcb = TUIUtils.getTWebComboBox("ttrejockey", ele, model.get("rejockey"));
 			addInputComponent("rejockey", jcb, true, true);
 			addInputComponent(
 					TUIUtils.getWebFormattedTextField(model, listPanel.getColumnMetadata().get("rejockey_weight")), false,
