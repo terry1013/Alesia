@@ -3,5 +3,5 @@ INFO: checkpointClose synched
 INFO: checkpointClose script done
 INFO: checkpointClose end
 INFO: Loading plugins ...
-WARNING: Loggin level set to WARNING
+INFO: Loggin level set to INFO
 INFO: Starting task manager ...

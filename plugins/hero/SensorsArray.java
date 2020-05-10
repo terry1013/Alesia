@@ -294,13 +294,16 @@ public class SensorsArray {
 			list = new ArrayList<>();
 			list.add(getSensor("hero.name"));
 			list.add(getSensor("hero.chips"));
-		} else
+			readSensors(true, list);
+			gameRecorder.getGamePlayer(0).update();
+		} else {
 			list = getSensors("villan" + villansBeacon);
+			readSensors(true, list);
+			gameRecorder.getGamePlayer(villansBeacon).update();
+		}
 		villansBeacon++;
-		readSensors(true, list);
 		if (villansBeacon > getVillans()) {
 			villansBeacon = -1;
-			gameRecorder.takeSnapShot();
 			gameRecorder.updateDB();
 			ArrayList<String> means = gameRecorder.getAssesment();
 			StringBuffer sb = new StringBuffer();
@@ -356,7 +359,7 @@ public class SensorsArray {
 		// numeric types retrive all numers and update poker simulator
 		if (TYPE_NUMBERS.equals(type)) {
 			slist = allSensors.stream().filter(ss -> ss.isNumericArea()).collect(Collectors.toList());
-			// remove villas sensor. villans sensor are update calling readVillan method
+			// remove villas sensor. villans sensor are update calling readPlayerStat() method
 			slist.removeIf(ss -> ss.getName().startsWith("villan"));
 			readSensors(true, slist);
 
@@ -510,6 +513,7 @@ public class SensorsArray {
 		setStandByBorder();
 
 		// information that must be readed in idle time. this info never must be cleared
+
 		// Collection<ScreenSensor> allSensors = screenSensors.values();
 		// List<String> slist = allSensors.stream()
 		// // .filter(ss -> ss.getName().contains(".chips") || ss.getName().contains(".name"))
@@ -518,5 +522,4 @@ public class SensorsArray {
 		pokerSimulator.init();
 		gameRecorder = new GameRecorder(getVillans());
 	}
-
 }

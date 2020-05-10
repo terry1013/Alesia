@@ -81,6 +81,7 @@ public class PokerSimulator {
 	private double buyIn;
 	private double smallBlind;
 	private double bigBlind;
+	private int minRankForOportunity;
 	private ActionsBarChart actionsBarChart;
 	private long lastStepMillis;
 	private double bestProbability;
@@ -186,9 +187,10 @@ public class PokerSimulator {
 	public double getHandPotential() {
 		double hp = 0.0;
 		if (myHandStatsHelper != null) {
-			// int toh = Hand.STRAIGHT_FLUSH - (myHandHelper.getHandRank() + 1);
-			int toh = Hand.STRAIGHT_FLUSH - myHandHelper.getHandRank();
-			System.out.println("current rank: " + myHandHelper.getHandRank() + "toh = " + toh);
+			// TODO: test: use the minRankForOportunity parameter to compute the hand potential. this allowme to invest
+			// ammunitions en really oportunities
+			// int toh = Hand.STRAIGHT_FLUSH - myHandHelper.getHandRank();
+			int toh = Hand.STRAIGHT_FLUSH - minRankForOportunity;
 			float[] list = myHandStatsHelper.getAllProbs();
 			for (int i = 0; i < toh; i++) {
 				hp += list[i];
@@ -290,8 +292,6 @@ public class PokerSimulator {
 		cardsBuffer.clear();
 		potValue = -1;
 		tablePosition = -1;
-		// smallBlind = -1;
-		// bigBlind = -1;
 		callValue = -1;
 		raiseValue = -1;
 		heroChips = -1;
@@ -304,16 +304,27 @@ public class PokerSimulator {
 		drw = myHandHelper.isStraightFlushDraw() ? "Straight Flush draw" : drw;
 		return drw;
 	}
+
+	/**
+	 * check whether is an oportunity. An oportunity is present when all the following contitions are set
+	 * <li>The current game street is {@link #FLOP_CARDS_DEALT} or {@link #TURN_CARD_DEALT}
+	 * <li>The current hand rank is equal o greater to the value selected in the table parameters
+	 * <li>The hand is a set. <br>
+	 * Or
+	 * <li>the hand is the nut
+	 * 
+	 * @return a text explain what oportunity is detected or <code>null</code> if no oportunity are present
+	 */
 	public String isOportunity() {
 		String txt = null;
-		// if (currentRound > FLOP_CARDS_DEALT) {
-		// txt = currentRound > HOLE_CARDS_DEALT && myHandHelper.isTopPair() && myHandHelper.isTopKickerHoleCard()
-		// ? "top pair with top kicker"
-		// : txt;
-		// txt = currentRound > HOLE_CARDS_DEALT && myHandHelper.isOverPair() ? "Pocket pair is over pair" : txt;
-		// }
-		// more than a pair on flop or turn
-		if (myHandHelper.getHandRank() > Hand.PAIR
+		// fail safe. an oportunity must be more than a pair
+		if (minRankForOportunity < Hand.TWO_PAIRS) {
+			Hero.logger.warning("minimun hand rank for an oportunity must be > Hand.PAIR. Method ignored.");
+			return null;
+		}
+		// table parameters contitions
+		// test: parameter value + 1
+		if (myHandHelper.getHandRank() >= (minRankForOportunity + 1)
 				&& (currentRound == FLOP_CARDS_DEALT || currentRound == TURN_CARD_DEALT)) {
 			String sts = getSignificantCards();
 			String nh = UoAHandEvaluator.nameHand(uoAHand);
@@ -321,9 +332,6 @@ public class PokerSimulator {
 		}
 		// is the nut
 		txt = currentRound > HOLE_CARDS_DEALT && getMyHandHelper().isTheNuts() ? "is the nuts" : txt;
-		// txt = myHandHelper.getHandRank() == Hand.THREE_OF_A_KIND && myHandHelper.isSet()
-		// ? "three of a kind (set)"
-		// : txt;
 		return txt;
 	}
 
@@ -420,6 +428,7 @@ public class PokerSimulator {
 			this.buyIn = (Double) vals.get("table.buyIn");
 			this.smallBlind = (Double) vals.get("table.smallBlid");
 			this.bigBlind = (Double) vals.get("table.bigBlid");
+			this.minRankForOportunity = Integer.parseInt(vals.get("minForOportunity").toString());
 		}
 	}
 	public void setTablePosition(int tp) {

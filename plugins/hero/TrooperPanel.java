@@ -21,6 +21,7 @@ public class TrooperPanel extends TUIFormPanel {
 		addInputComponent(TUIUtils.getWebFormattedTextField("table.bigBlid", 100.0, 5));
 		addInputComponent(TUIUtils.getWebFormattedTextField("table.smallBlid", 50.0, 5));
 		addInputComponent(TUIUtils.getTWebComboBox("preflopStrategy", "table.strategy"));
+		addInputComponent(TUIUtils.getTWebComboBox("minForOportunity", "handRanks"));
 
 		FormLayout layout = new FormLayout("right:pref, 3dlu, left:pref, 3dlu, left:pref, 3dlu, left:pref", // 1st major colum
 				""); // add rows dynamically
@@ -33,6 +34,8 @@ public class TrooperPanel extends TUIFormPanel {
 		builder.nextLine();
 		builder.append(TStringUtils.getString("preflopStrategy"));
 		builder.append(getInputComponent("preflopStrategy"), 5);
+		builder.nextLine();
+		builder.append(TStringUtils.getString("minForOportunity"), getInputComponent("minForOportunity"), 5);
 
 		 JPanel jp = new JPanel(new BorderLayout());
 		 jp.add(builder.getPanel(), BorderLayout.NORTH);

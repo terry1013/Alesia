@@ -220,27 +220,30 @@ public class Trooper extends Task {
 	 * @return amunitions
 	 */
 	private double getAmmunitions() {
-		double hand = pokerSimulator.getCurrentHandStreng();
+		double handStreng = pokerSimulator.getCurrentHandStreng();
 		double potential = pokerSimulator.getHandPotential();
-		String txt1 = "Hand " + twoDigitFormat.format(hand) + " Potential " + twoDigitFormat.format(potential);
-		double chips = pokerSimulator.getHeroChips() * (hand + potential);
-		double buyIn = pokerSimulator.getBuyIn() * (hand + potential);
-		// double pot = pokerSimulator.getPotValue() * potential;
-		// minimun upper bound: chip or buy (when hero is poor)
-		double number = 0.0;
-		String ammoSrc = "";
-		// when hero is poor, this allow him to get out from poverty (or die tryin)
-		if (chips < buyIn) {
-			number = buyIn;
-			ammoSrc = "Buy in";
-		} else {
-			number = chips;
-			ammoSrc = "Chips";
-		}
-		// to the hand potential add the efective amount that is already mine
-		// number += pot;
+		double chips = pokerSimulator.getHeroChips();
+		double buyIn = pokerSimulator.getBuyIn();
+		double pot_only = pokerSimulator.getPotValue();
 
-		setVariableAndLog(EXPLANATION, ammoSrc + " " + txt1 + " Value " + twoDigitFormat.format(number));
+		// upper bound:
+		// when the pot is extremly hight, hero tend to fall in boby trap go to ruin. to avoid this, when the pot_only
+		// surpase the empirical constant (buyIn*factor), i take pot_streng. this value ....
+		double pot_streng = pot_only * handStreng;
+		double pot = pot_only > (buyIn * 0.3) ? pot_streng : pot_only;
+		String potSrc = pot_only == pot ? "Pot" : "HandStreng";
+
+		// the sorurce of invest can arrive from 2 sources: hero.s chips or buy in. This allog Hero to continue playin
+		// smootly when he is in bad shape. (bbe rich or die try)
+		double invest = Math.min(chips, buyIn);
+		String isrc = chips == buyIn ? "buyIn" : "Chips";
+
+		double number = base + pot + (invest * potential);
+
+		String txt1 = potSrc + " " + twoDigitFormat.format(pot) + " + " + isrc + " " + twoDigitFormat.format(invest)
+				+ " * " + twoDigitFormat.format(potential) + " = " + twoDigitFormat.format(number);
+
+		setVariableAndLog(EXPLANATION, txt1);
 		return number;
 	}
 

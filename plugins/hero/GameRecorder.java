@@ -64,6 +64,10 @@ public class GameRecorder {
 		String boss = tempList.size() > 0 ? tempList.get(tempList.size() - 1).getKey() : "No boss detected.";
 		return boss;
 	}
+	
+	public GamePlayer getGamePlayer(int index) {
+		return players.elementAt(index);
+	}
 	/**
 	 * Take a snapshot of the game status. At this point all elements are available for be processed because this method
 	 * is called one step before the tropper perform his action.
