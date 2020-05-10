@@ -187,7 +187,7 @@ public class Trooper extends Task {
 		// FLOP AND FUTHER
 		if (pokerSimulator.getCurrentRound() > PokerSimulator.HOLE_CARDS_DEALT) {
 			double number = getAmmunitions();
-			setOddActions(ODDS_MREV, "from ammunition value", number);
+			setOddActions(ODDS_EV, "from ammunition value", number);
 		}
 
 		// if the list of available actions are empty, i habe no option but fold/check
@@ -224,24 +224,27 @@ public class Trooper extends Task {
 		double potential = pokerSimulator.getHandPotential();
 		double chips = pokerSimulator.getHeroChips();
 		double buyIn = pokerSimulator.getBuyIn();
-		double pot_only = pokerSimulator.getPotValue();
+		double pot = pokerSimulator.getPotValue();
 
 		// upper bound:
 		// when the pot is extremly hight, hero tend to fall in boby trap go to ruin. to avoid this, when the pot_only
 		// surpase the empirical constant (buyIn*factor), i take pot_streng. this value ....
-		double pot_streng = pot_only * handStreng;
-		double pot = pot_only > (buyIn * 0.3) ? pot_streng : pot_only;
-		String potSrc = pot_only == pot ? "Pot" : "HandStreng";
+		// double pot_streng = pot_only * handStreng;
+		double base = pokerSimulator.getBigBlind() * 6;
+		// double pot = pot_only > base ? pot_streng : pot_only;
+		// String potSrc = pot_only == pot ? "Pot" : "HandStreng";
 
 		// the sorurce of invest can arrive from 2 sources: hero.s chips or buy in. This allog Hero to continue playin
 		// smootly when he is in bad shape. (bbe rich or die try)
 		double invest = Math.min(chips, buyIn);
 		String isrc = chips == buyIn ? "buyIn" : "Chips";
 
-		double number = base + pot + (invest * potential);
+		double number = base + (pot * handStreng) + (invest * potential);
 
-		String txt1 = potSrc + " " + twoDigitFormat.format(pot) + " + " + isrc + " " + twoDigitFormat.format(invest)
-				+ " * " + twoDigitFormat.format(potential) + " = " + twoDigitFormat.format(number);
+		// String txt1 = potSrc + " " + twoDigitFormat.format(pot) + " + " + isrc + " " + twoDigitFormat.format(invest)
+		String txt1 = twoDigitFormat.format(base) + " + (" + twoDigitFormat.format(pot) + " * "
+				+ twoDigitFormat.format(handStreng) + ") + (" + twoDigitFormat.format(invest) + " * "
+				+ twoDigitFormat.format(potential) + ") = " + twoDigitFormat.format(number);
 
 		setVariableAndLog(EXPLANATION, txt1);
 		return number;
@@ -426,6 +429,22 @@ public class Trooper extends Task {
 		} else {
 			calculateRegretMinOdds(sourceValue, availableActions);
 		}
+		// test: based on the current handStreng value, allow more o les options. this avoid the troper a wide range of
+		// actions to select when the current hand streng is to low. When the pot is too hihg
+		// int min = 2;
+		// if (availableActions.size() > min) {
+		// double handStreng = pokerSimulator.getCurrentHandStreng();
+		// Double d = new Double((availableActions.size() - min) * handStreng);
+		// int valid = min + d.intValue();
+		// Vector<TEntry<String, Double>> tmp = new Vector<>();
+		// tmp.addAll(availableActions);
+		// availableActions.clear();
+		// for (int i = 0; i < valid; i++)
+		// availableActions.add(tmp.elementAt(i));
+		// Hero.logger.info("Current hand streng " + fourDigitFormat.format(handStreng) + " Total actions removed: "
+		// + (tmp.size() - availableActions.size()));
+		// }
+
 		// 191228: Hero win his first game against TH app !!!!!!!!!!!!!!!! :D
 		String val = availableActions.stream().map(te -> te.getKey() + "=" + fourDigitFormat.format(te.getValue()))
 				.collect(Collectors.joining(", "));

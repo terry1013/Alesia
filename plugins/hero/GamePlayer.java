@@ -138,15 +138,15 @@ public class GamePlayer {
 	}
 
 	public void updateDB() {
-		if (!name.equals(prefix)) {
-			GamesHistory gh = GamesHistory.findOrCreateIt("NAME", name);
-			gh.set("BUY_IN", array.getPokerSimulator().getBuyIn());
-			gh.set("SMALL_BLID", array.getPokerSimulator().getSmallBlind());
-			gh.set("BIG_BLID", array.getPokerSimulator().getBigBlind());
-			gh.set("ASSESMENT", toString());
-			gh.set("BEATTIN_PATTERN", TPreferences.getByteArrayFromObject(bettingPattern));
-			gh.set("STARTING_HANDS", TPreferences.getByteArrayFromObject(startingHands));
-			gh.save();
-		}
+//		if (!name.equals(prefix)) {
+//			GamesHistory gh = GamesHistory.findOrCreateIt("NAME", name);
+//			gh.set("BUY_IN", array.getPokerSimulator().getBuyIn());
+//			gh.set("SMALL_BLID", array.getPokerSimulator().getSmallBlind());
+//			gh.set("BIG_BLID", array.getPokerSimulator().getBigBlind());
+//			gh.set("ASSESMENT", toString());
+//			gh.set("BEATTIN_PATTERN", TPreferences.getByteArrayFromObject(bettingPattern));
+//			gh.set("STARTING_HANDS", TPreferences.getByteArrayFromObject(startingHands));
+//			gh.save();
+//		}
 	}
 }

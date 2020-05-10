@@ -180,9 +180,13 @@ public class PokerSimulator {
 	}
 
 	/**
-	 * This methos return the propability of my hand will become a better hand in termns of probabilities.
+	 * This methos return the propability of my hand will become a better hand in termns of probabilities. The parameter
+	 * {@link #minRankForOportunity} control the minimun rank to take into acount.
+	 * <p>
+	 * e.g: if {@link #minRankForOportunity} = <code>STRAIGHT</code> this method will retorun the potential of the
+	 * current hand of become better than <code>STRAIGHT</code>
 	 * 
-	 * @return
+	 * @return the probabilities of become a better hand
 	 */
 	public double getHandPotential() {
 		double hp = 0.0;
@@ -200,25 +204,16 @@ public class PokerSimulator {
 	}
 
 	/**
-	 * Return the current "hand factor". The factor is the fraction of the hand rank starting from a pair of 22 one of
-	 * wich must be in the trooper hands. If this minimun requeriment is not fulfilled, this method return 0
+	 * return the current hand streng. this fraction is close to 0 when the
+	 * troper has nothing (like 23) and increase to 1 for royal flush. 
 	 * 
-	 * @return the hero hand rank where value close to 0.1 is a pair of 2 and 1.0 is a royal flush
+	 * @return the hero hand rank.
 	 */
 	public double getCurrentHandStreng() {
 		double rank = UoAHandEvaluator.rankHand(uoAHand);
-		// both hero hands must participate in the hand. if not, the hand is treated as a single pair
-		// TODO: this apply also for straing or flush ????????????????????
-		// if (myHandHelper.getHandRank() > Hand.PAIR) {
-		// String stimate = getSignificantCards();
-		// if (stimate.length() == 2) {
-		// UoAHand sh = new UoAHand(stimate + " " + stimate);
-		// rank = UoAHandEvaluator.rankHand(sh);
-		// }
-		// }
 		// lest than minimun, or none of hole card participate in the hand
-		if (rank < minHandRank || !myHandHelper.isHoleCardHand())
-			return 0.0;
+//		if (rank < minHandRank || !myHandHelper.isHoleCardHand())
+//			return 0.0;
 		return rank / topHandRank;
 	}
 
