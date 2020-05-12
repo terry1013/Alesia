@@ -15,6 +15,9 @@ import org.apache.commons.math3.stat.descriptive.*;
 
 import com.jgoodies.common.base.*;
 
+import core.datasource.model.*;
+import plugins.flicka.*;
+
 /**
  * This class control the array of sensor inside of the screen. This class is responsable for reading all the sensor
  * configurated in the {@link DrawingPanel} passsed as argument in the {@link #createSensorsArray(DrawingPanel)} method.
@@ -61,17 +64,8 @@ public class SensorsArray {
 	private ShapeAreas screenAreas;
 	DescriptiveStatistics tesseractTime = new DescriptiveStatistics(10);
 	DescriptiveStatistics imageDiffereceTime = new DescriptiveStatistics(10);
-	private ArrayList<String> statSensors;
-
-	public SensorsArray() {
-		this.pokerSimulator = new PokerSimulator();
-		this.robot = Hero.getNewRobot();
-		this.readingBorder = new LineBorder(Color.BLUE, 2);
-		this.lookingBorder = new LineBorder(Color.GREEN, 2);
-		this.standByBorder = new LineBorder(new JPanel().getBackground(), 2);
-		this.statSensors = new ArrayList();
-		this.screenSensors = new TreeMap<>();
-	}
+private ArrayList<DescriptiveStatistics> statistics;
+	private GameRecorder gameRecorder;
 
 	/**
 	 * Return a list of all actions areas
@@ -81,6 +75,25 @@ public class SensorsArray {
 	 *         for (ScreenSensor sensor : screenSensors.values()) { if (sensor.isActionArea()) { vec.add(sensor); } }
 	 *         return vec; }
 	 */
+
+	private int villansBeacon = 0;
+
+	public SensorsArray() {
+		this.pokerSimulator = new PokerSimulator();
+		this.robot = Hero.getNewRobot();
+		this.readingBorder = new LineBorder(Color.BLUE, 2);
+		this.lookingBorder = new LineBorder(Color.GREEN, 2);
+		this.standByBorder = new LineBorder(new JPanel().getBackground(), 2);
+		this.screenSensors = new TreeMap<>();
+		this.statistics = new ArrayList<>();
+//		TODO: temp solution
+		statistics.add(new DescriptiveStatistics());
+		statistics.add(new DescriptiveStatistics());
+		statistics.add(new DescriptiveStatistics());
+		statistics.add(new DescriptiveStatistics());
+		statistics.add(new DescriptiveStatistics());
+		statistics.add(new DescriptiveStatistics());
+	}
 
 	/**
 	 * Return the number of current villans active seats.
@@ -98,7 +111,6 @@ public class SensorsArray {
 			Hero.logger.severe("Fail to detect active seats");
 		return av;
 	}
-
 	/**
 	 * Return the number of current active villans.
 	 * 
@@ -115,19 +127,27 @@ public class SensorsArray {
 	}
 
 	/**
-	 * return <code>true</code> if the player identifyed as id argument is active (hero or villan). A PLAYER IS ACTIVE
-	 * IF HE HAS CARDS IN THIS HANDS. if a player fold his card. this method will not count that player. from this
-	 * method point of view. the player is in tha game, but in this particular moment are not active.
+	 * Check for all sensor and return the current active stronger villan. The stronger villan in this functions is the
+	 * villan with more chips.
 	 * 
-	 * @param id - villan id or 0 for hero
-	 * @return true if the player is active
+	 * @return the boss or -1 in case of error or no boss detected at this time
 	 */
-	public boolean isActive(int id) {
-		String prefix = id == 0 ? "hero" : "villan" + id;
-		ScreenSensor vc1 = getSensor(prefix + ".name");
-		ScreenSensor vc2 = getSensor(prefix + ".chips");
-		return vc1.isEnabled() && vc2.isEnabled();
+	public double getBoss() {
+		ArrayList<Double> chips = new ArrayList<>();
+		for (int id = 1; id <= getVillans(); id++) {
+			if (isActive(id))
+				chips.add(getSensor("villan" + id + ".chips").getNumericOCR());
+		}
+		chips.removeIf(i -> i.doubleValue() < 0);
+		chips.sort(null);
+
+		if (chips.isEmpty())
+			return -1;
+
+		double wv = chips.get(chips.size() - 1);
+		return wv;
 	}
+
 	/**
 	 * return where in the table, the dealer button are. If hero has the button, this method return 0.
 	 * 
@@ -153,7 +173,6 @@ public class SensorsArray {
 	public Robot getRobot() {
 		return robot;
 	}
-
 	/**
 	 * return the {@link ScreenSensor} by name. The name comes from property <code>name</code>
 	 * 
@@ -166,6 +185,18 @@ public class SensorsArray {
 		Preconditions.checkNotNull(ss, "No sensor name " + sensorName + " was found.");
 		return ss;
 	}
+
+	/**
+	 * This method return a list of all action sensors currently enables. For example. if a enviorement with 10 binary
+	 * sensors, calling this method return <code>1469</code> means that the sensors 1, 4, 6 and 9 are enabled. all
+	 * others are disabled.
+	 * 
+	 * @return list of binary sensors enabled public String getEnabledActions() { String onlist = "";
+	 * 
+	 *         List<ScreenSensor> sslist = screenSensors.values().stream().filter(ScreenSensor::isActionArea)
+	 *         .collect(Collectors.toList()); for (int i = 0; i < sslist.size(); i++) { ScreenSensor ss =
+	 *         screenSensors.get("binary.sensor" + i); onlist += ss.isEnabled() ? "" : i; } return onlist; }
+	 */
 
 	public ShapeAreas getSensorDisposition() {
 		return screenAreas;
@@ -194,18 +225,6 @@ public class SensorsArray {
 	}
 
 	/**
-	 * This method return a list of all action sensors currently enables. For example. if a enviorement with 10 binary
-	 * sensors, calling this method return <code>1469</code> means that the sensors 1, 4, 6 and 9 are enabled. all
-	 * others are disabled.
-	 * 
-	 * @return list of binary sensors enabled public String getEnabledActions() { String onlist = "";
-	 * 
-	 *         List<ScreenSensor> sslist = screenSensors.values().stream().filter(ScreenSensor::isActionArea)
-	 *         .collect(Collectors.toList()); for (int i = 0; i < sslist.size(); i++) { ScreenSensor ss =
-	 *         screenSensors.get("binary.sensor" + i); onlist += ss.isEnabled() ? "" : i; } return onlist; }
-	 */
-
-	/**
 	 * Return the number of villans configurated in this table.
 	 * 
 	 * @see HeroPanel
@@ -216,12 +235,28 @@ public class SensorsArray {
 		return (int) screenSensors.keySet().stream().filter(sn -> sn.startsWith("villan") && sn.contains("name"))
 				.count();
 	}
+
 	/**
 	 * initialize this sensor array. clearing all sensor and all variables
 	 */
 	public void init() {
 		screenSensors.values().forEach((ss) -> ss.init());
 		pokerSimulator.init();
+	}
+
+	/**
+	 * return <code>true</code> if the player identifyed as id argument is active (hero or villan). A PLAYER IS ACTIVE
+	 * IF HE HAS CARDS IN THIS HANDS. if a player fold his card. this method will not count that player. from this
+	 * method point of view. the player is in tha game, but in this particular moment are not active.
+	 * 
+	 * @param id - villan id or 0 for hero
+	 * @return true if the player is active
+	 */
+	public boolean isActive(int id) {
+		String prefix = id == 0 ? "hero" : "villan" + id;
+		ScreenSensor vc1 = getSensor(prefix + ".card1");
+		ScreenSensor vc2 = getSensor(prefix + ".card2");
+		return vc1.isEnabled() && vc2.isEnabled();
 	}
 
 	/**
@@ -245,7 +280,6 @@ public class SensorsArray {
 		ScreenSensor vchip = getSensor("villan" + villanId + ".chips");
 		return vchip.isEnabled();
 	}
-
 	/**
 	 * Shortcut to get the enable/disable status from a sensor
 	 * 
@@ -278,63 +312,7 @@ public class SensorsArray {
 		long t2 = System.currentTimeMillis() - t1;
 		pokerSimulator.setVariable("sensorArray.Look table time", sslist.size() + " sensors " + t2);
 	}
-	private GameRecorder gameRecorder;
 
-	/**
-	 * read one unit of information. This method is intented to retrive information from the enviorement in small amount
-	 * to avoid exces of time comsumption. the information already processed is rotate back to the end of the list to
-	 * allow the rest of the sensor be readed.
-	 * 
-	 * @param restar - <code>true</code> indicate the internal list must be reordener to the initial status.
-	 *        <code>false</code> indicate normal rotation reading
-	 */
-	public void readPlayerStat() {
-		List<ScreenSensor> list;
-		if (villansBeacon == -1) {
-			list = new ArrayList<>();
-			list.add(getSensor("hero.name"));
-			list.add(getSensor("hero.chips"));
-			readSensors(true, list);
-			gameRecorder.getGamePlayer(0).update();
-		} else {
-			list = getSensors("villan" + villansBeacon);
-			readSensors(true, list);
-			gameRecorder.getGamePlayer(villansBeacon).update();
-		}
-		villansBeacon++;
-		if (villansBeacon > getVillans()) {
-			villansBeacon = -1;
-			gameRecorder.updateDB();
-			ArrayList<String> means = gameRecorder.getAssesment();
-			StringBuffer sb = new StringBuffer();
-			means.forEach(st -> sb.append(st + " "));
-			pokerSimulator.setVariable("trooper.Assesment", sb.substring(0, sb.length() - 2));
-		}
-	}
-
-	/**
-	 * Check for all sensor and return the current active stronger villan. The stronger villan in this functions is the
-	 * villan with more chips.
-	 * 
-	 * @return the boss or -1 in case of error or no boss detected at this time
-	 */
-	public double getBoss() {
-		ArrayList<Double> chips = new ArrayList<>();
-		for (int id = 1; id <= getVillans(); id++) {
-			if (isActive(id))
-				chips.add(getSensor("villan" + id + ".chips").getNumericOCR());
-		}
-		chips.removeIf(i -> i.doubleValue() < 0);
-		chips.sort(null);
-
-		if (chips.isEmpty())
-			return -1;
-
-		double wv = chips.get(chips.size() - 1);
-		return wv;
-	}
-
-	private int villansBeacon = -1;
 	/**
 	 * Perform read operation on the {@link ScreenSensor} acoording to the type of the sensor. The type can be any of
 	 * TYPE_ global constatn passed as argument. This method perform the OCR operation on the selected areas and update
@@ -388,13 +366,6 @@ public class SensorsArray {
 				}
 			}
 
-			// temp? look the villans infor to detect active and inactive ones
-			slist = allSensors.stream()
-					.filter(sn -> sn.getName().startsWith("villan")
-							&& (sn.getName().contains("name") || sn.getName().contains("chips")))
-					.collect(Collectors.toList());
-			readSensors(false, slist);
-
 			pokerSimulator.setNunOfPlayers(getActiveVillans() + 1);
 			pokerSimulator.runSimulation();
 		}
@@ -404,7 +375,34 @@ public class SensorsArray {
 		pokerSimulator.setVariable("sensorArray.Performance", "Tesseract " + ((int) tesseractTime.getMean())
 				+ " ImageDiference " + ((int) imageDiffereceTime.getMean()));
 	}
+	/**
+	 * read one unit of information. This method is intented to retrive information from the enviorement in small amount
+	 * to avoid exces of time comsumption.
+	 * 
+	 */
+	public void readPlayerStat() {
+		// gamers information
+		gameRecorder.getGamePlayer(villansBeacon).update();
+		villansBeacon++;
+		if (villansBeacon > getVillans()) {
+			villansBeacon = 0;
+			gameRecorder.updateDB();
+			ArrayList<String> means = gameRecorder.getAssesment();
+			StringBuffer sb = new StringBuffer();
+			means.forEach(st -> sb.append(st + " "));
+			pokerSimulator.setVariable("trooper.Assesment", sb.substring(0, sb.length() - 2));
+		}
 
+		// envioerement information
+		Statistic s = Statistic.findOrInit("time", Hero.startDate, "tableparams", pokerSimulator.getTableParameters(),
+				"STREET", pokerSimulator.getCurrentRound(), "name", "potValue");
+		DescriptiveStatistics sts = statistics.get(pokerSimulator.getCurrentRound());
+		sts.addValue(pokerSimulator.getPotValue());
+		s.set("VALUE", sts.getMean());
+		s.save();
+	}
+
+	DescriptiveStatistics pots = new DescriptiveStatistics(30);
 	/**
 	 * Utility method to take the image of the villans?.name areas for some and store in the
 	 * {@link GameRecorder#IMAGE_ACTIONS}. This method is invoked during configuration step to retribe samples of the
@@ -463,7 +461,7 @@ public class SensorsArray {
 	 * @see ScreenSensor#capture(boolean)
 	 * @since 2.3
 	 */
-	private void readSensors(boolean read, List<ScreenSensor> list) {
+	public void readSensors(boolean read, List<ScreenSensor> list) {
 		setStandByBorder();
 		for (ScreenSensor ss : list) {
 			ss.setBorder(read ? readingBorder : lookingBorder);
@@ -511,14 +509,6 @@ public class SensorsArray {
 			screenSensors.put(ss.getName(), ss);
 		}
 		setStandByBorder();
-
-		// information that must be readed in idle time. this info never must be cleared
-
-		// Collection<ScreenSensor> allSensors = screenSensors.values();
-		// List<String> slist = allSensors.stream()
-		// // .filter(ss -> ss.getName().contains(".chips") || ss.getName().contains(".name"))
-		// .filter(ss -> ss.getName().startsWith("villan")).map(ScreenSensor::getName)
-		// .collect(Collectors.toList());
 		pokerSimulator.init();
 		gameRecorder = new GameRecorder(getVillans());
 	}

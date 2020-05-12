@@ -131,6 +131,14 @@ public class PokerSimulator {
 		init();
 	}
 
+	/**
+	 * Return the strin representation of the parameters of the table
+	 * 
+	 * @return table parms
+	 */
+	public String getTableParameters() {
+		return getBuyIn() + "," + getBigBlind() + "," + getSmallBlind();
+	}
 	public void cleanReport() {
 		variableList.keySet().forEach(key -> variableList.put(key, ""));
 		variableList.put(STATUS, STATUS_OK);
@@ -204,16 +212,16 @@ public class PokerSimulator {
 	}
 
 	/**
-	 * return the current hand streng. this fraction is close to 0 when the
-	 * troper has nothing (like 23) and increase to 1 for royal flush. 
+	 * return the current hand streng. this fraction is close to 0 when the troper has nothing (like 23) and increase to
+	 * 1 for royal flush.
 	 * 
 	 * @return the hero hand rank.
 	 */
 	public double getCurrentHandStreng() {
 		double rank = UoAHandEvaluator.rankHand(uoAHand);
 		// lest than minimun, or none of hole card participate in the hand
-//		if (rank < minHandRank || !myHandHelper.isHoleCardHand())
-//			return 0.0;
+		// if (rank < minHandRank || !myHandHelper.isHoleCardHand())
+		// return 0.0;
 		return rank / topHandRank;
 	}
 

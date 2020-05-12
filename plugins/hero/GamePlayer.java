@@ -1,5 +1,7 @@
 package plugins.hero;
 
+import java.util.*;
+
 import org.apache.commons.math3.stat.descriptive.*;
 
 import core.*;
@@ -21,7 +23,7 @@ import core.datasource.model.*;
 public class GamePlayer {
 	private String name;
 	private String oldName = "";
-	private DescriptiveStatistics bettingPattern, startingHands;
+	private DescriptiveStatistics bettingPattern;
 	private SensorsArray array;
 	private int playerId;
 	private String prefix;
@@ -43,8 +45,7 @@ public class GamePlayer {
 		return name;
 	}
 	private void initStatistics() {
-		this.bettingPattern = new DescriptiveStatistics(300);
-		this.startingHands = new DescriptiveStatistics(300);
+		this.bettingPattern = new DescriptiveStatistics(100);
 	}
 	/**
 	 * signal by {@link GameRecorder} when is time to update the information about this player. This method will updata
@@ -54,10 +55,18 @@ public class GamePlayer {
 	 * propabilistic information about this villan could be retribed afeter that
 	 */
 	public void update() {
-
 		// record only if the player is active
 		if (!array.isActive(playerId))
 			return;
+
+		List<ScreenSensor> list = new ArrayList<>();
+		if (playerId == 0) {
+			list.add(array.getSensor("hero.chips"));
+		} else {
+			list = array.getSensors("villan" + playerId);
+		}
+		array.readSensors(true, list);
+
 		// amunitions
 		double chips = 0.0;
 		if (playerId == 0) {
@@ -92,8 +101,6 @@ public class GamePlayer {
 			} else {
 				bettingPattern = (DescriptiveStatistics) TPreferences
 						.getObjectFromByteArray(gh.getBytes("BEATTIN_PATTERN"));
-				startingHands = (DescriptiveStatistics) TPreferences
-						.getObjectFromByteArray(gh.getBytes("STARTING_HANDS"));
 			}
 		}
 
@@ -121,32 +128,18 @@ public class GamePlayer {
 		return var;
 	}
 
-	// public int getHands() {
-	// int hands = 0;
-	// for (int i = 1; i < startingHands.getN(); i++) {
-	// if (startingHands.getElement(i) == PokerSimulator.FLOP_CARDS_DEALT
-	// && startingHands.getElement(i - 1) == PokerSimulator.HOLE_CARDS_DEALT) {
-	// hands++;
-	// }
-	// }
-	// return hands;
-	// }
-
 	@Override
 	public String toString() {
-		return getMean() + "/" + getN();
+		return getMean() + " (" + getN() + ")";
 	}
 
 	public void updateDB() {
-//		if (!name.equals(prefix)) {
-//			GamesHistory gh = GamesHistory.findOrCreateIt("NAME", name);
-//			gh.set("BUY_IN", array.getPokerSimulator().getBuyIn());
-//			gh.set("SMALL_BLID", array.getPokerSimulator().getSmallBlind());
-//			gh.set("BIG_BLID", array.getPokerSimulator().getBigBlind());
-//			gh.set("ASSESMENT", toString());
-//			gh.set("BEATTIN_PATTERN", TPreferences.getByteArrayFromObject(bettingPattern));
-//			gh.set("STARTING_HANDS", TPreferences.getByteArrayFromObject(startingHands));
-//			gh.save();
-//		}
+		if (!name.equals(prefix)) {
+			GamesHistory gh = GamesHistory.findOrInit("time", Hero.startDate, "tableparams",
+					array.getPokerSimulator().getTableParameters(), "name", name);
+			gh.set("ASSESMENT", toString());
+			gh.set("BEATTIN_PATTERN", TPreferences.getByteArrayFromObject(bettingPattern));
+			gh.save();
+		}
 	}
 }

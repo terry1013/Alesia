@@ -187,7 +187,7 @@ public class Trooper extends Task {
 		// FLOP AND FUTHER
 		if (pokerSimulator.getCurrentRound() > PokerSimulator.HOLE_CARDS_DEALT) {
 			double number = getAmmunitions();
-			setOddActions(ODDS_EV, "from ammunition value", number);
+			setOddActions(ODDS_MREV, "from ammunition value", number);
 		}
 
 		// if the list of available actions are empty, i habe no option but fold/check

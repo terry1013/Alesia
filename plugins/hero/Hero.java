@@ -33,10 +33,15 @@ import net.sourceforge.tess4j.*;
 public class Hero extends TPlugin {
 
 	// protected static Tesseract iTesseract;
-	protected static ActionMap actionMap; 
+	protected static ActionMap actionMap;
 	protected static ConsolePanel consolePanel;
 	protected static HeroPanel heroPanel;
 	protected static Logger logger;
+
+	/**
+	 * update every time the action {@link #runTrooper(ActionEvent)} is performed
+	 */
+	protected static Date startDate = null;
 
 	public Hero() {
 		// iTesseract.setLanguage("pok");
@@ -44,7 +49,7 @@ public class Hero extends TPlugin {
 		logger = Logger.getLogger("Hero");
 		consolePanel = new ConsolePanel(logger);
 	}
-	
+
 	public static Tesseract geTesseract() {
 		// TODO: no visible performance improve by setting every sensor with his own teseract instance
 		Tesseract iTesseract = new Tesseract(); // JNA Interface Mapping
@@ -59,7 +64,6 @@ public class Hero extends TPlugin {
 		// iTesseract.setOcrEngineMode(0); // Run Tesseract only - fastest
 		return iTesseract;
 	}
-
 	public static Action getLoadAction() {
 		Action load = TActionsFactory.getAction("fileChooserOpen");
 		load.addPropertyChangeListener(evt -> {
@@ -69,6 +73,7 @@ public class Hero extends TPlugin {
 		});
 		return load;
 	}
+
 	/**
 	 * This metod is separated because maybe in the future we will need diferents robot for diferent graphics
 	 * configurations
@@ -93,6 +98,19 @@ public class Hero extends TPlugin {
 	}
 
 	@org.jdesktop.application.Action
+	public void heroPanel(ActionEvent event) {
+		heroPanel = new HeroPanel();
+		Alesia.getMainPanel().setContentPanel(heroPanel);
+
+		// temp: change the main frame using this coordenates: 0,40 547,735
+		Alesia.mainFrame.setBounds(0, 40, 547, 735);
+
+		// temporal
+		Trooper t = new Trooper();
+		t.init(new File("plugins/hero/resources/ps-main table.ppt"));
+	}
+
+	@org.jdesktop.application.Action
 	public void pauseTrooper(ActionEvent event) {
 		Trooper t = Trooper.getInstance();
 		boolean pause = !t.isPaused();
@@ -101,23 +119,11 @@ public class Hero extends TPlugin {
 		ab.setSelected(pause);
 		t.pause(pause);
 	}
-
+	
 	@org.jdesktop.application.Action
 	public Task runTrooper(ActionEvent event) {
+		startDate = new Date();
 		return start(false);
-	}
-
-	@org.jdesktop.application.Action
-	public void heroPanel(ActionEvent event) {
-		heroPanel = new HeroPanel();
-		Alesia.getMainPanel().setContentPanel(heroPanel);
-
-//		temp: change the main frame using this coordenates: 0,40 547,735
-		Alesia.mainFrame.setBounds(0, 40, 547, 735);
-		
-		// temporal
-		Trooper t = new Trooper();
-		t.init(new File("plugins/hero/resources/ps-main table.ppt"));
 	}
 
 	@org.jdesktop.application.Action
